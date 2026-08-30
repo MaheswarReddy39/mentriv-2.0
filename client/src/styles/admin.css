@@ -1,0 +1,715 @@
+﻿/* ================= ADMIN SHELL / TABLES (Step 41) ================= */
+.admin-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  align-items: flex-end;
+  margin-bottom: var(--space-5);
+}
+.admin-toolbar .field { margin-bottom: 0; min-width: 170px; }
+.admin-toolbar .spacer { flex: 1; }
+
+.admin-table-wrap { overflow-x: auto; }
+.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  font-size: var(--font-size-sm);
+}
+.admin-table th {
+  text-align: left;
+  padding: var(--space-3) var(--space-4);
+  font-size: var(--font-size-meta);
+  font-weight: 600;
+  color: var(--text-tertiary);
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+.admin-table td {
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--border);
+  vertical-align: middle;
+  color: var(--text);
+}
+.admin-table tbody tr:hover { background: var(--color-surface-muted); }
+.admin-table-actions { display: flex; gap: var(--space-2); justify-content: flex-end; }
+
+@media (max-width: 768px) {
+  .admin-table-wrap { border-radius: var(--radius-md); border: 1px solid var(--border); }
+  .admin-table thead { display: none; }
+  .admin-table tbody tr {
+    display: block;
+    padding: var(--space-3) var(--space-4);
+    border-bottom: 1px solid var(--border);
+  }
+  .admin-table td {
+    display: flex;
+    justify-content: space-between;
+    gap: var(--space-4);
+    border: none;
+    padding: var(--space-1) 0;
+  }
+  .admin-table td::before {
+    content: attr(data-label);
+    color: var(--text-tertiary);
+    font-weight: 600;
+  }
+  .admin-table-actions { justify-content: flex-start; flex-wrap: wrap; }
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-4);
+}
+@media (max-width: 640px) { .form-grid { grid-template-columns: 1fr; } }
+
+.dash-greeting h1 { margin-bottom: var(--space-1); }
+.quick-actions { display: flex; flex-wrap: wrap; gap: var(--space-3); }
+.pending-list { display: grid; gap: var(--space-2); }
+
+.admin-students-page {
+  display: grid;
+  gap: var(--space-5);
+}
+
+.admin-students-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--space-4);
+}
+
+.admin-students-header h1 {
+  margin-bottom: var(--space-1);
+}
+
+.admin-students-header p {
+  margin: 0;
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+
+.admin-students-filters {
+  display: grid;
+  grid-template-columns: minmax(220px, 1.4fr) minmax(180px, 1fr) minmax(170px, 0.8fr);
+  gap: var(--space-3);
+  align-items: end;
+}
+
+.admin-students-filters .field {
+  margin-bottom: 0;
+}
+
+.admin-students-table-wrap {
+  border-radius: var(--radius-md);
+}
+
+.admin-students-table {
+  table-layout: fixed;
+}
+
+.admin-students-table td {
+  overflow-wrap: anywhere;
+}
+
+.admin-students-table th:last-child,
+.admin-students-table td:last-child {
+  text-align: right;
+}
+
+.admin-student-actions {
+  min-width: 150px;
+}
+
+@media (max-width: 900px) {
+  .admin-students-filters {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .admin-students-header {
+    display: block;
+  }
+
+  .admin-students-filters {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-students-table th:last-child,
+  .admin-students-table td:last-child {
+    text-align: left;
+  }
+
+  .admin-students-table,
+  .admin-students-table tbody {
+    display: block;
+  }
+
+  .admin-student-actions {
+    min-width: 0;
+  }
+}
+
+.teacher-stat-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.teacher-classes-page {
+  display: grid;
+  gap: var(--space-5);
+}
+
+.teacher-class-card {
+  display: grid;
+  gap: var(--space-5);
+}
+
+.teacher-card-head h2 {
+  margin: 0;
+  font-size: var(--font-size-h3);
+}
+
+.teacher-class-form {
+  display: grid;
+  gap: var(--space-5);
+}
+
+.teacher-class-form .field {
+  margin-bottom: 0;
+}
+
+.teacher-class-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-4);
+  align-items: start;
+}
+
+.teacher-class-links {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.teacher-assignment-type-row {
+  width: min(420px, 100%);
+}
+
+.teacher-assignment-fields {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.teacher-class-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.teacher-submissions-page {
+  display: grid;
+  gap: var(--space-5);
+}
+
+.teacher-submissions-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--space-4);
+}
+
+.teacher-submissions-header h1 {
+  margin-bottom: var(--space-1);
+}
+
+.teacher-submissions-header p:last-child {
+  margin: 0;
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+
+.teacher-submission-stats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-3);
+}
+
+.teacher-submission-stat-card {
+  min-height: 108px;
+  display: grid;
+  align-content: center;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+}
+
+.teacher-submission-stat-card span {
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+}
+
+.teacher-submission-stat-card strong {
+  color: var(--text);
+  font-family: var(--font-heading);
+  font-size: clamp(1.7rem, 3vw, 2.3rem);
+  line-height: 1;
+}
+
+.teacher-submissions-filters {
+  display: grid;
+  grid-template-columns: minmax(220px, 1.4fr) minmax(180px, 1fr) minmax(170px, 0.8fr);
+  gap: var(--space-3);
+  align-items: end;
+}
+
+.teacher-submissions-filters .field {
+  margin-bottom: 0;
+}
+
+.teacher-submissions-table-wrap {
+  border-radius: var(--radius-md);
+}
+
+.teacher-submissions-table {
+  table-layout: fixed;
+}
+
+.teacher-submissions-table td {
+  overflow-wrap: anywhere;
+}
+
+.teacher-submission-progress {
+  display: grid;
+  gap: var(--space-2);
+  min-width: 130px;
+}
+
+.teacher-submission-progress span {
+  font-weight: 700;
+}
+
+.teacher-leaderboard-page {
+  display: grid;
+  gap: var(--space-5);
+}
+
+.teacher-leaderboard-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--space-4);
+}
+
+.teacher-leaderboard-header h1 {
+  margin-bottom: 0;
+}
+
+.teacher-leaderboard-filters {
+  display: grid;
+  grid-template-columns: minmax(220px, 1.4fr) minmax(180px, 1fr);
+  gap: var(--space-3);
+  align-items: end;
+}
+
+.teacher-leaderboard-filters .field {
+  margin-bottom: 0;
+}
+
+.teacher-leaderboard-table-wrap {
+  border-radius: var(--radius-md);
+}
+
+.teacher-leaderboard-table {
+  table-layout: fixed;
+}
+
+.teacher-leaderboard-table td {
+  overflow-wrap: anywhere;
+}
+
+.teacher-leaderboard-table tbody tr.teacher-leaderboard-rank-first {
+  background: color-mix(in srgb, #f6c64f 18%, var(--surface));
+}
+
+.teacher-leaderboard-table tbody tr.teacher-leaderboard-rank-second {
+  background: color-mix(in srgb, #9aa4b2 16%, var(--surface));
+}
+
+.teacher-leaderboard-table tbody tr.teacher-leaderboard-rank-third {
+  background: color-mix(in srgb, #c47a46 16%, var(--surface));
+}
+
+.teacher-leaderboard-rank {
+  width: 2rem;
+  height: 2rem;
+  display: inline-grid;
+  place-items: center;
+  border-radius: 999px;
+  background: var(--surface-muted);
+  color: var(--text);
+  font-weight: 800;
+}
+
+.teacher-leaderboard-rank-first .teacher-leaderboard-rank {
+  background: #f6c64f;
+  color: #3b2a04;
+}
+
+.teacher-leaderboard-rank-second .teacher-leaderboard-rank {
+  background: #9aa4b2;
+  color: #172033;
+}
+
+.teacher-leaderboard-rank-third .teacher-leaderboard-rank {
+  background: #c47a46;
+  color: #2f1608;
+}
+
+.teacher-leaderboard-progress {
+  display: grid;
+  gap: var(--space-2);
+  min-width: 140px;
+}
+
+.teacher-leaderboard-progress span {
+  font-weight: 700;
+}
+
+.teacher-profile-page {
+  display: grid;
+  gap: var(--space-5);
+}
+
+.teacher-profile-card {
+  display: grid;
+  gap: var(--space-5);
+}
+
+.teacher-profile-card h2,
+.teacher-profile-security h2 {
+  margin: 0;
+  font-size: var(--font-size-h3);
+}
+
+.teacher-profile-card .teacher-card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+}
+
+.teacher-profile-form {
+  display: grid;
+  gap: var(--space-5);
+}
+
+.teacher-profile-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-4);
+}
+
+.teacher-profile-grid .field {
+  margin-bottom: 0;
+}
+
+.teacher-profile-field {
+  min-height: 76px;
+  display: grid;
+  align-content: center;
+  gap: var(--space-1);
+  padding: var(--space-4);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-muted);
+}
+
+.teacher-profile-field span {
+  color: var(--text-tertiary);
+  font-size: var(--font-size-meta);
+  font-weight: 600;
+}
+
+.teacher-profile-field strong {
+  color: var(--text);
+  font-size: var(--font-size-sm);
+  overflow-wrap: anywhere;
+}
+
+.teacher-profile-actions,
+.teacher-profile-security {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.teacher-profile-security {
+  justify-content: space-between;
+}
+
+@media (max-width: 640px) {
+  .teacher-stat-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .teacher-class-form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .teacher-class-actions .btn {
+    width: 100%;
+  }
+
+  .teacher-profile-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .teacher-profile-actions,
+  .teacher-profile-actions .btn,
+  .teacher-profile-security,
+  .teacher-profile-security .btn {
+    width: 100%;
+  }
+
+  .teacher-profile-actions {
+    flex-direction: column-reverse;
+  }
+}
+
+@media (max-width: 900px) {
+  .teacher-submissions-filters,
+  .teacher-leaderboard-filters {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .teacher-submissions-header,
+  .teacher-leaderboard-header {
+    display: block;
+  }
+
+  .teacher-submission-stats,
+  .teacher-submissions-filters,
+  .teacher-leaderboard-filters {
+    grid-template-columns: 1fr;
+  }
+
+  .teacher-submissions-table,
+  .teacher-leaderboard-table,
+  .teacher-leaderboard-table tbody,
+  .teacher-submissions-table tbody {
+    display: block;
+  }
+}
+
+.admin-submissions-page {
+  display: grid;
+  gap: var(--space-5);
+}
+
+.admin-submissions-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--space-4);
+}
+
+.admin-submissions-header h1 {
+  margin-bottom: var(--space-1);
+}
+
+.admin-submissions-header p {
+  margin: 0;
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+
+.admin-submission-stats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-3);
+}
+
+.admin-submission-stat-card {
+  min-height: 108px;
+  display: grid;
+  align-content: center;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+}
+
+.admin-submission-stat-card span {
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+}
+
+.admin-submission-stat-card strong {
+  color: var(--text);
+  font-family: var(--font-heading);
+  font-size: clamp(1.7rem, 3vw, 2.3rem);
+  line-height: 1;
+}
+
+.admin-submissions-filters {
+  display: grid;
+  grid-template-columns: minmax(220px, 1.4fr) minmax(180px, 1fr) minmax(170px, 0.8fr);
+  gap: var(--space-3);
+  align-items: end;
+}
+
+.admin-submissions-filters .field {
+  margin-bottom: 0;
+}
+
+.admin-submissions-table-wrap {
+  border-radius: var(--radius-md);
+}
+
+.admin-submissions-table {
+  table-layout: fixed;
+}
+
+.admin-submissions-table td {
+  overflow-wrap: anywhere;
+}
+
+.admin-submission-progress {
+  display: grid;
+  gap: 2px;
+}
+
+.admin-submission-progress span {
+  font-weight: 700;
+}
+
+.admin-submission-progress small {
+  color: var(--text-tertiary);
+}
+
+@media (max-width: 900px) {
+  .admin-submissions-filters {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .admin-submissions-header {
+    display: block;
+  }
+
+  .admin-submission-stats,
+  .admin-submissions-filters {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-submissions-table,
+  .admin-submissions-table tbody {
+    display: block;
+  }
+}
+
+.admin-notifications-page {
+  display: grid;
+  gap: var(--space-5);
+}
+
+.admin-notification-form-card {
+  padding: var(--space-5);
+}
+
+.admin-notification-form {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.admin-notification-form .field {
+  margin-bottom: var(--space-4);
+}
+
+.admin-notification-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-4);
+}
+
+.admin-notification-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.admin-notification-list-section {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.admin-notification-list {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.admin-notification-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--space-4);
+  align-items: start;
+}
+
+.admin-notification-card h3 {
+  margin: 0 0 var(--space-1);
+  font-size: var(--font-size-h4);
+}
+
+.admin-notification-card p {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+}
+
+.admin-notification-meta {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-3);
+  color: var(--text-tertiary);
+  font-size: var(--font-size-sm);
+  white-space: nowrap;
+}
+
+@media (max-width: 768px) {
+  .admin-notification-form-grid,
+  .admin-notification-card {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-notification-actions,
+  .admin-notification-actions .btn,
+  .admin-notification-meta {
+    width: 100%;
+  }
+
+  .admin-notification-actions .btn {
+    justify-content: center;
+  }
+
+  .admin-notification-meta {
+    justify-content: flex-start;
+    flex-wrap: wrap;
+    white-space: normal;
+  }
+}

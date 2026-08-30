@@ -1,0 +1,19 @@
+# Dependencies
+node_modules/
+
+# Environment variables
+.env
+.env.local
+
+# Logs
+*.log
+*.err
+
+# Development/testing scripts
+.seed*.mjs
+.diag*.mjs
+.e2e*.mjs
+.asg*.mjs
+.inspect*.mjs
+.verify*.mjs
+.cleanup*.mjs
