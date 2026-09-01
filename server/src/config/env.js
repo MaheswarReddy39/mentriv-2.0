@@ -32,11 +32,11 @@ const env = {
   chromaDbUrl: process.env.CHROMA_DB_URL || 'http://localhost:8000',
   embeddingModel: process.env.EMBEDDING_MODEL || 'BAAI/bge-small-en-v1.5',
   openrouterApiKey: process.env.OPENROUTER_API_KEY || '',
-  llmModel: process.env.LLM_MODEL || 'openai/gpt-4o-mini',
+  llmModel: process.env.LLM_MODEL || 'openrouter/free',
   groqApiKey: process.env.GROQ_API_KEY || '',
-  groqModel: process.env.GROQ_MODEL || 'llama-3.1-8b-instant',
+  groqModel: process.env.GROQ_MODEL || 'openai/gpt-oss-20b',
   geminiApiKey: process.env.GEMINI_API_KEY || '',
-  geminiModel: process.env.GEMINI_MODEL || 'gemini-2.0-flash',
+  geminiModel: process.env.GEMINI_MODEL || 'gemini-3.5-flash-lite',
 };
 
 export default env;
