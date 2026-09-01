@@ -95,11 +95,11 @@ const registerUser = async ({ name, email, password, phone, courseId, education,
   try {
     const course = await Course.findById(courseId).select('title').lean();
     const courseTitle = course?.title || 'your selected course';
-    await emailService.sendRegistrationConfirmationEmail({
+    emailService.sendRegistrationConfirmationEmail({
       to: normalizedEmail,
       name,
       courseTitle,
-    });
+    }).catch((error) => console.error(`[email] Registration confirmation email failed: ${error.message}`));
   } catch (error) {
     console.error(`[email] Registration confirmation email failed: ${error.message}`);
   }
@@ -108,13 +108,13 @@ const registerUser = async ({ name, email, password, phone, courseId, education,
     try {
       const admin = await User.findOne({ email: env.adminEmail, role: { $in: ['admin', 'superAdmin'] } }).select('name').lean();
       const course = await Course.findById(courseId).select('title').lean();
-      await emailService.sendNewStudentRegistrationEmail({
+      emailService.sendNewStudentRegistrationEmail({
         to: env.adminEmail,
         adminName: admin?.name || 'Admin',
         studentName: name,
         studentEmail: normalizedEmail,
         courseTitle: course?.title || 'your selected course',
-      });
+      }).catch((error) => console.error(`[email] Admin registration notification failed: ${error.message}`));
     } catch (error) {
       console.error(`[email] Admin registration notification failed: ${error.message}`);
     }
@@ -154,10 +154,10 @@ const registerTeacher = async ({ name, phone, email, courseId, password }) => {
   });
 
   try {
-    await emailService.sendTeacherRegistrationConfirmationEmail({
+    emailService.sendTeacherRegistrationConfirmationEmail({
       to: normalizedEmail,
       teacherName: name,
-    });
+    }).catch((error) => console.error(`[email] Teacher registration confirmation email failed: ${error.message}`));
   } catch (error) {
     console.error(`[email] Teacher registration confirmation email failed: ${error.message}`);
   }
@@ -165,12 +165,12 @@ const registerTeacher = async ({ name, phone, email, courseId, password }) => {
   if (env.adminEmail) {
     try {
       const admin = await User.findOne({ email: env.adminEmail, role: { $in: ['admin', 'superAdmin'] } }).select('name').lean();
-      await emailService.sendNewTeacherRegistrationEmail({
+      emailService.sendNewTeacherRegistrationEmail({
         to: env.adminEmail,
         adminName: admin?.name || 'Admin',
         teacherName: name,
         teacherEmail: normalizedEmail,
-      });
+      }).catch((error) => console.error(`[email] Admin teacher registration notification failed: ${error.message}`));
     } catch (error) {
       console.error(`[email] Admin teacher registration notification failed: ${error.message}`);
     }
