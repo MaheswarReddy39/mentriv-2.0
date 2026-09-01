@@ -24,13 +24,17 @@ const errorHandler = (err, _req, res, _next) => {
     }));
   }
 
-  if (statusCode >= 500) {
+  if (statusCode >= 500 && !err.isOperational) {
     console.error(`[error] ${statusCode}: ${message}`);
     message = 'Internal server error';
   }
 
   const body = { status: 'error', message };
   if (err.details && statusCode < 500) {
+    if (err.details.length > 0 && err.details[0].msg) {
+      message = err.details[0].msg;
+    }
+    body.message = message;
     body.errors = err.details;
   }
 

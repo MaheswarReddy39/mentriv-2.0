@@ -1,6 +1,8 @@
 import asyncHandler from '../utils/async-handler.js';
 import chatService from '../services/chat.service.js';
 
+const CHATBOT_UNAVAILABLE_MSG = 'Chatbot is temporarily unavailable. Please try again later.';
+
 const streamMessage = asyncHandler(async (req, res) => {
   const { message } = req.body;
 
@@ -31,13 +33,18 @@ const streamMessage = asyncHandler(async (req, res) => {
   };
 
   const onError = (error) => {
-    sendEvent('error', {
-      message: 'LLM service temporarily unavailable',
-    });
+    sendEvent('error', { message: CHATBOT_UNAVAILABLE_MSG });
     res.end();
   };
 
-  await chatService.streamAnswer({ message, onToken, onDone, onError });
+  try {
+    await chatService.streamAnswer({ message, onToken, onDone, onError });
+  } catch (error) {
+    if (!res.writableEnded) {
+      sendEvent('error', { message: CHATBOT_UNAVAILABLE_MSG });
+      res.end();
+    }
+  }
 });
 
 export { streamMessage };

@@ -1,6 +1,7 @@
 import { routeQuestion, OUT_OF_SCOPE_RESPONSE } from './question-router.service.js';
 import { retrieveRelevantChunks } from './rag.service.js';
 import llmService from './llm.service.js';
+import ApiError from '../utils/api-error.js';
 
 const MENTRIV_SYSTEM_INSTRUCTIONS =
   'You are Mentriv AI, a helpful assistant for the Mentriv EdTech learning platform. Answer the user question based on the provided context. Be concise, accurate, and friendly. If the context does not contain enough information to answer, say so clearly.';
@@ -12,6 +13,8 @@ const SYSTEM_INSTRUCTIONS_BY_ROUTE = {
   mentriv: MENTRIV_SYSTEM_INSTRUCTIONS,
   general: GENERAL_SYSTEM_INSTRUCTIONS,
 };
+
+const CHATBOT_UNAVAILABLE_MSG = 'Chatbot is temporarily unavailable. Please try again later.';
 
 const createChatService = ({
   rag = { retrieveRelevantChunks },
@@ -29,35 +32,41 @@ const createChatService = ({
       };
     }
 
-    if (routing.route === 'mentriv') {
-      const { chunks } = await rag.retrieveRelevantChunks({ query: message });
+    try {
+      if (routing.route === 'mentriv') {
+        const { chunks } = await rag.retrieveRelevantChunks({ query: message });
+
+        const reply = await llm.generateAnswer({
+          systemInstructions: MENTRIV_SYSTEM_INSTRUCTIONS,
+          question: message,
+          context: chunks.length > 0 ? chunks : null,
+        });
+
+        return {
+          reply,
+          route: routing.route,
+          ragUsed: chunks.length > 0,
+          sources: chunks.map((c) => c.metadata?.source_file).filter(Boolean),
+          timestamp: new Date().toISOString(),
+        };
+      }
 
       const reply = await llm.generateAnswer({
-        systemInstructions: MENTRIV_SYSTEM_INSTRUCTIONS,
+        systemInstructions: GENERAL_SYSTEM_INSTRUCTIONS,
         question: message,
-        context: chunks.length > 0 ? chunks : null,
       });
 
       return {
         reply,
         route: routing.route,
-        ragUsed: chunks.length > 0,
-        sources: chunks.map((c) => c.metadata?.source_file).filter(Boolean),
+        ragUsed: false,
         timestamp: new Date().toISOString(),
       };
+    } catch (error) {
+      if (error instanceof ApiError) throw error;
+      console.error(`[chat] sendMessage failed: ${error.message}`);
+      throw new ApiError(503, CHATBOT_UNAVAILABLE_MSG);
     }
-
-    const reply = await llm.generateAnswer({
-      systemInstructions: GENERAL_SYSTEM_INSTRUCTIONS,
-      question: message,
-    });
-
-    return {
-      reply,
-      route: routing.route,
-      ragUsed: false,
-      timestamp: new Date().toISOString(),
-    };
   };
 
   const prepareStream = async ({ message }) => {
@@ -77,7 +86,17 @@ const createChatService = ({
   };
 
   const streamAnswer = async ({ message, onToken, onDone, onError }) => {
-    const { routing, context, chunks } = await prepareStream({ message });
+    let routing;
+    let context;
+    let chunks;
+
+    try {
+      ({ routing, context, chunks } = await prepareStream({ message }));
+    } catch (error) {
+      console.error(`[chat] prepareStream failed: ${error.message}`);
+      onError(new ApiError(503, CHATBOT_UNAVAILABLE_MSG));
+      return;
+    }
 
     if (routing.route === 'out_of_scope') {
       onToken(OUT_OF_SCOPE_RESPONSE);
@@ -135,7 +154,8 @@ const createChatService = ({
         provider,
       });
     } catch (error) {
-      onError(error);
+      console.error(`[chat] streamAnswer failed: ${error.message}`);
+      onError(new ApiError(503, CHATBOT_UNAVAILABLE_MSG));
     }
   };
 

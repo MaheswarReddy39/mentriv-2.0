@@ -1,5 +1,6 @@
 import { getEmbedding } from './embedding.service.js';
 import { getCollection } from './vector-db.service.js';
+import ApiError from '../utils/api-error.js';
 
 const DEFAULT_TOP_K = 5;
 const DEFAULT_MIN_RELEVANCE = 0.5;
@@ -13,43 +14,49 @@ const retrieveRelevantChunks = async ({
     return { chunks: [], hasRelevantContext: false };
   }
 
-  const collection = await getCollection();
-  const queryEmbedding = await getEmbedding(query);
+  try {
+    const collection = await getCollection();
+    const queryEmbedding = await getEmbedding(query);
 
-  const results = await collection.query({
-    queryEmbeddings: [queryEmbedding],
-    nResults: topK,
-    include: ['documents', 'metadatas', 'distances'],
-  });
+    const results = await collection.query({
+      queryEmbeddings: [queryEmbedding],
+      nResults: topK,
+      include: ['documents', 'metadatas', 'distances'],
+    });
 
-  const ids = results.ids?.[0] || [];
-  const documents = results.documents?.[0] || [];
-  const metadatas = results.metadatas?.[0] || [];
-  const distances = results.distances?.[0] || [];
+    const ids = results.ids?.[0] || [];
+    const documents = results.documents?.[0] || [];
+    const metadatas = results.metadatas?.[0] || [];
+    const distances = results.distances?.[0] || [];
 
-  const chunks = [];
+    const chunks = [];
 
-  for (let i = 0; i < ids.length; i++) {
-    const distance = distances[i];
-    const similarity = 1 - distance;
+    for (let i = 0; i < ids.length; i++) {
+      const distance = distances[i];
+      const similarity = 1 - distance;
 
-    if (similarity < minRelevance) {
-      continue;
+      if (similarity < minRelevance) {
+        continue;
+      }
+
+      chunks.push({
+        id: ids[i],
+        text: documents[i],
+        metadata: metadatas[i],
+        distance,
+        similarity,
+      });
     }
 
-    chunks.push({
-      id: ids[i],
-      text: documents[i],
-      metadata: metadatas[i],
-      distance,
-      similarity,
-    });
+    return {
+      chunks,
+      hasRelevantContext: chunks.length > 0,
+    };
+  } catch (error) {
+    if (error instanceof ApiError) throw error;
+    console.error(`[rag] retrieval failed: ${error.message}`);
+    throw new ApiError(503, 'RAG service temporarily unavailable');
   }
-
-  return {
-    chunks,
-    hasRelevantContext: chunks.length > 0,
-  };
 };
 
 export {

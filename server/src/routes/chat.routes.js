@@ -11,9 +11,9 @@ const sendValidation = [
   body('message')
     .trim()
     .notEmpty()
-    .withMessage('Message is required')
+    .withMessage('Please enter a valid message.')
     .isLength({ min: 1, max: 2000 })
-    .withMessage('Message must be between 1 and 2000 characters'),
+    .withMessage('Please enter a valid message.'),
 ];
 
 router.post('/', chatRateLimit, validate(sendValidation), sendMessage);

@@ -30,11 +30,8 @@ const chatRateLimit = (req, _res, next) => {
   entry.count += 1;
 
   if (entry.count > MAX_REQUESTS) {
-    const retryAfterMs = WINDOW_MS - (now - entry.windowStart);
-    const retryAfterMinutes = Math.ceil(retryAfterMs / 60000);
-
     return next(
-      new ApiError(429, `Rate limit exceeded. Try again in ${retryAfterMinutes} minute(s).`)
+      new ApiError(429, 'You have reached the chat limit. Please try again later.')
     );
   }
 
