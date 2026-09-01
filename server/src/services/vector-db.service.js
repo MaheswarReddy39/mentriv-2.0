@@ -4,6 +4,10 @@ import { EMBEDDING_DIMENSION } from './embedding.service.js';
 
 const COLLECTION_NAME = 'mentriv_knowledge';
 
+const noopEmbeddingFunction = {
+  generate: async (texts) => texts.map(() => new Array(EMBEDDING_DIMENSION).fill(0)),
+};
+
 let client = null;
 let collection = null;
 
@@ -23,6 +27,7 @@ const initChromaDb = async () => {
       'hnsw:space': 'cosine',
       description: 'Mentriv knowledge base documents',
     },
+    embeddingFunction: noopEmbeddingFunction,
   });
 
   return { client, collection };
