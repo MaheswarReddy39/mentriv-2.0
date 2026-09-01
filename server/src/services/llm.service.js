@@ -113,12 +113,100 @@ const callGemini = async ({ apiKey, model, messages }) => {
   }
 };
 
+const callOpenAICompatibleStreaming = async ({ url, apiKey, model, messages, extraHeaders = {} }) => {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), PROVIDER_TIMEOUT_MS);
+
+  try {
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+        ...extraHeaders,
+      },
+      body: JSON.stringify({
+        model,
+        messages,
+        temperature: 0.7,
+        max_tokens: 1024,
+        stream: true,
+      }),
+      signal: controller.signal,
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
+
+    return response.body;
+  } finally {
+    clearTimeout(timeout);
+  }
+};
+
+const callGeminiStreaming = async ({ apiKey, model, messages }) => {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), PROVIDER_TIMEOUT_MS);
+
+  try {
+    let systemInstruction = '';
+    const contents = [];
+
+    for (const msg of messages) {
+      if (msg.role === 'system') {
+        systemInstruction = systemInstruction
+          ? `${systemInstruction}\n\n${msg.content}`
+          : msg.content;
+      } else {
+        contents.push({
+          role: msg.role === 'assistant' ? 'model' : 'user',
+          parts: [{ text: msg.content }],
+        });
+      }
+    }
+
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?key=${apiKey}&alt=sse`;
+
+    const body = { contents };
+    if (systemInstruction) {
+      body.systemInstruction = { parts: [{ text: systemInstruction }] };
+    }
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+      signal: controller.signal,
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
+
+    return response.body;
+  } finally {
+    clearTimeout(timeout);
+  }
+};
+
 const providers = [
   {
     name: 'openrouter',
     isAvailable: () => Boolean(env.openrouterApiKey),
     call: async (messages) =>
       callOpenAICompatible({
+        url: 'https://openrouter.ai/api/v1/chat/completions',
+        apiKey: env.openrouterApiKey,
+        model: env.llmModel,
+        messages,
+        extraHeaders: {
+          'HTTP-Referer': env.appFrontendUrl || 'http://localhost:5173',
+          'X-Title': 'Mentriv AI Chatbot',
+        },
+      }),
+    stream: async (messages) =>
+      callOpenAICompatibleStreaming({
         url: 'https://openrouter.ai/api/v1/chat/completions',
         apiKey: env.openrouterApiKey,
         model: env.llmModel,
@@ -139,12 +227,25 @@ const providers = [
         model: env.groqModel,
         messages,
       }),
+    stream: async (messages) =>
+      callOpenAICompatibleStreaming({
+        url: 'https://api.groq.com/openai/v1/chat/completions',
+        apiKey: env.groqApiKey,
+        model: env.groqModel,
+        messages,
+      }),
   },
   {
     name: 'gemini',
     isAvailable: () => Boolean(env.geminiApiKey),
     call: async (messages) =>
       callGemini({
+        apiKey: env.geminiApiKey,
+        model: env.geminiModel,
+        messages,
+      }),
+    stream: async (messages) =>
+      callGeminiStreaming({
         apiKey: env.geminiApiKey,
         model: env.geminiModel,
         messages,
@@ -183,10 +284,41 @@ const generateAnswer = async ({
   throw new ApiError(503, 'LLM service temporarily unavailable');
 };
 
+const generateAnswerStream = async ({
+  systemInstructions,
+  question,
+  context = null,
+} = {}) => {
+  if (!question || typeof question !== 'string' || question.trim().length === 0) {
+    throw new ApiError(400, 'Question is required');
+  }
+
+  const messages = buildMessages({ systemInstructions, question, context });
+
+  const availableProviders = providers.filter((p) => p.isAvailable());
+
+  if (availableProviders.length === 0) {
+    throw new ApiError(500, 'No LLM providers are configured');
+  }
+
+  const errors = [];
+
+  for (const provider of availableProviders) {
+    try {
+      const stream = await provider.stream(messages);
+      return { stream, provider: provider.name };
+    } catch (error) {
+      errors.push({ provider: provider.name, error: error.message });
+    }
+  }
+
+  throw new ApiError(503, 'LLM service temporarily unavailable');
+};
+
 const getAvailableProviders = () =>
   providers.filter((p) => p.isAvailable()).map((p) => p.name);
 
 const getProviderStatus = () =>
   providers.map((p) => ({ name: p.name, available: p.isAvailable() }));
 
-export default { generateAnswer, getAvailableProviders, getProviderStatus };
+export default { generateAnswer, generateAnswerStream, getAvailableProviders, getProviderStatus };
