@@ -15,6 +15,7 @@ import announcementRoutes from './announcement.routes.js';
 import studentRoutes from './student.routes.js';
 import teacherAdminRoutes from './teacher-admin.routes.js';
 import teacherDashboardRoutes from './teacher-dashboard.routes.js';
+import chatRoutes from './chat.routes.js';
 
 const apiV1Router = Router();
 
@@ -34,6 +35,7 @@ apiV1Router.use(mcqAttemptRoutes);
 apiV1Router.use(progressRoutes);
 apiV1Router.use(notificationRoutes);
 apiV1Router.use(announcementRoutes);
+apiV1Router.use('/chat', chatRoutes);
 
 const router = Router();
 
