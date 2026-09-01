@@ -1,7 +1,10 @@
-import { routeQuestion, OUT_OF_SCOPE_RESPONSE } from './question-router.service.js';
+import { routeQuestion, OUT_OF_SCOPE_RESPONSE, GREETING_RESPONSE } from './question-router.service.js';
 import { retrieveRelevantChunks } from './rag.service.js';
 import llmService from './llm.service.js';
+import { sanitizeContent } from './llm.service.js';
 import ApiError from '../utils/api-error.js';
+
+const METADATA_PATTERN = /\[?(?:User[- ]?(?:Safety|Sensitivity)|Content[- ]?(?:Safety|Filter|Rating)|Safety[- ]?(?:Rating|Level|Score)|Harm[- ]?(?:Category|Categories)|Blocked)[- ]?:[- ]?\w+\]?/i;
 
 const MENTRIV_SYSTEM_INSTRUCTIONS =
   'You are Mentriv AI, a helpful assistant for the Mentriv EdTech learning platform. Answer the user question based on the provided context. Be concise, accurate, and friendly. If the context does not contain enough information to answer, say so clearly.';
@@ -32,6 +35,14 @@ const createChatService = ({
       };
     }
 
+    if (routing.route === 'greeting') {
+      return {
+        reply: GREETING_RESPONSE,
+        route: routing.route,
+        timestamp: new Date().toISOString(),
+      };
+    }
+
     try {
       if (routing.route === 'mentriv') {
         const { chunks } = await rag.retrieveRelevantChunks({ query: message });
@@ -42,8 +53,10 @@ const createChatService = ({
           context: chunks.length > 0 ? chunks : null,
         });
 
+        const sanitized = sanitizeContent(reply);
+
         return {
-          reply,
+          reply: sanitized,
           route: routing.route,
           ragUsed: chunks.length > 0,
           sources: chunks.map((c) => c.metadata?.source_file).filter(Boolean),
@@ -56,8 +69,10 @@ const createChatService = ({
         question: message,
       });
 
+      const sanitized = sanitizeContent(reply);
+
       return {
-        reply,
+        reply: sanitized,
         route: routing.route,
         ragUsed: false,
         timestamp: new Date().toISOString(),
@@ -72,7 +87,7 @@ const createChatService = ({
   const prepareStream = async ({ message }) => {
     const routing = router.routeQuestion(message);
 
-    if (routing.route === 'out_of_scope') {
+    if (routing.route === 'out_of_scope' || routing.route === 'greeting') {
       return { routing, context: null, chunks: [] };
     }
 
@@ -108,6 +123,16 @@ const createChatService = ({
       return;
     }
 
+    if (routing.route === 'greeting') {
+      onToken(GREETING_RESPONSE);
+      onDone({
+        route: routing.route,
+        ragUsed: false,
+        sources: [],
+      });
+      return;
+    }
+
     const systemInstructions = SYSTEM_INSTRUCTIONS_BY_ROUTE[routing.route];
 
     try {
@@ -120,6 +145,7 @@ const createChatService = ({
       const reader = stream.getReader();
       const decoder = new TextDecoder();
       let fullContent = '';
+      let metadataDetected = false;
 
       while (true) {
         const { done, value } = await reader.read();
@@ -137,8 +163,15 @@ const createChatService = ({
               const parsed = JSON.parse(data);
               const token = parsed.choices?.[0]?.delta?.content;
               if (token) {
-                fullContent += token;
-                onToken(token);
+                if (!metadataDetected) {
+                  const candidate = fullContent + token;
+                  if (METADATA_PATTERN.test(candidate)) {
+                    metadataDetected = true;
+                  } else {
+                    fullContent += token;
+                    onToken(token);
+                  }
+                }
               }
             } catch {
               // Skip malformed JSON chunks

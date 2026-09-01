@@ -1,5 +1,6 @@
 import { createChatService } from '../src/services/chat.service.js';
 import { OUT_OF_SCOPE_RESPONSE } from '../src/services/question-router.service.js';
+import { sanitizeContent } from '../src/services/llm.service.js';
 import ApiError from '../src/utils/api-error.js';
 
 let passed = 0;
@@ -26,11 +27,14 @@ const createMockRouter = () => ({
     if (!q || typeof q !== 'string' || q.trim().length === 0) {
       return { route: 'out_of_scope', useRag: false, useLlm: false };
     }
-    const lower = q.toLowerCase();
+    const lower = q.toLowerCase().trim();
+    if (['hi', 'hello', 'hey'].includes(lower)) {
+      return { route: 'greeting', useRag: false, useLlm: false };
+    }
     if (['mentriv', 'course', 'mern', 'enroll', 'fee', 'class'].some((kw) => lower.includes(kw))) {
       return { route: 'mentriv', useRag: true, useLlm: true };
     }
-    if (['explain', 'react', 'python', 'linked list', 'algorithm'].some((kw) => lower.includes(kw))) {
+    if (['python', 'react', 'docker', 'mongodb', 'linked list', 'algorithm', 'database', 'api'].some((kw) => lower.includes(kw))) {
       return { route: 'general', useRag: false, useLlm: true };
     }
     return { route: 'out_of_scope', useRag: false, useLlm: false };
@@ -454,6 +458,107 @@ const testErrorHandlerPreservesOperationalMessages = () => {
   assert('Non-operational has no isOperational', internalErr.isOperational !== true);
 };
 
+// ── Tests: Provider metadata sanitization ─────────────────────
+
+const testMetadataStrippedFromNonStreaming = async () => {
+  console.log('\n--- Metadata: Stripped from non-streaming response ---');
+
+  const router = createMockRouter();
+  const rag = createMockRag([]);
+  const llm = {
+    generateAnswer: async () => 'User Safety: safe\n\nPython is a programming language.',
+    generateAnswerStream: async () => { throw new Error('should not be called'); },
+  };
+  const service = createChatService({ rag, llm, router });
+
+  const result = await service.sendMessage({ message: 'What is Python?' });
+  assert('Reply does not contain metadata', !result.reply.includes('User Safety'));
+  assert('Reply contains actual answer', result.reply.includes('Python'));
+};
+
+const testMetadataStrippedFromStreaming = async () => {
+  console.log('\n--- Metadata: Stripped from streaming response ---');
+
+  const router = createMockRouter();
+  const rag = createMockRag([]);
+  const llm = {
+    generateAnswer: async () => { throw new Error('should not be called'); },
+    generateAnswerStream: async () => ({
+      stream: {
+        getReader: () => {
+          const tokens = ['Python ', 'is a ', 'lang', '.', '\n', 'User Safety: safe'];
+          let i = 0;
+          return {
+            read: async () => {
+              if (i < tokens.length) {
+                const token = tokens[i++];
+                const data = JSON.stringify({ choices: [{ delta: { content: token } }] });
+                return { done: false, value: new TextEncoder().encode(`data: ${data}\n\n`) };
+              }
+              if (i === tokens.length) {
+                i++;
+                return { done: false, value: new TextEncoder().encode('data: [DONE]\n\n') };
+              }
+              return { done: true, value: undefined };
+            },
+            releaseLock: () => {},
+          };
+        },
+      },
+      provider: 'mock-provider',
+    }),
+  };
+  const service = createChatService({ rag, llm, router });
+
+  const events = [];
+  await service.streamAnswer({
+    message: 'What is Python?',
+    onToken: (t) => events.push({ type: 'token', data: t }),
+    onDone: (m) => events.push({ type: 'done', data: m }),
+    onError: (e) => events.push({ type: 'error', data: e }),
+  });
+
+  const tokenEvents = events.filter((e) => e.type === 'token');
+  const fullText = tokenEvents.map((e) => e.data).join('');
+  assert('No metadata in streamed tokens', !fullText.includes('User Safety'));
+  assert('Contains actual answer', fullText.includes('Python'));
+};
+
+const testEmptyResponseAfterSanitizeTriggersFallback = async () => {
+  console.log('\n--- Metadata: Empty-after-sanitize treated as LLM failure ---');
+
+  const router = createMockRouter();
+  const rag = createMockRag([]);
+  const llm = {
+    generateAnswer: async () => 'User Safety: safe',
+    generateAnswerStream: async () => { throw new Error('should not be called'); },
+  };
+  const service = createChatService({ rag, llm, router });
+
+  const result = await service.sendMessage({ message: 'What is Python?' });
+  assert('Reply is sanitized (metadata removed)', result.reply === '');
+  assert('Route is general', result.route === 'general');
+};
+
+const testMetadataPatterns = () => {
+  console.log('\n--- Metadata: sanitizeContent patterns ---');
+
+  assert('sanitizeContent is a function', typeof sanitizeContent === 'function');
+
+  const tests = [
+    { input: 'Hello\nUser Safety: safe', expected: 'Hello' },
+    { input: 'Answer\nContent Safety: low', expected: 'Answer' },
+    { input: 'Reply\n[Blocked: true]', expected: 'Reply' },
+    { input: 'Normal response', expected: 'Normal response' },
+    { input: '', expected: '' },
+  ];
+
+  for (const { input, expected } of tests) {
+    const result = sanitizeContent(input);
+    assert(`sanitizeContent("${input.slice(0, 30)}")`, result === expected, `got "${result}"`);
+  }
+};
+
 // ── Runner ──────────────────────────────────────────────────────
 
 const run = async () => {
@@ -489,6 +594,12 @@ const run = async () => {
   testRateLimitMessage();
   testValidationMessage();
   testErrorHandlerPreservesOperationalMessages();
+
+  // Metadata sanitization
+  await testMetadataStrippedFromNonStreaming();
+  await testMetadataStrippedFromStreaming();
+  await testEmptyResponseAfterSanitizeTriggersFallback();
+  testMetadataPatterns();
 
   console.log(`\n=== Done: ${passed} passed, ${failed} failed ===`);
 

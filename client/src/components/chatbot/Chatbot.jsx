@@ -1,24 +1,12 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
+import { API_BASE_URL, API_PREFIX } from '../../constants/api.js';
 import ChatbotButton from './ChatbotButton.jsx';
 import ChatbotWindow from './ChatbotWindow.jsx';
 
 const VISIBLE_PATHS = ['/', '/courses', '/announcements', '/dashboard', '/teacher', '/teacher/dashboard'];
 
 let nextId = 1;
-
-const MOCK_RESPONSES = [
-  "I'm Mentriv AI! I can help you with questions about our courses, enrollment, schedules, and more.",
-  'The MERN Stack course is currently available for Rs. 499 and lasts 2 months.',
-  'To enroll, simply visit the Courses page, select a course, and click Enroll. You will need to complete registration and wait for admin approval.',
-  'Classes run on flexible time slots: 6:00-7:30 PM, 8:00-9:30 PM, or 8:30-10:00 PM depending on availability.',
-  'Mentriv provides one-to-one mentorship alongside structured course learning. Teachers and faculty serve as mentors.',
-  'You can contact support via email at maheswarreddygondireddy12@gmail.com or call/WhatsApp at 9550441728 (8 AM - 9 PM).',
-];
-
-function getMockResponse() {
-  return MOCK_RESPONSES[Math.floor(Math.random() * MOCK_RESPONSES.length)];
-}
 
 export default function Chatbot() {
   const { pathname } = useLocation();
@@ -27,7 +15,8 @@ export default function Chatbot() {
   const [isOpen, setIsOpen] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
   const [messages, setMessages] = useState([]);
-  const [isTyping, setIsTyping] = useState(false);
+  const [isStreaming, setIsStreaming] = useState(false);
+  const abortRef = useRef(null);
 
   const handleToggle = useCallback(() => {
     if (isOpen) {
@@ -40,6 +29,10 @@ export default function Chatbot() {
   }, [isOpen]);
 
   const handleClose = useCallback(() => {
+    if (abortRef.current) {
+      abortRef.current.abort();
+      abortRef.current = null;
+    }
     setIsOpen(false);
     setIsMinimized(false);
   }, []);
@@ -48,17 +41,106 @@ export default function Chatbot() {
     setIsMinimized((prev) => !prev);
   }, []);
 
-  const handleSend = useCallback((text) => {
+  const handleSend = useCallback(async (text) => {
     const userMsg = { id: nextId++, sender: 'user', text };
     setMessages((prev) => [...prev, userMsg]);
-    setIsTyping(true);
+    setIsStreaming(true);
 
-    setTimeout(() => {
-      const botMsg = { id: nextId++, sender: 'bot', text: getMockResponse() };
-      setMessages((prev) => [...prev, botMsg]);
-      setIsTyping(false);
-    }, 800 + Math.random() * 600);
+    const controller = new AbortController();
+    abortRef.current = controller;
+
+    try {
+      const response = await fetch(`${API_BASE_URL}${API_PREFIX}/chat/stream`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: text }),
+        signal: controller.signal,
+      });
+
+      if (!response.ok) {
+        const data = await response.json().catch(() => null);
+        const errorMsg = data?.message || 'Chatbot is temporarily unavailable. Please try again later.';
+        setMessages((prev) => [...prev, { id: nextId++, sender: 'bot', text: errorMsg }]);
+        setIsStreaming(false);
+        return;
+      }
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+      let currentText = '';
+      let botMsgId = null;
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop();
+
+        for (const line of lines) {
+          if (line.startsWith('event: ')) {
+            var eventType = line.slice(7).trim();
+          } else if (line.startsWith('data: ')) {
+            const raw = line.slice(6).trim();
+            if (raw === '[DONE]') continue;
+
+            let data;
+            try {
+              data = JSON.parse(raw);
+            } catch {
+              continue;
+            }
+
+            if (eventType === 'token' && data.content) {
+              currentText += data.content;
+              if (botMsgId === null) {
+                botMsgId = nextId++;
+                setMessages((prev) => [...prev, { id: botMsgId, sender: 'bot', text: currentText }]);
+              } else {
+                const id = botMsgId;
+                setMessages((prev) =>
+                  prev.map((m) => (m.id === id ? { ...m, text: currentText } : m))
+                );
+              }
+            } else if (eventType === 'done') {
+              if (botMsgId === null && currentText) {
+                setMessages((prev) => [...prev, { id: nextId++, sender: 'bot', text: currentText }]);
+              }
+            } else if (eventType === 'error') {
+              const errorMsg = data.message || 'Chatbot is temporarily unavailable. Please try again later.';
+              if (botMsgId === null) {
+                setMessages((prev) => [...prev, { id: nextId++, sender: 'bot', text: errorMsg }]);
+              } else {
+                setMessages((prev) => [
+                  ...prev.filter((m) => m.id !== botMsgId),
+                  { id: botMsgId, sender: 'bot', text: errorMsg },
+                ]);
+              }
+            }
+          }
+        }
+      }
+    } catch (err) {
+      if (err.name !== 'AbortError') {
+        setMessages((prev) => [
+          ...prev,
+          { id: nextId++, sender: 'bot', text: 'Chatbot is temporarily unavailable. Please try again later.' },
+        ]);
+      }
+    } finally {
+      abortRef.current = null;
+      setIsStreaming(false);
+    }
   }, []);
+
+  const handleSuggestion = useCallback(
+    (text) => {
+      if (!isStreaming) handleSend(text);
+    },
+    [isStreaming, handleSend],
+  );
 
   if (!isVisible) return null;
 
@@ -67,11 +149,12 @@ export default function Chatbot() {
       {isOpen && (
         <ChatbotWindow
           messages={messages}
-          isTyping={isTyping}
+          isStreaming={isStreaming}
           isMinimized={isMinimized}
           onMinimize={handleMinimize}
           onClose={handleClose}
           onSend={handleSend}
+          onSuggestion={handleSuggestion}
         />
       )}
       <ChatbotButton isOpen={isOpen} onClick={handleToggle} />

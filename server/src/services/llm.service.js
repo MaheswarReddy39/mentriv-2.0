@@ -3,6 +3,27 @@ import ApiError from '../utils/api-error.js';
 
 const PROVIDER_TIMEOUT_MS = 30000;
 
+const normalize = (text) => text.toLowerCase().trim();
+
+const sanitizeContent = (text) => {
+  if (!text) return text;
+
+  const metadataPatterns = [
+    /\n?\s*\[?(?:User[- ]?(?:Safety|Sensitivity))[- ]?:[- ]?\w+\]?/gi,
+    /\n?\s*\[?(?:Content[- ]?(?:Safety|Filter|Rating))[- ]?:[- ]?\w+\]?/gi,
+    /\n?\s*\[?(?:Safety[- ]?(?:Rating|Level|Score))[- ]?:[- ]?\w+\]?/gi,
+    /\n?\s*\[?(?:Harm[- ]?(?:Category|Categories))[- ]?:[- ]?[^\n]*/gi,
+    /\n?\s*\[?Blocked[- ]?:[- ]?\w+\]?/gi,
+  ];
+
+  let cleaned = text;
+  for (const pattern of metadataPatterns) {
+    cleaned = cleaned.replace(pattern, '');
+  }
+
+  return cleaned.trim();
+};
+
 const buildMessages = ({ systemInstructions, question, context }) => {
   const messages = [];
 
@@ -56,7 +77,12 @@ const callOpenAICompatible = async ({ url, apiKey, model, messages, extraHeaders
       throw new Error('Empty response');
     }
 
-    return content.trim();
+    const sanitized = sanitizeContent(content);
+    if (!sanitized) {
+      throw new Error('Empty response after sanitization');
+    }
+
+    return sanitized;
   } finally {
     clearTimeout(timeout);
   }
@@ -107,7 +133,12 @@ const callGemini = async ({ apiKey, model, messages }) => {
       throw new Error('Empty response');
     }
 
-    return content.trim();
+    const sanitized = sanitizeContent(content);
+    if (!sanitized) {
+      throw new Error('Empty response after sanitization');
+    }
+
+    return sanitized;
   } finally {
     clearTimeout(timeout);
   }
@@ -322,3 +353,4 @@ const getProviderStatus = () =>
   providers.map((p) => ({ name: p.name, available: p.isAvailable() }));
 
 export default { generateAnswer, generateAnswerStream, getAvailableProviders, getProviderStatus };
+export { sanitizeContent };

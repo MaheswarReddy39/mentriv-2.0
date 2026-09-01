@@ -320,6 +320,35 @@
   border-radius: var(--radius-md) var(--radius-md) 6px var(--radius-md);
 }
 
+/* ── Markdown in bot bubbles ──────────────────────────────── */
+.chatbot-msg--bot .chatbot-msg-bubble p { margin: 0 0 0.5em; }
+.chatbot-msg--bot .chatbot-msg-bubble p:last-child { margin-bottom: 0; }
+.chatbot-msg--bot .chatbot-msg-bubble h1,
+.chatbot-msg--bot .chatbot-msg-bubble h2,
+.chatbot-msg--bot .chatbot-msg-bubble h3 {
+  margin: 0.6em 0 0.3em;
+  font-family: var(--font-heading);
+  font-weight: 700;
+  line-height: 1.3;
+}
+.chatbot-msg--bot .chatbot-msg-bubble h1 { font-size: 1.1em; }
+.chatbot-msg--bot .chatbot-msg-bubble h2 { font-size: 1.05em; }
+.chatbot-msg--bot .chatbot-msg-bubble h3 { font-size: 1em; }
+.chatbot-msg--bot .chatbot-msg-bubble strong { font-weight: 700; }
+.chatbot-msg--bot .chatbot-msg-bubble ul,
+.chatbot-msg--bot .chatbot-msg-bubble ol {
+  margin: 0.4em 0;
+  padding-left: 1.4em;
+}
+.chatbot-msg--bot .chatbot-msg-bubble li { margin-bottom: 0.2em; }
+.chatbot-msg--bot .chatbot-msg-bubble code {
+  font-family: 'SFMono-Regular', Consolas, monospace;
+  font-size: 0.92em;
+  background: rgba(0,0,0,0.06);
+  padding: 0.1em 0.3em;
+  border-radius: 4px;
+}
+
 /* ── Typing indicator ───────────────────────────────────────── */
 .chatbot-typing {
   display: flex;

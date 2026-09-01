@@ -1,4 +1,11 @@
-import { routeQuestion, OUT_OF_SCOPE_RESPONSE, MENTRIV_KEYWORDS, EDUCATIONAL_KEYWORDS } from '../src/services/question-router.service.js';
+import {
+  routeQuestion,
+  OUT_OF_SCOPE_RESPONSE,
+  GREETING_RESPONSE,
+  MENTRIV_KEYWORDS,
+  EDUCATIONAL_KEYWORDS,
+  GREETING_WORDS,
+} from '../src/services/question-router.service.js';
 
 let passed = 0;
 let failed = 0;
@@ -47,21 +54,32 @@ const testGeneralRouting = () => {
   console.log('\n--- Route: General educational (LLM only, no RAG) ---');
 
   const cases = [
+    'What is Python?',
+    'What is MongoDB?',
+    'Explain React.',
+    'What is JavaScript?',
+    'What is an API?',
+    'Explain Machine Learning.',
+    'What is Docker?',
+    'What is Git?',
+    'What is a database?',
     'What is a linked list?',
-    'Explain quantum computing',
     'How does TCP/IP work?',
     'What is machine learning?',
     'Tell me about Python decorators',
     'How do databases index data?',
     'What is React?',
     'Explain Python decorators',
-    'How does the internet work?',
     'What is a neural network?',
     'Compare SQL and NoSQL',
     'What is the difference between stack and queue?',
     'How do I learn programming?',
     'What is Docker used for?',
     'Explain recursion',
+    'What is Java?',
+    'What is a compiler?',
+    'What is encryption?',
+    'How does authentication work?',
   ];
 
   for (const q of cases) {
@@ -91,6 +109,15 @@ const testOutOfScopeRouting = () => {
     'What time is it?',
     'How was your day?',
     'I am bored',
+    'What is Facebook?',
+    'What is Instagram?',
+    'What is WhatsApp?',
+    'What is Bangalore?',
+    'Who is a celebrity?',
+    'What is the news today?',
+    'What is your age?',
+    'Tell me a story',
+    'What is the capital of France?',
   ];
 
   for (const q of cases) {
@@ -101,6 +128,24 @@ const testOutOfScopeRouting = () => {
       `route=${r.route}, useRag=${r.useRag}, useLlm=${r.useLlm}`,
     );
   }
+};
+
+const testGreetingRouting = () => {
+  console.log('\n--- Route: Greetings ---');
+
+  const cases = ['hi', 'hello', 'hey', 'hii', 'hiii', 'hlo', 'yo', 'howdy', 'greetings'];
+
+  for (const q of cases) {
+    const r = routeQuestion(q);
+    assert(
+      `"${q}" → greeting`,
+      r.route === 'greeting' && r.useRag === false && r.useLlm === false,
+      `route=${r.route}, useRag=${r.useRag}, useLlm=${r.useLlm}`,
+    );
+  }
+
+  assert('GREETING_RESPONSE is a non-empty string', typeof GREETING_RESPONSE === 'string' && GREETING_RESPONSE.length > 0);
+  assert('GREETING_WORDS is non-empty', Array.isArray(GREETING_WORDS) && GREETING_WORDS.length > 0);
 };
 
 const testOutOfScopeConstant = () => {
@@ -134,6 +179,12 @@ const testEdgeCases = () => {
 
   const r4 = routeQuestion('  Explain Python  ');
   assert('Handles whitespace in general questions', r4.route === 'general', `route=${r4.route}`);
+
+  const r5 = routeQuestion('HI');
+  assert('Case-insensitive greeting matching', r5.route === 'greeting', `route=${r5.route}`);
+
+  const r6 = routeQuestion('  hello  ');
+  assert('Handles whitespace in greetings', r6.route === 'greeting', `route=${r6.route}`);
 };
 
 const run = () => {
@@ -141,6 +192,7 @@ const run = () => {
   testMentrivRouting();
   testGeneralRouting();
   testOutOfScopeRouting();
+  testGreetingRouting();
   testOutOfScopeConstant();
   testKeywordsAreLowercase();
   testEdgeCases();

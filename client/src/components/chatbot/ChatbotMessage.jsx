@@ -1,3 +1,5 @@
+import Markdown from 'react-markdown';
+
 export default function ChatbotMessage({ message }) {
   const isUser = message.sender === 'user';
 
@@ -7,7 +9,7 @@ export default function ChatbotMessage({ message }) {
         {isUser ? 'U' : 'M'}
       </div>
       <div className="chatbot-msg-bubble">
-        {message.text}
+        {isUser ? message.text : <Markdown>{message.text}</Markdown>}
       </div>
     </div>
   );
