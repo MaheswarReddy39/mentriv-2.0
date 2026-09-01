@@ -1,0 +1,111 @@
+#!/usr/bin/env node
+
+import { initEmbeddingModel } from '../src/services/embedding.service.js';
+import { initChromaDb } from '../src/services/vector-db.service.js';
+import { retrieveRelevantChunks, DEFAULT_TOP_K, DEFAULT_MIN_RELEVANCE } from '../src/services/rag.service.js';
+
+const testQueries = [
+  {
+    name: 'Course pricing',
+    query: 'How much does the MERN Stack course cost?',
+    expectRelevant: true,
+  },
+  {
+    name: 'Enrollment process',
+    query: 'How do I enroll in a course?',
+    expectRelevant: true,
+  },
+  {
+    name: 'Class schedule',
+    query: 'What are the class timings?',
+    expectRelevant: true,
+  },
+  {
+    name: 'Mentorship info',
+    query: 'What is mentorship at Mentriv?',
+    expectRelevant: true,
+  },
+  {
+    name: 'Contact support',
+    query: 'How can I contact support?',
+    expectRelevant: true,
+  },
+  {
+    name: 'Unrelated - cooking recipe',
+    query: 'How do I make pasta carbonara?',
+    expectRelevant: false,
+  },
+  {
+    name: 'Unrelated - weather',
+    query: 'What is the weather in Tokyo today?',
+    expectRelevant: false,
+  },
+];
+
+const printResult = (testName, result, expectRelevant) => {
+  const passed = result.hasRelevantContext === expectRelevant;
+  const status = passed ? 'PASS' : 'FAIL';
+
+  console.log(`\n[${status}] ${testName}`);
+  console.log(`  Query: "${result.query}"`);
+  console.log(`  Has relevant context: ${result.hasRelevantContext}`);
+  console.log(`  Chunks found: ${result.chunks.length}`);
+
+  if (result.chunks.length > 0) {
+    for (const chunk of result.chunks) {
+      console.log(`    - [similarity: ${chunk.similarity.toFixed(4)}] ${chunk.text.substring(0, 80)}...`);
+      if (chunk.metadata?.source_file) {
+        console.log(`      Source: ${chunk.metadata.source_file}`);
+      }
+    }
+  }
+};
+
+const runTests = async () => {
+  console.log('=== RAG Retrieval Verification ===\n');
+  console.log(`Configuration: topK=${DEFAULT_TOP_K}, minRelevance=${DEFAULT_MIN_RELEVANCE}\n`);
+
+  console.log('Initializing embedding model...');
+  await initEmbeddingModel();
+  console.log('Embedding model ready.\n');
+
+  console.log('Connecting to ChromaDB...');
+  await initChromaDb();
+  console.log('ChromaDB connected.\n');
+
+  let passed = 0;
+  let failed = 0;
+
+  for (const test of testQueries) {
+    const result = await retrieveRelevantChunks({
+      query: test.query,
+      topK: DEFAULT_TOP_K,
+      minRelevance: DEFAULT_MIN_RELEVANCE,
+    });
+
+    result.query = test.query;
+
+    const testPassed = result.hasRelevantContext === test.expectRelevant;
+    if (testPassed) {
+      passed++;
+    } else {
+      failed++;
+    }
+
+    printResult(test.name, result, test.expectRelevant);
+  }
+
+  console.log('\n=== Summary ===');
+  console.log(`Total tests: ${testQueries.length}`);
+  console.log(`Passed: ${passed}`);
+  console.log(`Failed: ${failed}`);
+
+  if (failed > 0) {
+    process.exit(1);
+  }
+};
+
+runTests().catch((err) => {
+  console.error('Test failed:', err);
+  process.exit(1);
+});
