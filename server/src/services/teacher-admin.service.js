@@ -3,6 +3,7 @@ import User from '../models/user.model.js';
 import Course from '../models/course.model.js';
 import ApiError from '../utils/api-error.js';
 import authService from './auth.service.js';
+import emailService from './email.service.js';
 
 const TEACHER_VISIBLE_FIELDS = 'name email phone status selectedCourseId createdAt';
 const COURSE_VISIBLE_FIELDS = 'title slug level status';
@@ -133,6 +134,17 @@ const updateTeacherStatus = async (teacherId, status) => {
 
   await teacher.save();
   await teacher.populate('selectedCourseId', COURSE_VISIBLE_FIELDS);
+
+  try {
+    const payload = { to: teacher.email, teacherName: teacher.name };
+    if (status === 'accepted') {
+      await emailService.sendTeacherApprovalEmail(payload);
+    } else {
+      await emailService.sendTeacherRejectionEmail(payload);
+    }
+  } catch (error) {
+    console.error(`[email] Teacher ${status} email failed: ${error.message}`);
+  }
 
   return { teacher: sanitizeTeacher(teacher.toObject()) };
 };

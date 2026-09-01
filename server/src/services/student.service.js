@@ -3,6 +3,7 @@ import User from '../models/user.model.js';
 import Course from '../models/course.model.js';
 import Enrollment from '../models/enrollment.model.js';
 import ApiError from '../utils/api-error.js';
+import emailService from './email.service.js';
 
 const STUDENT_VISIBLE_FIELDS = 'name email phone status selectedCourseId createdAt';
 const COURSE_VISIBLE_FIELDS = 'title slug level status';
@@ -194,6 +195,22 @@ const updateStudentStatus = async (studentId, status) => {
         },
       }
     );
+  }
+
+  try {
+    const course = student.selectedCourseId
+      ? await Course.findById(student.selectedCourseId).select('title').lean()
+      : null;
+    const courseTitle = course?.title || 'your course';
+    const payload = { to: student.email, studentName: student.name, courseTitle };
+
+    if (status === 'accepted') {
+      await emailService.sendStudentApprovalEmail(payload);
+    } else {
+      await emailService.sendStudentRejectionEmail(payload);
+    }
+  } catch (error) {
+    console.error(`[email] Student ${status} email failed: ${error.message}`);
   }
 
   return { student: sanitizeStudent(student.toObject(), []) };

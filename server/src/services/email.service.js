@@ -162,24 +162,29 @@ const sendPaymentRejectedEmail = async ({ to, name, courseTitle, reason }) => {
 const sendNewClassEmail = async ({ to, name, courseTitle, lessonTitle, courseId }) =>
   sendBrandedMail('new class', {
     to,
-    subject: `New lesson published in "${courseTitle}"`,
-    text: `Hi ${name}, a new lesson "${lessonTitle}" is now available in "${courseTitle}".`,
+    subject: `New Class Added — ${courseTitle}`,
+    text: `Hi ${name}, A new class has been added to your ${courseTitle} course on Mentriv. Please log in to your Mentriv account to check the new class and access the available details and learning materials.`,
     html: brandWrap(
-      'New lesson available',
+      'New class added',
       name,
-      `<p>A new lesson <strong>${lessonTitle}</strong> is now available in <strong>${courseTitle}</strong>.</p><p><a href="${emailConfig.frontendUrl}/courses/${courseId}">Open course</a></p>`
+      `<p>A new class has been added to your <strong>${courseTitle}</strong> course on Mentriv.</p>
+       <p>Please log in to your Mentriv account to check the new class and access the available details and learning materials.</p>
+       <p><a href="${emailConfig.frontendUrl}/courses/${courseId}">Open course</a></p>`
     ),
   });
 
 const sendNewAssignmentEmail = async ({ to, name, courseTitle, assignmentTitle, assignmentId }) =>
   sendBrandedMail('new assignment', {
     to,
-    subject: `New assignment published in "${courseTitle}"`,
-    text: `Hi ${name}, a new assignment "${assignmentTitle}" is now available in "${courseTitle}".`,
+    subject: `New Assignment Added — ${courseTitle}`,
+    text: `Hi ${name}, A new assignment has been added to your ${courseTitle} course on Mentriv. You have only 12 hours to complete and submit the assignment. Please log in to your Mentriv account to view the assignment details and submit your work.`,
     html: brandWrap(
-      'New assignment available',
+      'New assignment added',
       name,
-      `<p>A new assignment <strong>${assignmentTitle}</strong> is now available in <strong>${courseTitle}</strong>.</p><p><a href="${emailConfig.frontendUrl}/assignments/${assignmentId}">View assignment</a></p>`
+      `<p>A new assignment has been added to your <strong>${courseTitle}</strong> course on Mentriv.</p>
+       <p>You have only 12 hours to complete and submit the assignment. Please make sure to submit your work within this period.</p>
+       <p>Please log in to your Mentriv account to view the assignment details and submit your work.</p>
+       <p><a href="${emailConfig.frontendUrl}/assignments/${assignmentId}">View assignment</a></p>`
     ),
   });
 
@@ -192,6 +197,124 @@ const sendAnnouncementEmail = async ({ to, name, announcementTitle, content, ann
       announcementTitle,
       name,
       `<p>${content}</p><p><a href="${emailConfig.frontendUrl}/announcements/${announcementId}">Read on Mentriv</a></p>`
+    ),
+  });
+
+const sendRegistrationConfirmationEmail = async ({ to, name, courseTitle }) =>
+  sendBrandedMail('registration confirmation', {
+    to,
+    subject: 'Registration Received — Your Mentriv Account Is Awaiting Approval',
+    text: `Hi ${name}, Welcome to Mentriv. We've received your registration for the ${courseTitle} course. Your account is currently awaiting admin approval. Our team will review your registration and activate your access. You'll receive another email once your account has been approved. We look forward to having you learn with Mentriv.`,
+    html: brandWrap(
+      'Registration received',
+      name,
+      `<p>Welcome to Mentriv!</p>
+       <p>We've successfully received your registration for the <strong>${courseTitle}</strong> course. Your account is currently awaiting admin approval, and our team will review your registration before activating your access.</p>
+       <p>There's nothing you need to do at this stage. We'll send you another email as soon as your account has been approved.</p>
+       <p>We look forward to having you learn with Mentriv.</p>`
+    ),
+  });
+
+const sendNewStudentRegistrationEmail = async ({ to, adminName, studentName, studentEmail, courseTitle }) =>
+  sendBrandedMail('new student registration', {
+    to,
+    subject: 'New Student Registration — Approval Required',
+    text: `Hi ${adminName}, A new student has registered for the ${courseTitle} course on Mentriv and is waiting for your approval. Student: ${studentName}, Email: ${studentEmail}, Course: ${courseTitle}. Please review from the Admin Dashboard.`,
+    html: brandWrap(
+      'New student registration',
+      adminName,
+      `<p>A new student has successfully registered for the <strong>${courseTitle}</strong> course on Mentriv and is currently waiting for your approval.</p>
+       <p style="margin:var(--space-4) 0;padding:var(--space-3) var(--space-4);background:var(--color-surface-muted);border-radius:var(--radius-sm);line-height:1.8">
+         <strong>Student:</strong> ${studentName}<br/>
+         <strong>Email:</strong> ${studentEmail}<br/>
+         <strong>Course:</strong> ${courseTitle}
+       </p>
+       <p>Please review the student's registration from the Admin Dashboard and approve or reject the account.</p>`
+    ),
+  });
+
+const sendStudentApprovalEmail = async ({ to, studentName, courseTitle }) =>
+  sendBrandedMail('student approval', {
+    to,
+    subject: 'Your Mentriv Registration Has Been Approved',
+    text: `Hi ${studentName}, Good news! Your registration for the ${courseTitle} course has been approved. Your account is now active and you can log in using the email and password you provided during registration.`,
+    html: brandWrap(
+      'Registration approved',
+      studentName,
+      `<p>Good news! Your registration for the <strong>${courseTitle}</strong> course has been approved by the Mentriv Admin team.</p>
+       <p>Your account is now active, and you can log in to Mentriv using the email address and password you provided during registration.</p>
+       <p>You can now log in and access your Mentriv account.</p>`
+    ),
+  });
+
+const sendStudentRejectionEmail = async ({ to, studentName, courseTitle }) =>
+  sendBrandedMail('student rejection', {
+    to,
+    subject: 'Update on Your Mentriv Registration',
+    text: `Hi ${studentName}, We're writing to let you know that your registration for the ${courseTitle} course was not approved. If you believe this was unexpected, please contact the Mentriv team for assistance.`,
+    html: brandWrap(
+      'Registration update',
+      studentName,
+      `<p>We're writing to let you know that your registration for the <strong>${courseTitle}</strong> course was not approved by the Mentriv Admin team.</p>
+       <p>If you believe this was unexpected or you need more information, please contact the Mentriv team for assistance.</p>`
+    ),
+  });
+
+const sendTeacherRegistrationConfirmationEmail = async ({ to, teacherName }) =>
+  sendBrandedMail('teacher registration confirmation', {
+    to,
+    subject: 'Teacher Registration Received — Awaiting Admin Approval',
+    text: `Hi ${teacherName}, We've successfully received your registration as a teacher on Mentriv. Your registration is currently awaiting Admin approval, and our team will review your details before activating your teacher account. You'll receive another email once your registration has been approved or rejected. We look forward to having you as part of Mentriv.`,
+    html: brandWrap(
+      'Registration received',
+      teacherName,
+      `<p>We've successfully received your registration as a teacher on Mentriv. Your registration is currently awaiting Admin approval, and our team will review your details before activating your teacher account.</p>
+       <p>There's nothing you need to do at this stage. Please wait for the Admin's decision. You'll receive another email once your registration has been approved or rejected.</p>
+       <p>We look forward to having you as part of Mentriv.</p>`
+    ),
+  });
+
+const sendNewTeacherRegistrationEmail = async ({ to, adminName, teacherName, teacherEmail }) =>
+  sendBrandedMail('new teacher registration', {
+    to,
+    subject: 'New Teacher Registration — Approval Required',
+    text: `Hi ${adminName}, A new teacher has registered on Mentriv and is waiting for your approval. Teacher: ${teacherName}, Email: ${teacherEmail}. Please review from the Admin Dashboard.`,
+    html: brandWrap(
+      'New teacher registration',
+      adminName,
+      `<p>A new teacher has successfully registered on Mentriv and is currently waiting for your approval.</p>
+       <p style="margin:var(--space-4) 0;padding:var(--space-3) var(--space-4);background:var(--color-surface-muted);border-radius:var(--radius-sm);line-height:1.8">
+         <strong>Teacher:</strong> ${teacherName}<br/>
+         <strong>Email:</strong> ${teacherEmail}
+       </p>
+       <p>Please review the teacher's registration from the Admin Dashboard and approve or reject the account.</p>`
+    ),
+  });
+
+const sendTeacherApprovalEmail = async ({ to, teacherName }) =>
+  sendBrandedMail('teacher approval', {
+    to,
+    subject: 'Your Mentriv Teacher Registration Has Been Approved',
+    text: `Hi ${teacherName}, Good news! Your teacher registration on Mentriv has been approved. Your teacher account is now active and you can log in using the email address and password you provided during registration.`,
+    html: brandWrap(
+      'Registration approved',
+      teacherName,
+      `<p>Good news! Your teacher registration on Mentriv has been approved by the Admin team.</p>
+       <p>Your teacher account is now active, and you can log in using the email address and password you provided during registration.</p>
+       <p>You can now log in and access your Mentriv teacher account.</p>`
+    ),
+  });
+
+const sendTeacherRejectionEmail = async ({ to, teacherName }) =>
+  sendBrandedMail('teacher rejection', {
+    to,
+    subject: 'Update on Your Mentriv Teacher Registration',
+    text: `Hi ${teacherName}, We're writing to let you know that your teacher registration on Mentriv was not approved. If you believe this was unexpected, please contact the Mentriv team for assistance.`,
+    html: brandWrap(
+      'Registration update',
+      teacherName,
+      `<p>We're writing to let you know that your teacher registration on Mentriv was not approved by the Admin team.</p>
+       <p>If you believe this was unexpected or you need more information, please contact the Mentriv team for assistance.</p>`
     ),
   });
 
@@ -209,4 +332,12 @@ export default {
   sendNewClassEmail,
   sendNewAssignmentEmail,
   sendAnnouncementEmail,
+  sendRegistrationConfirmationEmail,
+  sendNewStudentRegistrationEmail,
+  sendStudentApprovalEmail,
+  sendStudentRejectionEmail,
+  sendTeacherRegistrationConfirmationEmail,
+  sendNewTeacherRegistrationEmail,
+  sendTeacherApprovalEmail,
+  sendTeacherRejectionEmail,
 };
