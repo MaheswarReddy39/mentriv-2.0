@@ -33,6 +33,10 @@ const env = {
   embeddingModel: process.env.EMBEDDING_MODEL || 'BAAI/bge-small-en-v1.5',
   openrouterApiKey: process.env.OPENROUTER_API_KEY || '',
   llmModel: process.env.LLM_MODEL || 'openai/gpt-4o-mini',
+  groqApiKey: process.env.GROQ_API_KEY || '',
+  groqModel: process.env.GROQ_MODEL || 'llama-3.1-8b-instant',
+  geminiApiKey: process.env.GEMINI_API_KEY || '',
+  geminiModel: process.env.GEMINI_MODEL || 'gemini-2.0-flash',
 };
 
 export default env;

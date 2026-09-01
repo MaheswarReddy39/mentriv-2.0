@@ -1,21 +1,9 @@
 import env from '../config/env.js';
 import ApiError from '../utils/api-error.js';
 
-const OPENROUTER_API_URL = 'https://openrouter.ai/api/v1/chat/completions';
+const PROVIDER_TIMEOUT_MS = 30000;
 
-const generateAnswer = async ({
-  systemInstructions,
-  question,
-  context = null,
-} = {}) => {
-  if (!env.openrouterApiKey) {
-    throw new ApiError(500, 'LLM service is not configured');
-  }
-
-  if (!question || typeof question !== 'string' || question.trim().length === 0) {
-    throw new ApiError(400, 'Question is required');
-  }
-
+const buildMessages = ({ systemInstructions, question, context }) => {
   const messages = [];
 
   if (systemInstructions) {
@@ -34,46 +22,171 @@ const generateAnswer = async ({
   }
 
   messages.push({ role: 'user', content: question });
+  return messages;
+};
 
-  let response;
+const callOpenAICompatible = async ({ url, apiKey, model, messages, extraHeaders = {} }) => {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), PROVIDER_TIMEOUT_MS);
+
   try {
-    response = await fetch(OPENROUTER_API_URL, {
+    const response = await fetch(url, {
       method: 'POST',
       headers: {
-        Authorization: `Bearer ${env.openrouterApiKey}`,
+        Authorization: `Bearer ${apiKey}`,
         'Content-Type': 'application/json',
-        'HTTP-Referer': env.appFrontendUrl || 'http://localhost:5173',
-        'X-Title': 'Mentriv AI Chatbot',
+        ...extraHeaders,
       },
       body: JSON.stringify({
-        model: env.llmModel,
+        model,
         messages,
         temperature: 0.7,
         max_tokens: 1024,
       }),
+      signal: controller.signal,
     });
-  } catch (error) {
-    throw new ApiError(502, 'Failed to connect to LLM provider');
-  }
 
-  if (!response.ok) {
-    const errorBody = await response.text().catch(() => '');
-    throw new ApiError(502, 'LLM provider request failed');
-  }
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
 
-  let data;
-  try {
-    data = await response.json();
-  } catch {
-    throw new ApiError(502, 'Invalid response from LLM provider');
-  }
+    const data = await response.json();
+    const content = data?.choices?.[0]?.message?.content;
+    if (!content) {
+      throw new Error('Empty response');
+    }
 
-  const content = data?.choices?.[0]?.message?.content;
-  if (!content) {
-    throw new ApiError(502, 'Empty response from LLM provider');
+    return content.trim();
+  } finally {
+    clearTimeout(timeout);
   }
-
-  return content.trim();
 };
 
-export default { generateAnswer };
+const callGemini = async ({ apiKey, model, messages }) => {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), PROVIDER_TIMEOUT_MS);
+
+  try {
+    let systemInstruction = '';
+    const contents = [];
+
+    for (const msg of messages) {
+      if (msg.role === 'system') {
+        systemInstruction = systemInstruction
+          ? `${systemInstruction}\n\n${msg.content}`
+          : msg.content;
+      } else {
+        contents.push({
+          role: msg.role === 'assistant' ? 'model' : 'user',
+          parts: [{ text: msg.content }],
+        });
+      }
+    }
+
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+
+    const body = { contents };
+    if (systemInstruction) {
+      body.systemInstruction = { parts: [{ text: systemInstruction }] };
+    }
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+      signal: controller.signal,
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
+
+    const data = await response.json();
+    const content = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+    if (!content) {
+      throw new Error('Empty response');
+    }
+
+    return content.trim();
+  } finally {
+    clearTimeout(timeout);
+  }
+};
+
+const providers = [
+  {
+    name: 'openrouter',
+    isAvailable: () => Boolean(env.openrouterApiKey),
+    call: async (messages) =>
+      callOpenAICompatible({
+        url: 'https://openrouter.ai/api/v1/chat/completions',
+        apiKey: env.openrouterApiKey,
+        model: env.llmModel,
+        messages,
+        extraHeaders: {
+          'HTTP-Referer': env.appFrontendUrl || 'http://localhost:5173',
+          'X-Title': 'Mentriv AI Chatbot',
+        },
+      }),
+  },
+  {
+    name: 'groq',
+    isAvailable: () => Boolean(env.groqApiKey),
+    call: async (messages) =>
+      callOpenAICompatible({
+        url: 'https://api.groq.com/openai/v1/chat/completions',
+        apiKey: env.groqApiKey,
+        model: env.groqModel,
+        messages,
+      }),
+  },
+  {
+    name: 'gemini',
+    isAvailable: () => Boolean(env.geminiApiKey),
+    call: async (messages) =>
+      callGemini({
+        apiKey: env.geminiApiKey,
+        model: env.geminiModel,
+        messages,
+      }),
+  },
+];
+
+const generateAnswer = async ({
+  systemInstructions,
+  question,
+  context = null,
+} = {}) => {
+  if (!question || typeof question !== 'string' || question.trim().length === 0) {
+    throw new ApiError(400, 'Question is required');
+  }
+
+  const messages = buildMessages({ systemInstructions, question, context });
+
+  const availableProviders = providers.filter((p) => p.isAvailable());
+
+  if (availableProviders.length === 0) {
+    throw new ApiError(500, 'No LLM providers are configured');
+  }
+
+  const errors = [];
+
+  for (const provider of availableProviders) {
+    try {
+      const result = await provider.call(messages);
+      return result;
+    } catch (error) {
+      errors.push({ provider: provider.name, error: error.message });
+    }
+  }
+
+  throw new ApiError(503, 'LLM service temporarily unavailable');
+};
+
+const getAvailableProviders = () =>
+  providers.filter((p) => p.isAvailable()).map((p) => p.name);
+
+const getProviderStatus = () =>
+  providers.map((p) => ({ name: p.name, available: p.isAvailable() }));
+
+export default { generateAnswer, getAvailableProviders, getProviderStatus };
