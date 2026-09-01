@@ -31,6 +31,8 @@ const env = {
   },
   chromaDbUrl: process.env.CHROMA_DB_URL || 'http://localhost:8000',
   embeddingModel: process.env.EMBEDDING_MODEL || 'BAAI/bge-small-en-v1.5',
+  openrouterApiKey: process.env.OPENROUTER_API_KEY || '',
+  llmModel: process.env.LLM_MODEL || 'openai/gpt-4o-mini',
 };
 
 export default env;
