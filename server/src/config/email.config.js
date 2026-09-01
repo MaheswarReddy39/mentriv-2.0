@@ -7,6 +7,7 @@ const smtpConfig = {
   port: env.smtp.port,
   secure: env.smtp.secure,
   family: 4,
+  connectionTimeout: 10000,
   ...(smtpConfigured ? { auth: { user: env.smtp.user, pass: env.smtp.password } } : {}),
 };
 
