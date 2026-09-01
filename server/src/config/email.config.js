@@ -6,6 +6,7 @@ const smtpConfig = {
   host: env.smtp.host,
   port: env.smtp.port,
   secure: env.smtp.secure,
+  family: 4,
   ...(smtpConfigured ? { auth: { user: env.smtp.user, pass: env.smtp.password } } : {}),
 };
 
