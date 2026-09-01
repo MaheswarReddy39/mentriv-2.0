@@ -29,6 +29,8 @@ const env = {
     password: process.env.SMTP_PASSWORD || '',
     from: process.env.SMTP_FROM_EMAIL || 'Mentriv <no-reply@mentriv.local>',
   },
+  chromaDbUrl: process.env.CHROMA_DB_URL || 'http://localhost:8000',
+  embeddingModel: process.env.EMBEDDING_MODEL || 'BAAI/bge-small-en-v1.5',
 };
 
 export default env;
