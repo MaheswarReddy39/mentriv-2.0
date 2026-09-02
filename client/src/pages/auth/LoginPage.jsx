@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { login } from '../../services/auth.service.js';
 import useAuth from '../../hooks/useAuth.js';
 import Button from '../../components/common/Button.jsx';
@@ -8,6 +8,8 @@ import Input from '../../components/common/Input.jsx';
 export default function LoginPage() {
   const setSession = useAuth().setSession;
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const resetSuccess = searchParams.get('reset') === 'success';
 
   const [form, setForm] = useState({ email: '', password: '' });
   const [showPassword, setShowPassword] = useState(false);
@@ -75,6 +77,23 @@ export default function LoginPage() {
       <p className="text-sm" style={{ color: 'var(--text-secondary)', marginBottom: 'var(--space-6)' }}>
         Log in to continue learning.
       </p>
+
+      {resetSuccess ? (
+        <div
+          role="status"
+          style={{
+            padding: 'var(--space-3) var(--space-4)',
+            marginBottom: 'var(--space-4)',
+            background: 'rgba(34,197,94,0.08)',
+            borderLeft: '3px solid #16a34a',
+            borderRadius: 'var(--radius-sm)',
+            color: '#16a34a',
+            fontSize: 'var(--font-size-sm)',
+          }}
+        >
+          Your password has been reset. You can now log in with your new password.
+        </div>
+      ) : null}
 
       {apiError ? (
         <div role="alert" style={{

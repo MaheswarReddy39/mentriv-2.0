@@ -12,6 +12,7 @@ import mcqAttemptRoutes from './mcq-attempt.routes.js';
 import progressRoutes from './progress.routes.js';
 import notificationRoutes from './notification.routes.js';
 import announcementRoutes from './announcement.routes.js';
+import aiRoutes from './ai.routes.js';
 import studentRoutes from './student.routes.js';
 import teacherAdminRoutes from './teacher-admin.routes.js';
 import teacherDashboardRoutes from './teacher-dashboard.routes.js';
@@ -34,6 +35,7 @@ apiV1Router.use(mcqAttemptRoutes);
 apiV1Router.use(progressRoutes);
 apiV1Router.use(notificationRoutes);
 apiV1Router.use(announcementRoutes);
+apiV1Router.use(aiRoutes);
 
 const router = Router();
 

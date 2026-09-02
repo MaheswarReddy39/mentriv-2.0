@@ -22,6 +22,7 @@ const env = {
   appFrontendUrl: process.env.APP_FRONTEND_URL || 'http://localhost:5173',
   corsOrigin: process.env.CORS_ORIGIN || 'http://localhost:5173',
   adminEmail: process.env.ADMIN_EMAIL || '',
+  geminiApiKey: process.env.GEMINI_API_KEY || '',
   smtp: {
     host: process.env.SMTP_HOST || '',
     port: Number(process.env.SMTP_PORT) || 587,

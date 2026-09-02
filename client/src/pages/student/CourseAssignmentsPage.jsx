@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import Badge from '../../components/common/Badge.jsx';
 import Button from '../../components/common/Button.jsx';
@@ -69,7 +69,7 @@ export default function CourseAssignmentsPage() {
   const [error, setError] = useState(null);
   const [submitError, setSubmitError] = useState(null);
 
-  const loadAssignment = async () => {
+  const loadAssignment = useCallback(async () => {
     setLoading(true);
     setError(null);
     setSubmitError(null);
@@ -139,11 +139,11 @@ export default function CourseAssignmentsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [routeCourseId]);
 
   useEffect(() => {
     loadAssignment();
-  }, [routeCourseId]);
+  }, [loadAssignment]);
 
   const questions = assignment?.questions || [];
   const currentQuestion = questions[currentIndex];

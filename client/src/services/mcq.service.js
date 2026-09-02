@@ -28,3 +28,6 @@ export const listAttempts = (params = {}) => {
   const query = new URLSearchParams(params).toString();
   return apiClient.get(`/mcq-attempts${query ? `?${query}` : ''}`);
 };
+
+export const parseQuestionsWithAI = (text) =>
+  apiClient.post('/ai/parse-questions', { text });

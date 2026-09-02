@@ -14,7 +14,7 @@ export default function CourseProgressPage() {
 
   useEffect(() => {
     let cancelled = false;
-    progressService.getCourseProgress(courseId)
+    getCourseProgress(courseId)
       .then((res) => { if (!cancelled) setProgress(res.data.progress); })
       .catch((err) => { if (!cancelled) setError(err.message); })
       .finally(() => { if (!cancelled) setLoading(false); });
