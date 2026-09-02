@@ -150,19 +150,19 @@ const createAssignment = async (courseIdInput, data, requester = null) => {
   await assignment.populate('courseId', 'title slug');
 
   if (assignment.status === 'published') {
-    await notificationService.notifyCourseStudents({
+    notificationService.notifyCourseStudents({
       courseId: courseIdInput,
       type: 'assignment',
       title: 'New assignment available',
       message: `A new assignment "${assignment.title}" is now available.`,
       link: `/assignments/${assignment._id.toString()}`,
-    });
-    await emailNotifications.sendAssignmentPublishedEmails({
+    }).catch(() => {});
+    emailNotifications.sendAssignmentPublishedEmails({
       courseId: courseIdInput,
       courseTitle: assignment.courseId?.title || 'the course',
       assignmentTitle: assignment.title,
       assignmentId: assignment._id.toString(),
-    });
+    }).catch(() => {});
   }
 
   return { assignment: sanitizeAssignmentDetail(assignment) };

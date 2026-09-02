@@ -155,18 +155,18 @@ const createLesson = async (courseIdInput, data) => {
 
   // Event integration: notify enrolled students when a lesson is published.
   if (lesson.status === 'published') {
-    await notificationService.notifyCourseStudents({
+    notificationService.notifyCourseStudents({
       courseId: courseIdInput,
       type: 'class',
       title: 'New lesson available',
       message: `A new lesson "${lesson.title}" is now available.`,
       link: `/classes/${lesson._id.toString()}`,
-    });
-    await emailNotifications.sendClassPublishedEmails({
+    }).catch(() => {});
+    emailNotifications.sendClassPublishedEmails({
       courseId: courseIdInput,
       courseTitle: lesson.courseId?.title || 'the course',
       lessonTitle: lesson.title,
-    });
+    }).catch(() => {});
   }
 
   return { lesson: sanitizeLessonDetail(lesson) };
@@ -197,18 +197,18 @@ const updateLesson = async (id, data) => {
     updates.status === 'published' &&
     previousStatus !== 'published'
   ) {
-    await notificationService.notifyCourseStudents({
+    notificationService.notifyCourseStudents({
       courseId: lesson.courseId._id.toString(),
       type: 'class',
       title: 'New lesson available',
       message: `A new lesson "${lesson.title}" is now available.`,
       link: `/classes/${lesson._id.toString()}`,
-    });
-    await emailNotifications.sendClassPublishedEmails({
+    }).catch(() => {});
+    emailNotifications.sendClassPublishedEmails({
       courseId: lesson.courseId._id.toString(),
       courseTitle: lesson.courseId?.title || 'the course',
       lessonTitle: lesson.title,
-    });
+    }).catch(() => {});
   }
 
   return { lesson: sanitizeLessonDetail(lesson) };

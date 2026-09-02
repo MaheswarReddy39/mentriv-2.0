@@ -4,6 +4,7 @@ import { register } from '../../services/auth.service.js';
 import Button from '../../components/common/Button.jsx';
 import Input from '../../components/common/Input.jsx';
 import Select from '../../components/common/Select.jsx';
+import Modal from '../../components/common/Modal.jsx';
 import { listPublishedCourses } from '../../services/course.service.js';
 
 export default function RegisterPage() {
@@ -22,6 +23,7 @@ export default function RegisterPage() {
   const [successMessage, setSuccessMessage] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [step, setStep] = useState(1);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -75,7 +77,7 @@ export default function RegisterPage() {
     setStep(2);
   };
 
-  const handleSubmit = async () => {
+  const openConfirmModal = () => {
     setApiError(null);
     setSuccessMessage(null);
 
@@ -85,6 +87,12 @@ export default function RegisterPage() {
       setStep(1);
       return;
     }
+
+    setShowConfirmModal(true);
+  };
+
+  const handleSubmit = async () => {
+    setShowConfirmModal(false);
 
     setSubmitting(true);
     try {
@@ -254,7 +262,7 @@ export default function RegisterPage() {
             loading={submitting}
             disabled={submitting}
             style={{ width: '100%', marginTop: 'var(--space-5)' }}
-            onClick={handleSubmit}
+            onClick={openConfirmModal}
           >
             {submitting ? 'Submitting...' : 'Submit'}
           </Button>
@@ -265,6 +273,33 @@ export default function RegisterPage() {
         Already have an account?{' '}
         <Link to="/login" style={{ color: 'var(--indigo)', fontWeight: 600 }}>Log in</Link>
       </p>
+
+      <Modal
+        open={showConfirmModal}
+        onClose={() => setShowConfirmModal(false)}
+        title="Registration Confirmation"
+        width={660}
+        footer={
+          <>
+            <Button variant="ghost" onClick={() => setShowConfirmModal(false)}>
+              Close
+            </Button>
+            <Button onClick={handleSubmit} loading={submitting} disabled={submitting}>
+              Confirm Registration
+            </Button>
+          </>
+        }
+      >
+        <p style={{ marginBottom: 'var(--space-3)', color: 'var(--text)', lineHeight: 1.6 }}>
+          Your registration has been received successfully. You will receive a registration confirmation email shortly.
+        </p>
+        <p style={{ marginBottom: 'var(--space-3)', color: 'var(--text)', lineHeight: 1.6 }}>
+          After the Admin reviews and approves your registration, you will receive another email with your account approval details.
+        </p>
+        <p style={{ color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+          If you don't see the email in your Inbox, please check your Spam/Junk folder.
+        </p>
+      </Modal>
     </div>
   );
 }

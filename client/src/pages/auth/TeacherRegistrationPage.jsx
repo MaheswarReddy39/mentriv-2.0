@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import Button from '../../components/common/Button.jsx';
 import ErrorState from '../../components/common/ErrorState.jsx';
 import Input from '../../components/common/Input.jsx';
+import Modal from '../../components/common/Modal.jsx';
 import Select from '../../components/common/Select.jsx';
 import { registerTeacher } from '../../services/auth.service.js';
 import { listPublishedCourses } from '../../services/course.service.js';
@@ -24,6 +25,7 @@ export default function TeacherRegistrationPage() {
   const [loadingCourses, setLoadingCourses] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
 
   const loadCourses = async () => {
     setLoadingCourses(true);
@@ -72,16 +74,19 @@ export default function TeacherRegistrationPage() {
     return errors;
   };
 
-  const handleSubmit = async (event) => {
+  const openConfirmModal = (event) => {
     event.preventDefault();
     setApiError(null);
     const errors = validate();
     if (Object.keys(errors).length > 0) {
       setFieldErrors(errors);
-      setSubmitted(false);
       return;
     }
+    setShowConfirmModal(true);
+  };
 
+  const handleSubmit = async () => {
+    setShowConfirmModal(false);
     setSubmitting(true);
     try {
       await registerTeacher({
@@ -156,7 +161,7 @@ export default function TeacherRegistrationPage() {
 
       {courseError ? <ErrorState message={courseError} onRetry={loadCourses} /> : null}
 
-      <form className="teacher-registration-form" onSubmit={handleSubmit} noValidate>
+      <form className="teacher-registration-form" onSubmit={openConfirmModal} noValidate>
         <div className="teacher-registration-grid">
           <Input
             label="Teacher Name"
@@ -232,6 +237,30 @@ export default function TeacherRegistrationPage() {
           Register
         </Button>
       </form>
+
+      <Modal
+        open={showConfirmModal}
+        onClose={() => setShowConfirmModal(false)}
+        title="Registration Confirmation"
+        width={660}
+        footer={
+          <>
+            <Button variant="ghost" onClick={() => setShowConfirmModal(false)}>
+              Close
+            </Button>
+            <Button onClick={handleSubmit} loading={submitting} disabled={submitting}>
+              Confirm Registration
+            </Button>
+          </>
+        }
+      >
+        <p style={{ marginBottom: 'var(--space-3)', color: 'var(--text)', lineHeight: 1.6 }}>
+          Your teacher registration has been received successfully. You will receive a confirmation email shortly.
+        </p>
+        <p style={{ marginBottom: 'var(--space-3)', color: 'var(--text)', lineHeight: 1.6 }}>
+          Please check your Inbox and Spam/Junk folder for the email. You will receive another email once the Admin reviews and approves or rejects your registration.
+        </p>
+      </Modal>
     </div>
   );
 }

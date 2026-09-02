@@ -13,6 +13,7 @@ import {
   hashPasswordResetToken,
 } from './token.service.js';
 import emailService from './email.service.js';
+import env from '../config/env.js';
 
 // Pre-computed bcrypt hash used to equalize response timing when the email does not exist,
 // so login responses cannot reveal whether an account is registered.
@@ -91,6 +92,34 @@ const registerUser = async ({ name, email, password, phone, courseId, education,
     status: 'pending',
   });
 
+  try {
+    const course = await Course.findById(courseId).select('title').lean();
+    const courseTitle = course?.title || 'your selected course';
+    emailService.sendRegistrationConfirmationEmail({
+      to: normalizedEmail,
+      name,
+      courseTitle,
+    }).catch((error) => console.error(`[email] Registration confirmation email failed: ${error.message}`));
+  } catch (error) {
+    console.error(`[email] Registration confirmation email failed: ${error.message}`);
+  }
+
+  if (env.adminEmail) {
+    try {
+      const admin = await User.findOne({ email: env.adminEmail, role: { $in: ['admin', 'superAdmin'] } }).select('name').lean();
+      const course = await Course.findById(courseId).select('title').lean();
+      emailService.sendNewStudentRegistrationEmail({
+        to: env.adminEmail,
+        adminName: admin?.name || 'Admin',
+        studentName: name,
+        studentEmail: normalizedEmail,
+        courseTitle: course?.title || 'your selected course',
+      }).catch((error) => console.error(`[email] Admin registration notification failed: ${error.message}`));
+    } catch (error) {
+      console.error(`[email] Admin registration notification failed: ${error.message}`);
+    }
+  }
+
   return { user: sanitizeUser(user) };
 };
 
@@ -123,6 +152,29 @@ const registerTeacher = async ({ name, phone, email, courseId, password }) => {
     accountActivated: true,
     passwordHash,
   });
+
+  try {
+    emailService.sendTeacherRegistrationConfirmationEmail({
+      to: normalizedEmail,
+      teacherName: name,
+    }).catch((error) => console.error(`[email] Teacher registration confirmation email failed: ${error.message}`));
+  } catch (error) {
+    console.error(`[email] Teacher registration confirmation email failed: ${error.message}`);
+  }
+
+  if (env.adminEmail) {
+    try {
+      const admin = await User.findOne({ email: env.adminEmail, role: { $in: ['admin', 'superAdmin'] } }).select('name').lean();
+      emailService.sendNewTeacherRegistrationEmail({
+        to: env.adminEmail,
+        adminName: admin?.name || 'Admin',
+        teacherName: name,
+        teacherEmail: normalizedEmail,
+      }).catch((error) => console.error(`[email] Admin teacher registration notification failed: ${error.message}`));
+    } catch (error) {
+      console.error(`[email] Admin teacher registration notification failed: ${error.message}`);
+    }
+  }
 
   return { user: sanitizeUser(user) };
 };

@@ -6,7 +6,7 @@ import emailService from './email.service.js';
 // receive business-event emails.
 const getActiveUserContact = async (userId) => {
   const user = await User.findById(userId).select('name email status');
-  if (!user || user.status !== 'active' || !user.email) {
+  if (!user || !['active', 'accepted'].includes(user.status) || !user.email) {
     return null;
   }
   return { id: user._id.toString(), name: user.name, email: user.email };
@@ -24,7 +24,7 @@ const getEligibleCourseRecipients = async (courseId) => {
 
   return enrollments
     .map((enrollment) => enrollment.userId)
-    .filter((user) => user && user.email && user.status === 'active')
+    .filter((user) => user && user.email && ['active', 'accepted'].includes(user.status))
     .map((user) => ({
       id: user._id.toString(),
       name: user.name,
