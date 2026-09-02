@@ -1,5 +1,5 @@
 import { getEmbedding } from './embedding.service.js';
-import { getCollection } from './vector-db.service.js';
+import { getClient, COLLECTION_NAME } from './vector-db.service.js';
 import ApiError from '../utils/api-error.js';
 
 const DEFAULT_TOP_K = 5;
@@ -15,35 +15,31 @@ const retrieveRelevantChunks = async ({
   }
 
   try {
-    const collection = await getCollection();
+    const client = await getClient();
     const queryEmbedding = await getEmbedding(query);
 
-    const results = await collection.query({
-      queryEmbeddings: [queryEmbedding],
-      nResults: topK,
-      include: ['documents', 'metadatas', 'distances'],
+    const response = await client.query(COLLECTION_NAME, {
+      query: queryEmbedding,
+      limit: topK,
+      with_payload: true,
     });
 
-    const ids = results.ids?.[0] || [];
-    const documents = results.documents?.[0] || [];
-    const metadatas = results.metadatas?.[0] || [];
-    const distances = results.distances?.[0] || [];
+    const results = response.points || [];
 
     const chunks = [];
 
-    for (let i = 0; i < ids.length; i++) {
-      const distance = distances[i];
-      const similarity = 1 - distance;
+    for (const result of results) {
+      const similarity = result.score;
 
       if (similarity < minRelevance) {
         continue;
       }
 
       chunks.push({
-        id: ids[i],
-        text: documents[i],
-        metadata: metadatas[i],
-        distance,
+        id: String(result.id),
+        text: result.payload?.text || '',
+        metadata: result.payload?.metadata || {},
+        distance: 1 - similarity,
         similarity,
       });
     }

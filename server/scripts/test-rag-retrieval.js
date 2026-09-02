@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import { initEmbeddingModel } from '../src/services/embedding.service.js';
-import { initChromaDb } from '../src/services/vector-db.service.js';
+import { initQdrant } from '../src/services/vector-db.service.js';
 import { retrieveRelevantChunks, DEFAULT_TOP_K, DEFAULT_MIN_RELEVANCE } from '../src/services/rag.service.js';
 
 const testQueries = [
@@ -69,9 +69,9 @@ const runTests = async () => {
   await initEmbeddingModel();
   console.log('Embedding model ready.\n');
 
-  console.log('Connecting to ChromaDB...');
-  await initChromaDb();
-  console.log('ChromaDB connected.\n');
+  console.log('Connecting to Qdrant...');
+  await initQdrant();
+  console.log('Qdrant connected.\n');
 
   let passed = 0;
   let failed = 0;

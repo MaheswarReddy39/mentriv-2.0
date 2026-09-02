@@ -1,56 +1,54 @@
-import { ChromaClient } from 'chromadb';
+import { QdrantClient } from '@qdrant/js-client-rest';
 import env from '../config/env.js';
 import { EMBEDDING_DIMENSION } from './embedding.service.js';
 
-const COLLECTION_NAME = 'mentriv_knowledge';
-
-const noopEmbeddingFunction = {
-  generate: async (texts) => texts.map(() => new Array(EMBEDDING_DIMENSION).fill(0)),
-};
+const COLLECTION_NAME = env.qdrantCollection || 'mentriv_knowledge';
 
 let client = null;
-let collection = null;
 
-const initChromaDb = async () => {
-  if (client && collection) return { client, collection };
+const initQdrant = async () => {
+  if (client) return client;
 
-  const url = new URL(env.chromaDbUrl);
-  client = new ChromaClient({
-    host: url.hostname,
-    port: Number(url.port) || 8000,
-    ssl: url.protocol === 'https:',
-  });
+  const config = {
+    url: env.qdrantUrl,
+    checkCompatibility: false,
+  };
 
-  collection = await client.getOrCreateCollection({
-    name: COLLECTION_NAME,
-    metadata: {
-      'hnsw:space': 'cosine',
-      description: 'Mentriv knowledge base documents',
-    },
-    embeddingFunction: noopEmbeddingFunction,
-  });
-
-  return { client, collection };
-};
-
-const getCollection = async () => {
-  if (!collection) {
-    await initChromaDb();
+  if (env.qdrantApiKey) {
+    config.apiKey = env.qdrantApiKey;
   }
-  return collection;
+
+  client = new QdrantClient(config);
+
+  const collections = await client.getCollections();
+  const exists = collections.collections.some((c) => c.name === COLLECTION_NAME);
+
+  if (!exists) {
+    await client.createCollection(COLLECTION_NAME, {
+      vectors: {
+        size: EMBEDDING_DIMENSION,
+        distance: 'Cosine',
+      },
+    });
+    console.log(`[qdrant] Created collection "${COLLECTION_NAME}" (${EMBEDDING_DIMENSION}d, cosine)`);
+  }
+
+  return client;
 };
 
 const getClient = async () => {
   if (!client) {
-    await initChromaDb();
+    await initQdrant();
   }
   return client;
 };
 
+const getCollectionName = () => COLLECTION_NAME;
+
 export {
-  initChromaDb,
-  getCollection,
+  initQdrant,
   getClient,
+  getCollectionName,
   COLLECTION_NAME,
   EMBEDDING_DIMENSION,
 };

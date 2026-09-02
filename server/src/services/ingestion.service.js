@@ -3,7 +3,7 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import { chunkMarkdown } from './chunking.service.js';
 import { getEmbedding, EMBEDDING_DIMENSION } from './embedding.service.js';
-import { getCollection, COLLECTION_NAME } from './vector-db.service.js';
+import { getClient, COLLECTION_NAME } from './vector-db.service.js';
 
 const KNOWLEDGE_DIR = path.resolve(process.cwd(), '..', 'Knowledge');
 
@@ -33,7 +33,14 @@ const deriveCategory = (filePath) => {
 const generateChunkId = (relativePath, chunkIndex) => {
   const hash = crypto.createHash('sha256');
   hash.update(`${relativePath}::chunk::${chunkIndex}`);
-  return hash.digest('hex');
+  const hex = hash.digest('hex').substring(0, 32);
+  return [
+    hex.substring(0, 8),
+    hex.substring(8, 12),
+    hex.substring(12, 16),
+    hex.substring(16, 20),
+    hex.substring(20, 32),
+  ].join('-');
 };
 
 const ingestDocument = async (filePath) => {
@@ -47,35 +54,35 @@ const ingestDocument = async (filePath) => {
     return { filePath: relativePath, chunks: 0, skipped: true };
   }
 
-  const ids = [];
-  const documents = [];
-  const embeddings = [];
-  const metadatas = [];
+  const points = [];
 
   for (let i = 0; i < chunks.length; i++) {
     const chunk = chunks[i];
     const chunkId = generateChunkId(relativePath, i);
-
     const embedding = await getEmbedding(chunk.text);
 
-    ids.push(chunkId);
-    documents.push(chunk.text);
-    embeddings.push(embedding);
-    metadatas.push({
-      source_file: relativePath,
-      category,
-      chunk_index: i,
-      total_chunks: chunks.length,
-      heading: chunk.heading || '',
-      dimension: EMBEDDING_DIMENSION,
+    points.push({
+      id: chunkId,
+      vector: embedding,
+      payload: {
+        text: chunk.text,
+        metadata: {
+          source_file: relativePath,
+          category,
+          chunk_index: i,
+          total_chunks: chunks.length,
+          heading: chunk.heading || '',
+          dimension: EMBEDDING_DIMENSION,
+        },
+      },
     });
   }
 
-  return { filePath: relativePath, ids, documents, embeddings, metadatas, chunks: chunks.length };
+  return { filePath: relativePath, points, chunks: chunks.length };
 };
 
 const ingestAll = async () => {
-  const collection = await getCollection();
+  const client = await getClient();
 
   console.log(`[ingest] Discovering markdown files in ${KNOWLEDGE_DIR}...`);
   const files = await discoverMarkdownFiles(KNOWLEDGE_DIR);
@@ -90,12 +97,7 @@ const ingestAll = async () => {
     results.push(result);
 
     if (result.chunks > 0) {
-      await collection.upsert({
-        ids: result.ids,
-        documents: result.documents,
-        embeddings: result.embeddings,
-        metadatas: result.metadatas,
-      });
+      await client.upsert(COLLECTION_NAME, { points: result.points });
       totalChunks += result.chunks;
       console.log(`[ingest]   ${result.chunks} chunks indexed`);
     } else {
@@ -103,7 +105,7 @@ const ingestAll = async () => {
     }
   }
 
-  const count = await collection.count();
+  const { count } = await client.count(COLLECTION_NAME);
   console.log(`[ingest] Done. ${results.length} files processed, ${totalChunks} chunks created, ${count} total records in collection`);
 
   return {
@@ -115,10 +117,10 @@ const ingestAll = async () => {
 };
 
 const clearCollection = async () => {
-  const collection = await getCollection();
-  const count = await collection.count();
+  const client = await getClient();
+  const { count } = await client.count(COLLECTION_NAME);
   if (count > 0) {
-    await collection.delete({ where: {} });
+    await client.delete(COLLECTION_NAME, { filter: {} });
     console.log(`[ingest] Cleared ${count} records from collection`);
   }
   return { cleared: count };

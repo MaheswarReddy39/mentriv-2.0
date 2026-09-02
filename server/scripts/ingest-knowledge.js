@@ -11,7 +11,7 @@ dotenv.config({ path: path.resolve(__dirname, '../.env') });
 
 import { ingestAll, clearCollection } from '../src/services/ingestion.service.js';
 import { initEmbeddingModel } from '../src/services/embedding.service.js';
-import { initChromaDb } from '../src/services/vector-db.service.js';
+import { initQdrant } from '../src/services/vector-db.service.js';
 
 const args = process.argv.slice(2);
 const clearFirst = args.includes('--clear');
@@ -22,9 +22,9 @@ const run = async () => {
     await initEmbeddingModel();
     console.log('[runner] Embedding model ready');
 
-    console.log('[runner] Connecting to ChromaDB...');
-    await initChromaDb();
-    console.log('[runner] ChromaDB connected');
+    console.log('[runner] Connecting to Qdrant...');
+    await initQdrant();
+    console.log('[runner] Qdrant connected');
 
     if (clearFirst) {
       console.log('[runner] Clearing existing collection...');
