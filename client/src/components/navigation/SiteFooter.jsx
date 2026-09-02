@@ -14,24 +14,18 @@ export default function SiteFooter() {
           </p>
         </div>
 
-        <nav aria-label="Site">
-          <h4>Site</h4>
-          <Link to="/">Home</Link>
-          <Link to="/courses">Courses</Link>
-          <Link to="/announcements">Announcements</Link>
+        <nav aria-label="Company">
+          <h4>Company</h4>
+          <a href="https://www.instagram.com/dev___dynasty/" target="_blank" rel="noopener noreferrer">Instagram</a>
+          <a href="https://youtube.com/@gmreddy-14" target="_blank" rel="noopener noreferrer">YouTube</a>
+          <a href="https://www.linkedin.com/in/maheswar-reddy-gondireddy/" target="_blank" rel="noopener noreferrer">LinkedIn</a>
         </nav>
 
-        <nav aria-label="Account">
-          <h4>Account</h4>
-          <Link to="/login">Log in</Link>
-          <Link to="/register">Create account</Link>
-        </nav>
-
-        <nav aria-label="Learning">
-          <h4>Learning</h4>
-          <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>Classes</span>
-          <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>Assignments</span>
-          <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>MCQ tests</span>
+        <nav aria-label="Contact & Support">
+          <h4>Contact & Support</h4>
+          <a href="mailto:maheswarreddygondireddy12@gmail.com" className="site-footer-email">
+            maheswarreddygondireddy12@gmail.com
+          </a>
         </nav>
       </div>
 

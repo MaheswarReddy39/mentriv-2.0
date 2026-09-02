@@ -80,6 +80,15 @@ const testGeneralRouting = () => {
     'What is a compiler?',
     'What is encryption?',
     'How does authentication work?',
+    'What is FastAPI?',
+    'What is Flask?',
+    'What is Angular?',
+    'What is Flutter?',
+    'What is TypeScript?',
+    'What is Next.js?',
+    'Explain REST API',
+    'Explain binary search',
+    'Instagram API',
   ];
 
   for (const q of cases) {
@@ -118,6 +127,10 @@ const testOutOfScopeRouting = () => {
     'What is your age?',
     'Tell me a story',
     'What is the capital of France?',
+    'What is the weather?',
+    'casual conversation',
+    'unrelated trivia',
+    'Who is the president of France?',
   ];
 
   for (const q of cases) {

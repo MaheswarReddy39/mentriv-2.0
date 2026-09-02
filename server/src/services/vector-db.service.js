@@ -5,35 +5,47 @@ import { EMBEDDING_DIMENSION } from './embedding.service.js';
 const COLLECTION_NAME = env.qdrantCollection || 'mentriv_knowledge';
 
 let client = null;
+let initPromise = null;
 
 const initQdrant = async () => {
   if (client) return client;
+  if (initPromise) return initPromise;
 
-  const config = {
-    url: env.qdrantUrl,
-    checkCompatibility: false,
-  };
+  initPromise = (async () => {
+    try {
+      const config = {
+        url: env.qdrantUrl,
+        checkCompatibility: false,
+      };
 
-  if (env.qdrantApiKey) {
-    config.apiKey = env.qdrantApiKey;
-  }
+      if (env.qdrantApiKey) {
+        config.apiKey = env.qdrantApiKey;
+      }
 
-  client = new QdrantClient(config);
+      client = new QdrantClient(config);
 
-  const collections = await client.getCollections();
-  const exists = collections.collections.some((c) => c.name === COLLECTION_NAME);
+      const collections = await client.getCollections();
+      const exists = collections.collections.some((c) => c.name === COLLECTION_NAME);
 
-  if (!exists) {
-    await client.createCollection(COLLECTION_NAME, {
-      vectors: {
-        size: EMBEDDING_DIMENSION,
-        distance: 'Cosine',
-      },
-    });
-    console.log(`[qdrant] Created collection "${COLLECTION_NAME}" (${EMBEDDING_DIMENSION}d, cosine)`);
-  }
+      if (!exists) {
+        await client.createCollection(COLLECTION_NAME, {
+          vectors: {
+            size: EMBEDDING_DIMENSION,
+            distance: 'Cosine',
+          },
+        });
+        console.log(`[qdrant] Created collection "${COLLECTION_NAME}" (${EMBEDDING_DIMENSION}d, cosine)`);
+      }
 
-  return client;
+      return client;
+    } catch (error) {
+      client = null;
+      initPromise = null;
+      throw error;
+    }
+  })();
+
+  return initPromise;
 };
 
 const getClient = async () => {

@@ -41,7 +41,7 @@ const createMockRouter = () => ({
   },
 });
 
-const createFailingRag = (errorMsg = 'ChromaDB connection refused') => ({
+const createFailingRag = (errorMsg = 'Vector database connection refused') => ({
   retrieveRelevantChunks: async () => { throw new Error(errorMsg); },
 });
 
@@ -90,7 +90,7 @@ const testRagFailureReturnsSanitizedError = async () => {
   console.log('\n--- sendMessage: RAG failure → sanitized error ---');
 
   const router = createMockRouter();
-  const rag = createFailingRag('ChromaDB connection refused on port 8000');
+  const rag = createFailingRag('Vector database connection refused on port 6333');
   const llm = createMockLlm();
   const service = createChatService({ rag, llm, router });
 
@@ -101,8 +101,8 @@ const testRagFailureReturnsSanitizedError = async () => {
     assert('Throws ApiError', error instanceof ApiError);
     assert('Status 503', error.statusCode === 503);
     assert('User-facing message', error.message === USER_FACING_MSG);
-    assert('No raw error in message', !error.message.includes('ChromaDB'));
-    assert('No port in message', !error.message.includes('8000'));
+    assert('No raw error in message', !error.message.includes('Vector database'));
+    assert('No port in message', !error.message.includes('6333'));
     assert('No stack trace in message', !error.message.includes('at '));
   }
 };
@@ -187,7 +187,7 @@ const testStreamRagFailureSendsErrorEvent = async () => {
   console.log('\n--- streamAnswer: RAG failure → error event ---');
 
   const router = createMockRouter();
-  const rag = createFailingRag('ChromaDB timeout');
+  const rag = createFailingRag('Vector database timeout');
   const llm = createMockLlm();
   const service = createChatService({ rag, llm, router });
 
@@ -212,7 +212,7 @@ const testStreamRagFailureSendsErrorEvent = async () => {
     assert('Error is ApiError', err instanceof ApiError);
     assert('Status 503', err.statusCode === 503);
     assert('User-facing message', err.message === USER_FACING_MSG);
-    assert('No raw error details', !err.message.includes('ChromaDB'));
+    assert('No raw error details', !err.message.includes('Vector database'));
   }
 };
 

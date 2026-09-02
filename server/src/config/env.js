@@ -29,7 +29,6 @@ const env = {
     password: process.env.SMTP_PASSWORD || '',
     from: process.env.SMTP_FROM_EMAIL || 'Mentriv <no-reply@mentriv.local>',
   },
-  chromaDbUrl: process.env.CHROMA_DB_URL || 'http://localhost:8000',
   qdrantUrl: process.env.QDRANT_URL || 'http://localhost:6333',
   qdrantApiKey: process.env.QDRANT_API_KEY || '',
   qdrantCollection: process.env.QDRANT_COLLECTION || 'mentriv_knowledge',

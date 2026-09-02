@@ -3,17 +3,27 @@ import env from '../config/env.js';
 
 let tokenizer = null;
 let model = null;
+let initPromise = null;
 
 const MODEL_NAME = env.embeddingModel || 'BAAI/bge-small-en-v1.5';
 const EMBEDDING_DIMENSION = 384;
 
 const initEmbeddingModel = async () => {
   if (tokenizer && model) return { tokenizer, model };
+  if (initPromise) return initPromise;
 
-  tokenizer = await AutoTokenizer.from_pretrained(MODEL_NAME);
-  model = await AutoModel.from_pretrained(MODEL_NAME, { quantized: false });
+  initPromise = (async () => {
+    try {
+      tokenizer = await AutoTokenizer.from_pretrained(MODEL_NAME);
+      model = await AutoModel.from_pretrained(MODEL_NAME, { quantized: false });
+      return { tokenizer, model };
+    } catch (error) {
+      initPromise = null;
+      throw error;
+    }
+  })();
 
-  return { tokenizer, model };
+  return initPromise;
 };
 
 const meanPooling = (lastHiddenState, attentionMask) => {
