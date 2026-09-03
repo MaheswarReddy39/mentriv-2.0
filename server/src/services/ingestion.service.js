@@ -5,7 +5,7 @@ import { chunkMarkdown } from './chunking.service.js';
 import { getEmbedding, EMBEDDING_DIMENSION } from './embedding.service.js';
 import { getClient, COLLECTION_NAME } from './vector-db.service.js';
 
-const KNOWLEDGE_DIR = path.resolve(process.cwd(), '..', 'Knowledge');
+const KNOWLEDGE_DIR = path.resolve(process.cwd(), 'Knowledge');
 
 const discoverMarkdownFiles = async (dir) => {
   const files = [];

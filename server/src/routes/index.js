@@ -36,11 +36,9 @@ apiV1Router.use(mcqAttemptRoutes);
 apiV1Router.use(progressRoutes);
 apiV1Router.use(notificationRoutes);
 apiV1Router.use(announcementRoutes);
- feature/AI-chatbot
 apiV1Router.use('/chat', chatRoutes);
 
 apiV1Router.use(aiRoutes);
- main
 
 const router = Router();
 
