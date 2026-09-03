@@ -59,25 +59,21 @@ const buildPasswordResetLink = (token) =>
   `${emailConfig.frontendUrl}/reset-password?token=${encodeURIComponent(token)}`;
 
 const sendPasswordResetEmail = async ({ to, name, token }) => {
-  if (!transporter) {
-    console.warn('[email] SMTP is not configured - password reset email skipped');
-    return { sent: false };
-  }
+  const link = buildPasswordResetLink(token);
 
-  try {
-    const link = buildPasswordResetLink(token);
-    await transporter.sendMail({
-      from: emailConfig.from,
-      to,
-      subject: 'Reset your Mentriv password',
-      text: `Hi ${name}, please reset your password: ${link}`,
-      html: `<p>Hi ${name},</p><p>Please reset your password by clicking the link below:</p><p><a href="${link}">Reset my password</a></p><p>If you did not request this, you can safely ignore this email.</p>`,
-    });
-    return { sent: true };
-  } catch (error) {
-    console.error(`[email] Failed to send password reset email: ${error.message}`);
-    return { sent: false };
-  }
+  return sendBrandedMail('password reset', {
+    to,
+    subject: 'Reset Your Mentriv Password',
+    text: `Hi ${name}, We received a request to reset your Mentriv account password. Reset your password here: ${link} This link is valid for a limited time and can only be used once. If you didn't request a password reset, you can safely ignore this email.`,
+    html: brandWrap(
+      'Reset Your Mentriv Password',
+      name,
+      `<p>We received a request to reset your Mentriv account password. Click the button below to create a new password.</p>
+       <p><a href="${link}" style="display:inline-block;padding:12px 24px;background:#2563eb;color:#ffffff;text-decoration:none;border-radius:6px;font-weight:600">Reset Password</a></p>
+       <p>This link is valid for a limited time and can only be used once. If you don't see this email in your inbox, please check your Spam or Junk folder as well.</p>
+       <p>If you didn't request a password reset, you can safely ignore this email.</p>`
+    ),
+  });
 };
 
 const sendBrandedMail = async (kind, { to, subject, text, html }) => {

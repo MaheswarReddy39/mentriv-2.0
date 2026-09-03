@@ -1,14 +1,6 @@
-import { useEffect, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
-import Badge from '../../components/common/Badge.jsx';
-import Button from '../../components/common/Button.jsx';
 import Card from '../../components/common/Card.jsx';
-import Loading from '../../components/common/Loading.jsx';
-import ErrorState from '../../components/common/ErrorState.jsx';
-import EmptyState from '../../components/common/EmptyState.jsx';
 
 export default function AdminPaymentsPage() {
-  const toast = useToast();
   return (
     <>
       <div className="page-head fade-in">
@@ -24,9 +16,4 @@ export default function AdminPaymentsPage() {
       </Card>
     </>
   );
-}
-
-function useToast() {
-  const noop = () => {};
-  return { success: noop, error: noop };
 }
