@@ -31,6 +31,16 @@ const env = {
     password: process.env.SMTP_PASSWORD || '',
     from: process.env.SMTP_FROM_EMAIL || 'Mentriv <no-reply@mentriv.local>',
   },
+  qdrantUrl: process.env.QDRANT_URL || 'http://localhost:6333',
+  qdrantApiKey: process.env.QDRANT_API_KEY || '',
+  qdrantCollection: process.env.QDRANT_COLLECTION || 'mentriv_knowledge',
+  embeddingModel: process.env.EMBEDDING_MODEL || 'BAAI/bge-small-en-v1.5',
+  openrouterApiKey: process.env.OPENROUTER_API_KEY || '',
+  llmModel: process.env.LLM_MODEL || 'openrouter/free',
+  groqApiKey: process.env.GROQ_API_KEY || '',
+  groqModel: process.env.GROQ_MODEL || 'openai/gpt-oss-20b',
+  geminiApiKey: process.env.GEMINI_API_KEY || '',
+  geminiModel: process.env.GEMINI_MODEL || 'gemini-3.5-flash-lite',
 };
 
 export default env;
