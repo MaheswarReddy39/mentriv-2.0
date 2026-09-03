@@ -3,7 +3,7 @@ import { getClient, COLLECTION_NAME } from './vector-db.service.js';
 import ApiError from '../utils/api-error.js';
 
 const DEFAULT_TOP_K = 5;
-const DEFAULT_MIN_RELEVANCE = 0.5;
+const DEFAULT_MIN_RELEVANCE = 0.4;
 
 const retrieveRelevantChunks = async ({
   query,

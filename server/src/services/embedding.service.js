@@ -1,95 +1,60 @@
-import { AutoTokenizer, AutoModel } from '@xenova/transformers';
+import { pipeline } from '@xenova/transformers';
 import env from '../config/env.js';
 
-let tokenizer = null;
-let model = null;
+let extractor = null;
 let initPromise = null;
 
-const MODEL_NAME = env.embeddingModel || 'BAAI/bge-small-en-v1.5';
+const MODEL_NAME = env.embeddingModel || 'Xenova/all-MiniLM-L6-v2';
 const EMBEDDING_DIMENSION = 384;
 
 const initEmbeddingModel = async () => {
-  if (tokenizer && model) return { tokenizer, model };
+  if (extractor) return { extractor };
   if (initPromise) return initPromise;
 
   initPromise = (async () => {
     try {
-      tokenizer = await AutoTokenizer.from_pretrained(MODEL_NAME);
-      model = await AutoModel.from_pretrained(MODEL_NAME, { quantized: false });
-      return { tokenizer, model };
+      extractor = await pipeline('feature-extraction', MODEL_NAME, { quantized: true });
+      return { extractor };
     } catch (error) {
       initPromise = null;
-      throw error;
+      throw new Error(`Failed to load local embedding model "${MODEL_NAME}": ${error.message}`);
     }
   })();
 
   return initPromise;
 };
 
-const meanPooling = (lastHiddenState, attentionMask) => {
-  const tokenEmbeddings = lastHiddenState;
-  const maskExpanded = attentionMask.map((val) => val.map((v) => (v ? 1 : 0)));
-
-  const sumEmbeddings = [];
-  for (let i = 0; i < tokenEmbeddings.length; i++) {
-    const sum = new Array(tokenEmbeddings[i][0].length).fill(0);
-    for (let j = 0; j < tokenEmbeddings[i].length; j++) {
-      if (maskExpanded[i][j] === 1) {
-        for (let k = 0; k < sum.length; k++) {
-          sum[k] += tokenEmbeddings[i][j][k];
-        }
-      }
-    }
-    const maskSum = maskExpanded[i].reduce((a, b) => a + b, 0);
-    for (let k = 0; k < sum.length; k++) {
-      sum[k] /= maskSum;
-    }
-    sumEmbeddings.push(sum);
-  }
-  return sumEmbeddings;
-};
-
-const normalize = (embeddings) => {
-  return embeddings.map((emb) => {
-    const norm = Math.sqrt(emb.reduce((sum, val) => sum + val * val, 0));
-    return norm > 0 ? emb.map((val) => val / norm) : emb;
-  });
-};
-
 const getEmbedding = async (text) => {
-  if (!tokenizer || !model) {
+  if (!text || typeof text !== 'string') {
+    throw new Error('Text is required to generate an embedding');
+  }
+
+  if (!extractor) {
     await initEmbeddingModel();
   }
 
-  const inputs = await tokenizer(text, { padding: true, truncation: true });
-  const output = await model(inputs);
+  const output = await extractor(text, {
+    pooling: 'mean',
+    normalize: true,
+  });
 
-  const attentionMask = Array.isArray(inputs.attention_mask)
-    ? inputs.attention_mask
-    : [Array.from(inputs.attention_mask.data)];
+  const embedding = Array.from(output.data);
 
-  const tokenEmbeddings = Array.from(output.last_hidden_state.data);
-  const batchSize = output.last_hidden_state.dims[0];
-  const seqLen = output.last_hidden_state.dims[1];
-  const hiddenSize = output.last_hidden_state.dims[2];
-
-  const reshaped = [];
-  for (let i = 0; i < batchSize; i++) {
-    const tokens = [];
-    for (let j = 0; j < seqLen; j++) {
-      tokens.push(tokenEmbeddings.slice(i * seqLen * hiddenSize + j * hiddenSize, i * seqLen * hiddenSize + (j + 1) * hiddenSize));
-    }
-    reshaped.push(tokens);
+  if (embedding.length !== EMBEDDING_DIMENSION) {
+    throw new Error(
+      `Local embedding model "${MODEL_NAME}" returned ${embedding.length} dimensions; expected ${EMBEDDING_DIMENSION}`
+    );
   }
 
-  const pooled = meanPooling(reshaped, attentionMask);
-  const normalized = normalize(pooled);
-
-  return normalized[0];
+  return embedding;
 };
 
 const getEmbeddings = async (texts) => {
-  if (!tokenizer || !model) {
+  if (!Array.isArray(texts)) {
+    throw new Error('Texts must be an array');
+  }
+
+  if (!extractor) {
     await initEmbeddingModel();
   }
 

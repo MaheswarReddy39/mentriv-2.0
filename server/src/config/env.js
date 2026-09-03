@@ -34,7 +34,7 @@ const env = {
   qdrantUrl: process.env.QDRANT_URL || 'http://localhost:6333',
   qdrantApiKey: process.env.QDRANT_API_KEY || '',
   qdrantCollection: process.env.QDRANT_COLLECTION || 'mentriv_knowledge',
-  embeddingModel: process.env.EMBEDDING_MODEL || 'BAAI/bge-small-en-v1.5',
+  embeddingModel: process.env.EMBEDDING_MODEL || 'Xenova/all-MiniLM-L6-v2',
   openrouterApiKey: process.env.OPENROUTER_API_KEY || '',
   llmModel: process.env.LLM_MODEL || 'openrouter/free',
   groqApiKey: process.env.GROQ_API_KEY || '',
