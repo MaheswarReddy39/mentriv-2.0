@@ -99,7 +99,7 @@ export default function TeacherAssignmentsPage() {
     });
   };
 
-  const isValidQuestion = (q) => {
+  const validateQuestion = (q) => {
     const question = (q.question ?? '').toString().trim();
     const optionA = (q.optionA ?? '').toString().trim();
     const optionB = (q.optionB ?? '').toString().trim();
@@ -107,17 +107,24 @@ export default function TeacherAssignmentsPage() {
     const optionD = (q.optionD ?? '').toString().trim();
     const correctAnswer = (q.correctAnswer ?? '').toString().trim().toUpperCase();
 
-    if (!question || question.length > 1000) return false;
-    if (!optionA || optionA.length > 300) return false;
-    if (!optionB || optionB.length > 300) return false;
-    if (!optionC || optionC.length > 300) return false;
-    if (!optionD || optionD.length > 300) return false;
-    if (!['A', 'B', 'C', 'D'].includes(correctAnswer)) return false;
+    const errors = [];
+    if (!question) errors.push('Question text is required');
+    else if (question.length > 1000) errors.push('Question exceeds 1000 characters');
+    if (!optionA) errors.push('Option A is required');
+    else if (optionA.length > 300) errors.push('Option A exceeds 300 characters');
+    if (!optionB) errors.push('Option B is required');
+    else if (optionB.length > 300) errors.push('Option B exceeds 300 characters');
+    if (!optionC) errors.push('Option C is required');
+    else if (optionC.length > 300) errors.push('Option C exceeds 300 characters');
+    if (!optionD) errors.push('Option D is required');
+    else if (optionD.length > 300) errors.push('Option D exceeds 300 characters');
+    if (!['A', 'B', 'C', 'D'].includes(correctAnswer)) errors.push('Correct answer must be A, B, C, or D');
 
     const options = [optionA, optionB, optionC, optionD];
-    if (new Set(options.map(o => o.toLowerCase())).size !== options.length) return false;
-
-    return true;
+    if (new Set(options.map(o => o.toLowerCase())).size !== options.length) {
+      errors.push('Options must be unique (case-insensitive)');
+    }
+    return { valid: errors.length === 0, errors, normalized: { question, optionA, optionB, optionC, optionD, correctAnswer } };
   };
 
   const handleGenerateQuestions = async () => {
@@ -129,14 +136,13 @@ export default function TeacherAssignmentsPage() {
     try {
       const response = await parseQuestionsWithAI(aiInput);
       const parsed = response.data?.questions || [];
-      const validQuestions = parsed.filter(isValidQuestion);
-      if (validQuestions.length === 0) {
-        toast.warning('No valid questions generated. Please check your input format.');
+      if (parsed.length === 0) {
+        toast.warning('Could not parse any valid questions. Please check your input format.');
         return;
       }
-      setGeneratedQuestions(validQuestions);
+      setGeneratedQuestions(parsed);
       setShowPreview(true);
-      toast.success(`${validQuestions.length} question${validQuestions.length > 1 ? 's' : ''} generated successfully.`);
+      toast.success(`${parsed.length} question${parsed.length > 1 ? 's' : ''} generated. Review and edit below.`);
     } catch (err) {
       const msg = err.message || 'AI parsing failed. Please try again.';
       toast.error(msg);
@@ -156,14 +162,20 @@ export default function TeacherAssignmentsPage() {
   };
 
   const handleUseGeneratedQuestions = () => {
-    const normalized = generatedQuestions.map((q) => ({
-      question: (q.question ?? '').toString().trim(),
-      optionA: (q.optionA ?? '').toString().trim(),
-      optionB: (q.optionB ?? '').toString().trim(),
-      optionC: (q.optionC ?? '').toString().trim(),
-      optionD: (q.optionD ?? '').toString().trim(),
-      correctAnswer: (q.correctAnswer ?? '').toString().trim().toUpperCase(),
-    }));
+    const results = generatedQuestions.map(validateQuestion);
+    const validResults = results.filter(r => r.valid);
+    const invalidCount = results.length - validResults.length;
+
+    if (validResults.length === 0) {
+      toast.error('No valid questions to transfer. Fix errors in preview first.');
+      return;
+    }
+
+    if (invalidCount > 0) {
+      toast.warning(`${invalidCount} invalid question${invalidCount > 1 ? 's' : ''} skipped. Fix or remove them in preview.`);
+    }
+
+    const normalized = validResults.map(r => r.normalized);
     setQuestions(normalized);
     setQuestionCount(normalized.length);
     setInputMode('manual');
@@ -367,70 +379,89 @@ export default function TeacherAssignmentsPage() {
                       </div>
 
                       <div className="teacher-preview-list">
-                        {generatedQuestions.map((q, index) => (
-                          <div key={index} className="teacher-preview-card">
-                            <div className="teacher-preview-card-header">
-                              <span className="teacher-preview-number">Q{index + 1}</span>
-                              <button
-                                type="button"
-                                className="teacher-preview-remove-btn"
-                                onClick={() => handleRemoveQuestion(index)}
-                                title="Remove question"
-                              >
-                                ×
-                              </button>
-                            </div>
-                            <div className="teacher-preview-question">
-                              <Input
-                                label="Question"
-                                value={q.question}
-                                onChange={(e) => handleEditQuestion(index, 'question', e.target.value)}
-                              />
-                            </div>
-                            <div className="teacher-preview-options">
-                              <div className="teacher-preview-option">
-                                <span className="teacher-preview-option-label">A</span>
+                        {generatedQuestions.map((q, index) => {
+                          const validation = validateQuestion(q);
+                          return (
+                            <div key={index} className="teacher-preview-card" style={{ borderLeft: validation.valid ? '3px solid var(--color-success, #10b981)' : '3px solid var(--color-error, #ef4444)', paddingLeft: 'var(--space-4)', marginBottom: 'var(--space-4)' }}>
+                              <div className="teacher-preview-card-header">
+                                <span className="teacher-preview-number">Q{index + 1}</span>
+                                {!validation.valid && (
+                                  <span className="teacher-preview-badge" style={{ background: 'var(--color-error, #ef4444)', color: 'white', padding: '2px 8px', borderRadius: 'var(--radius-sm)', fontSize: 'var(--text-xs)', marginRight: 'var(--space-2)' }}>Invalid</span>
+                                )}
+                                <button
+                                  type="button"
+                                  className="teacher-preview-remove-btn"
+                                  onClick={() => handleRemoveQuestion(index)}
+                                  title="Remove question"
+                                >
+                                  ×
+                                </button>
+                              </div>
+                              {!validation.valid && (
+                                <div className="teacher-preview-errors" style={{ color: 'var(--color-error, #ef4444)', fontSize: 'var(--text-sm)', marginBottom: 'var(--space-2)', padding: 'var(--space-2)', background: 'rgba(239, 68, 68, 0.1)', borderRadius: 'var(--radius-sm)' }}>
+                                  {validation.errors.map((err, i) => (
+                                    <div key={i}>• {err}</div>
+                                  ))}
+                                </div>
+                              )}
+                              <div className="teacher-preview-question">
                                 <Input
-                                  value={q.optionA}
-                                  onChange={(e) => handleEditQuestion(index, 'optionA', e.target.value)}
+                                  label="Question"
+                                  value={q.question}
+                                  onChange={(e) => handleEditQuestion(index, 'question', e.target.value)}
+                                  error={validation.errors.find(e => e.includes('Question') || e.includes('characters')) ? validation.errors.find(e => e.includes('Question') || e.includes('characters')) : undefined}
                                 />
                               </div>
-                              <div className="teacher-preview-option">
-                                <span className="teacher-preview-option-label">B</span>
-                                <Input
-                                  value={q.optionB}
-                                  onChange={(e) => handleEditQuestion(index, 'optionB', e.target.value)}
-                                />
+                              <div className="teacher-preview-options">
+                                <div className="teacher-preview-option">
+                                  <span className="teacher-preview-option-label">A</span>
+                                  <Input
+                                    value={q.optionA}
+                                    onChange={(e) => handleEditQuestion(index, 'optionA', e.target.value)}
+                                    error={validation.errors.find(e => e.includes('Option A')) ? validation.errors.find(e => e.includes('Option A')) : undefined}
+                                  />
+                                </div>
+                                <div className="teacher-preview-option">
+                                  <span className="teacher-preview-option-label">B</span>
+                                  <Input
+                                    value={q.optionB}
+                                    onChange={(e) => handleEditQuestion(index, 'optionB', e.target.value)}
+                                    error={validation.errors.find(e => e.includes('Option B')) ? validation.errors.find(e => e.includes('Option B')) : undefined}
+                                  />
+                                </div>
+                                <div className="teacher-preview-option">
+                                  <span className="teacher-preview-option-label">C</span>
+                                  <Input
+                                    value={q.optionC}
+                                    onChange={(e) => handleEditQuestion(index, 'optionC', e.target.value)}
+                                    error={validation.errors.find(e => e.includes('Option C')) ? validation.errors.find(e => e.includes('Option C')) : undefined}
+                                  />
+                                </div>
+                                <div className="teacher-preview-option">
+                                  <span className="teacher-preview-option-label">D</span>
+                                  <Input
+                                    value={q.optionD}
+                                    onChange={(e) => handleEditQuestion(index, 'optionD', e.target.value)}
+                                    error={validation.errors.find(e => e.includes('Option D')) ? validation.errors.find(e => e.includes('Option D')) : undefined}
+                                  />
+                                </div>
                               </div>
-                              <div className="teacher-preview-option">
-                                <span className="teacher-preview-option-label">C</span>
-                                <Input
-                                  value={q.optionC}
-                                  onChange={(e) => handleEditQuestion(index, 'optionC', e.target.value)}
-                                />
-                              </div>
-                              <div className="teacher-preview-option">
-                                <span className="teacher-preview-option-label">D</span>
-                                <Input
-                                  value={q.optionD}
-                                  onChange={(e) => handleEditQuestion(index, 'optionD', e.target.value)}
-                                />
+                              <div className="teacher-preview-answer">
+                                <Select
+                                  label="Correct Answer"
+                                  value={q.correctAnswer}
+                                  onChange={(e) => handleEditQuestion(index, 'correctAnswer', e.target.value)}
+                                  error={validation.errors.find(e => e.includes('Correct answer')) ? validation.errors.find(e => e.includes('Correct answer')) : undefined}
+                                >
+                                  <option value="A">Option A</option>
+                                  <option value="B">Option B</option>
+                                  <option value="C">Option C</option>
+                                  <option value="D">Option D</option>
+                                </Select>
                               </div>
                             </div>
-                            <div className="teacher-preview-answer">
-                              <Select
-                                label="Correct Answer"
-                                value={q.correctAnswer}
-                                onChange={(e) => handleEditQuestion(index, 'correctAnswer', e.target.value)}
-                              >
-                                <option value="A">Option A</option>
-                                <option value="B">Option B</option>
-                                <option value="C">Option C</option>
-                                <option value="D">Option D</option>
-                              </Select>
-                            </div>
-                          </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     </div>
                   )}
