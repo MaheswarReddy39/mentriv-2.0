@@ -11,7 +11,6 @@ process.on('uncaughtException', (error) => {
 import app from './src/app.js';
 import env from './src/config/env.js';
 import connectDB from './src/config/db.js';
-import { initEmbeddingModel } from './src/services/embedding.service.js';
 import { initQdrant } from './src/services/vector-db.service.js';
 
 const startServer = async () => {
@@ -30,10 +29,6 @@ const startServer = async () => {
   initQdrant()
     .then(() => console.log('[startup] Qdrant client ready'))
     .catch((error) => console.warn(`[startup] Qdrant warmup failed (will retry on first request): ${error.message}`));
-
-  initEmbeddingModel()
-    .then(() => console.log('[startup] Embedding model ready'))
-    .catch((error) => console.warn(`[startup] Embedding model warmup failed (will retry on first request): ${error.message}`));
 };
 
 startServer();
