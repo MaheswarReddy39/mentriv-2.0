@@ -72,7 +72,7 @@ const testVectorDbExports = async () => {
   assert('exports COLLECTION_NAME', typeof mod.COLLECTION_NAME === 'string');
   assert('exports EMBEDDING_DIMENSION', typeof mod.EMBEDDING_DIMENSION === 'number');
   assert('COLLECTION_NAME is non-empty', mod.COLLECTION_NAME.length > 0);
-  assert('EMBEDDING_DIMENSION is 384', mod.EMBEDDING_DIMENSION === 384);
+  assert('EMBEDDING_DIMENSION is 768', mod.EMBEDDING_DIMENSION === 768);
 };
 
 const testVectorDbInitCreatesCollection = async () => {
