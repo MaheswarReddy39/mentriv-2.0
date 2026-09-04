@@ -6,38 +6,73 @@ import { retrieveRelevantChunks, DEFAULT_TOP_K, DEFAULT_MIN_RELEVANCE } from '..
 
 const testQueries = [
   {
-    name: 'Course pricing',
-    query: 'How much does the MERN Stack course cost?',
+    name: 'Enrollment - short',
+    query: 'How do I enroll?',
     expectRelevant: true,
   },
   {
-    name: 'Enrollment process',
+    name: 'Enrollment - full',
     query: 'How do I enroll in a course?',
     expectRelevant: true,
   },
   {
-    name: 'Class schedule',
-    query: 'What are the class timings?',
+    name: 'Contact - short/terse',
+    query: 'how i contact',
     expectRelevant: true,
   },
   {
-    name: 'Mentorship info',
-    query: 'What is mentorship at Mentriv?',
-    expectRelevant: true,
-  },
-  {
-    name: 'Contact support',
+    name: 'Contact - full',
     query: 'How can I contact support?',
     expectRelevant: true,
   },
   {
-    name: 'Unrelated - cooking recipe',
-    query: 'How do I make pasta carbonara?',
+    name: 'Courses - how many',
+    query: 'how many courses',
+    expectRelevant: true,
+  },
+  {
+    name: 'Courses - which courses',
+    query: 'What courses does Mentriv offer?',
+    expectRelevant: true,
+  },
+  {
+    name: 'Pricing - terse',
+    query: 'mernstack price',
+    expectRelevant: true,
+  },
+  {
+    name: 'Pricing - full',
+    query: 'How much does the MERN Stack course cost?',
+    expectRelevant: true,
+  },
+  {
+    name: 'Schedules - short',
+    query: 'class timings',
+    expectRelevant: true,
+  },
+  {
+    name: 'Schedules - full',
+    query: 'What are the class timings?',
+    expectRelevant: true,
+  },
+  {
+    name: 'Unrelated - weather (short)',
+    query: 'What is the weather today?',
     expectRelevant: false,
   },
   {
-    name: 'Unrelated - weather',
+    name: 'Unrelated - weather (full)',
     query: 'What is the weather in Tokyo today?',
+    expectRelevant: false,
+  },
+  {
+    name: 'Unrelated - pasta recipe',
+    query: 'Give me a pasta recipe.',
+    expectRelevant: false,
+  },
+  {
+    name: 'Unrelated - pasta carbonara',
+    query: 'How do I make pasta carbonara?',
     expectRelevant: false,
   },
 ];

@@ -135,7 +135,7 @@ const testMentrivNoRelevantChunks = async () => {
 
   assert('Route is mentriv', result.route === 'mentriv');
   assert('RAG was called', rag.calls.length === 1);
-  assert('LLM was called without context', llm.calls[0].context === null);
+  assert('LLM was called without context', Array.isArray(llm.calls[0].context) && llm.calls[0].context.length === 0);
   assert('Result has ragUsed=false', result.ragUsed === false);
 };
 

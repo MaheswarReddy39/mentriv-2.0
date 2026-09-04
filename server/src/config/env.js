@@ -37,8 +37,11 @@ const env = {
   geminiEmbeddingApiKey: process.env.GEMINI_EMBEDDING_API_KEY || '',
   geminiEmbeddingModel: process.env.GEMINI_EMBEDDING_MODEL || 'gemini-embedding-001',
   embeddingDimension: Number(process.env.EMBEDDING_DIMENSION) || 768,
-  openrouterApiKey: process.env.OPENROUTER_API_KEY || '',
-  llmModel: process.env.LLM_MODEL || 'openrouter/free',
+openrouterApiKey: process.env.OPENROUTER_API_KEY || '',
+  // Stable named model, NOT the rotating "openrouter/free" alias, so identical questions
+  // produce consistent answers. Must stay a $0 (":free") OpenRouter model to keep the
+  // project free of LLM charges. Override via LLM_MODEL in environment.
+  llmModel: process.env.LLM_MODEL || 'nvidia/nemotron-3-super-120b-a12b:free',
   groqApiKey: process.env.GROQ_API_KEY || '',
   groqModel: process.env.GROQ_MODEL || 'openai/gpt-oss-20b',
   geminiApiKey: process.env.GEMINI_API_KEY || '',

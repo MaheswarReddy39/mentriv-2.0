@@ -6,8 +6,11 @@ import ApiError from '../utils/api-error.js';
 
 const METADATA_PATTERN = /\[?(?:User[- ]?(?:Safety|Sensitivity)|Content[- ]?(?:Safety|Filter|Rating)|Safety[- ]?(?:Rating|Level|Score)|Harm[- ]?(?:Category|Categories)|Blocked)[- ]?:[- ]?\w+\]?/i;
 
+// Low temperature for grounded factual answers; reduces cross-request variance.
+const RAG_TEMPERATURE = 0.2;
+
 const MENTRIV_SYSTEM_INSTRUCTIONS =
-  'You are Mentriv AI, a helpful assistant for the Mentriv EdTech learning platform. Answer the user question based on the provided context. Be concise, accurate, and friendly. If the context does not contain enough information to answer, say so clearly.';
+  'You are Mentriv AI, a helpful assistant for the Mentriv EdTech learning platform. Answer the user question using ONLY the provided Mentriv knowledge base context. Be concise, accurate, and friendly. Never invent or guess any facts, including phone numbers, emails, prices, policies, schedules, or course details. If the required information is absent from the provided context, say clearly that the information is not available. Never fill missing information from your own knowledge.';
 
 const GENERAL_SYSTEM_INSTRUCTIONS =
   'You are a helpful educational assistant. Answer the user question clearly and concisely. Focus on providing accurate, educational information.';
@@ -50,7 +53,9 @@ const createChatService = ({
         const reply = await llm.generateAnswer({
           systemInstructions: MENTRIV_SYSTEM_INSTRUCTIONS,
           question: message,
-          context: chunks.length > 0 ? chunks : null,
+          // [] (not null) signals an explicit "no knowledge-base context" grounding block to the LLM.
+          context: chunks.length > 0 ? chunks : [],
+          temperature: RAG_TEMPERATURE,
         });
 
         const sanitized = sanitizeContent(reply);
@@ -92,12 +97,15 @@ const createChatService = ({
     }
 
     let chunks = [];
+    let context = null;
     if (routing.route === 'mentriv') {
       const result = await rag.retrieveRelevantChunks({ query: message });
       chunks = result.chunks;
+      // [] (not null) signals an explicit "no knowledge-base context" grounding block to the LLM.
+      context = chunks.length > 0 ? chunks : [];
     }
 
-    return { routing, context: chunks.length > 0 ? chunks : null, chunks };
+    return { routing, context, chunks };
   };
 
   const streamAnswer = async ({ message, onToken, onDone, onError }) => {
@@ -140,12 +148,30 @@ const createChatService = ({
         systemInstructions,
         question: message,
         context,
+        temperature: routing.route === 'mentriv' ? RAG_TEMPERATURE : undefined,
       });
 
       const reader = stream.getReader();
       const decoder = new TextDecoder();
       let fullContent = '';
-      let metadataDetected = false;
+      let emittedChars = 0;
+      // Keep a trailing window un-emitted so a metadata marker that only completes on a later
+      // token is removed cleanly instead of leaking a partial prefix or dropping the answer tail.
+      const HOLD_BACK_CHARS = 64;
+
+      const emitCleanedContent = (final = false) => {
+        const cleaned = fullContent.replace(METADATA_PATTERN, '');
+        const emitUntil = final
+          ? cleaned.length
+          : Math.max(emittedChars, cleaned.length - HOLD_BACK_CHARS);
+        if (emitUntil > emittedChars) {
+          const delta = cleaned.slice(emittedChars, emitUntil);
+          if (delta) {
+            onToken(delta);
+          }
+          emittedChars = emitUntil;
+        }
+      };
 
       while (true) {
         const { done, value } = await reader.read();
@@ -163,15 +189,8 @@ const createChatService = ({
               const parsed = JSON.parse(data);
               const token = parsed.choices?.[0]?.delta?.content;
               if (token) {
-                if (!metadataDetected) {
-                  const candidate = fullContent + token;
-                  if (METADATA_PATTERN.test(candidate)) {
-                    metadataDetected = true;
-                  } else {
-                    fullContent += token;
-                    onToken(token);
-                  }
-                }
+                fullContent += token;
+                emitCleanedContent(false);
               }
             } catch {
               // Skip malformed JSON chunks
@@ -179,6 +198,8 @@ const createChatService = ({
           }
         }
       }
+
+      emitCleanedContent(true);
 
       onDone({
         route: routing.route,
