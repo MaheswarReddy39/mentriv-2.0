@@ -7,6 +7,25 @@ const COLLECTION_NAME = env.qdrantCollection || 'mentriv_knowledge';
 let client = null;
 let initPromise = null;
 
+const getCollectionVectorSize = (collectionInfo) => {
+  const vectors = collectionInfo?.config?.params?.vectors;
+  if (typeof vectors?.size === 'number') return vectors.size;
+  const firstVectorConfig = vectors && typeof vectors === 'object'
+    ? Object.values(vectors)[0]
+    : null;
+  return typeof firstVectorConfig?.size === 'number' ? firstVectorConfig.size : null;
+};
+
+const createCollection = async () => {
+  await client.createCollection(COLLECTION_NAME, {
+    vectors: {
+      size: EMBEDDING_DIMENSION,
+      distance: 'Cosine',
+    },
+  });
+  console.log(`[qdrant] Created collection "${COLLECTION_NAME}" (${EMBEDDING_DIMENSION}d, cosine)`);
+};
+
 const initQdrant = async () => {
   if (client) return client;
   if (initPromise) return initPromise;
@@ -28,13 +47,16 @@ const initQdrant = async () => {
       const exists = collections.collections.some((c) => c.name === COLLECTION_NAME);
 
       if (!exists) {
-        await client.createCollection(COLLECTION_NAME, {
-          vectors: {
-            size: EMBEDDING_DIMENSION,
-            distance: 'Cosine',
-          },
-        });
-        console.log(`[qdrant] Created collection "${COLLECTION_NAME}" (${EMBEDDING_DIMENSION}d, cosine)`);
+        await createCollection();
+      } else {
+        const collectionInfo = await client.getCollection(COLLECTION_NAME);
+        const vectorSize = getCollectionVectorSize(collectionInfo);
+
+        if (vectorSize !== EMBEDDING_DIMENSION) {
+          console.warn(`[qdrant] Recreating collection "${COLLECTION_NAME}" because vector size is ${vectorSize}, expected ${EMBEDDING_DIMENSION}`);
+          await client.deleteCollection(COLLECTION_NAME);
+          await createCollection();
+        }
       }
 
       return client;

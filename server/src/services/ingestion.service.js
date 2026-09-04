@@ -2,7 +2,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import { chunkMarkdown } from './chunking.service.js';
-import { getEmbedding, EMBEDDING_DIMENSION } from './embedding.service.js';
+import { getEmbedding, EMBEDDING_DIMENSION, DOCUMENT_TASK_TYPE } from './embedding.service.js';
 import { getClient, COLLECTION_NAME } from './vector-db.service.js';
 
 const KNOWLEDGE_DIR = path.resolve(process.cwd(), '..', 'Knowledge');
@@ -59,7 +59,7 @@ const ingestDocument = async (filePath) => {
   for (let i = 0; i < chunks.length; i++) {
     const chunk = chunks[i];
     const chunkId = generateChunkId(relativePath, i);
-    const embedding = await getEmbedding(chunk.text);
+    const embedding = await getEmbedding(chunk.text, { taskType: DOCUMENT_TASK_TYPE });
 
     points.push({
       id: chunkId,
