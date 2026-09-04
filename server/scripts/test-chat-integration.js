@@ -178,7 +178,7 @@ const testMentrivNoContext = async () => {
   assert('HTTP status 200', res.statusCode === 200);
   assert('Data has route=mentriv', res.body?.data?.route === 'mentriv');
   assert('Data has ragUsed=false', res.body?.data?.ragUsed === false);
-  assert('LLM received null context', llm.calls[0].context === null);
+  assert('LLM received empty context array (grounding signal)', Array.isArray(llm.calls[0].context) && llm.calls[0].context.length === 0);
   assert('LLM used Mentriv instructions', llm.calls[0].systemInstructions.includes('Mentriv'));
 };
 

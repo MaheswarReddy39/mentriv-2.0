@@ -3,7 +3,14 @@ import { getClient, COLLECTION_NAME } from './vector-db.service.js';
 import ApiError from '../utils/api-error.js';
 
 const DEFAULT_TOP_K = 5;
-const DEFAULT_MIN_RELEVANCE = 0.7;
+// Calibrated for Gemini embedding scores (gemini-embedding-001, 768-dim, cosine).
+// Live score distribution on the production collection:
+//   - All supported Mentriv queries (enrollment, support, pricing, schedules) score >= ~0.67
+//     (lowest observed: "how i contact" = 0.6745, "How do I enroll?" = 0.6778).
+//   - Unrelated negative queries (weather, cooking) top out at ~0.53.
+// 0.6 retains every legitimately relevant chunk while excluding unrelated context.
+// NOTE: do not blindly adjust without re-running scripts/test-rag-retrieval.js.
+const DEFAULT_MIN_RELEVANCE = 0.6;
 
 const retrieveRelevantChunks = async ({
   query,

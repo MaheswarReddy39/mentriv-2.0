@@ -2,6 +2,7 @@ import env from '../config/env.js';
 import ApiError from '../utils/api-error.js';
 
 const PROVIDER_TIMEOUT_MS = 30000;
+const DEFAULT_TEMPERATURE = 0.7;
 
 const normalize = (text) => text.toLowerCase().trim();
 
@@ -24,6 +25,9 @@ const sanitizeContent = (text) => {
   return cleaned.trim();
 };
 
+const EMPTY_CONTEXT_INSTRUCTIONS =
+  'No relevant information was found in the Mentriv knowledge base for this question. Clearly state that the specific information is not available in the Mentriv knowledge base. Do not guess or invent phone numbers, emails, prices, policies, schedules, or any other facts.';
+
 const buildMessages = ({ systemInstructions, question, context }) => {
   const messages = [];
 
@@ -40,13 +44,15 @@ const buildMessages = ({ systemInstructions, question, context }) => {
       role: 'system',
       content: `Use the following context to answer the question. If the context does not contain enough information, say so clearly.\n\nContext:\n${contextBlock}`,
     });
+  } else if (Array.isArray(context) && context.length === 0) {
+    messages.push({ role: 'system', content: EMPTY_CONTEXT_INSTRUCTIONS });
   }
 
   messages.push({ role: 'user', content: question });
   return messages;
 };
 
-const callOpenAICompatible = async ({ url, apiKey, model, messages, extraHeaders = {} }) => {
+const callOpenAICompatible = async ({ url, apiKey, model, messages, temperature = DEFAULT_TEMPERATURE, extraHeaders = {} }) => {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), PROVIDER_TIMEOUT_MS);
 
@@ -61,7 +67,7 @@ const callOpenAICompatible = async ({ url, apiKey, model, messages, extraHeaders
       body: JSON.stringify({
         model,
         messages,
-        temperature: 0.7,
+        temperature,
         max_tokens: 1024,
       }),
       signal: controller.signal,
@@ -88,7 +94,7 @@ const callOpenAICompatible = async ({ url, apiKey, model, messages, extraHeaders
   }
 };
 
-const callGemini = async ({ apiKey, model, messages }) => {
+const callGemini = async ({ apiKey, model, messages, temperature = DEFAULT_TEMPERATURE }) => {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), PROVIDER_TIMEOUT_MS);
 
@@ -111,7 +117,7 @@ const callGemini = async ({ apiKey, model, messages }) => {
 
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
 
-    const body = { contents };
+    const body = { contents, generationConfig: { temperature } };
     if (systemInstruction) {
       body.systemInstruction = { parts: [{ text: systemInstruction }] };
     }
@@ -144,7 +150,7 @@ const callGemini = async ({ apiKey, model, messages }) => {
   }
 };
 
-const callOpenAICompatibleStreaming = async ({ url, apiKey, model, messages, extraHeaders = {} }) => {
+const callOpenAICompatibleStreaming = async ({ url, apiKey, model, messages, temperature = DEFAULT_TEMPERATURE, extraHeaders = {} }) => {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), PROVIDER_TIMEOUT_MS);
 
@@ -159,7 +165,7 @@ const callOpenAICompatibleStreaming = async ({ url, apiKey, model, messages, ext
       body: JSON.stringify({
         model,
         messages,
-        temperature: 0.7,
+        temperature,
         max_tokens: 1024,
         stream: true,
       }),
@@ -176,7 +182,7 @@ const callOpenAICompatibleStreaming = async ({ url, apiKey, model, messages, ext
   }
 };
 
-const callGeminiStreaming = async ({ apiKey, model, messages }) => {
+const callGeminiStreaming = async ({ apiKey, model, messages, temperature = DEFAULT_TEMPERATURE }) => {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), PROVIDER_TIMEOUT_MS);
 
@@ -199,7 +205,7 @@ const callGeminiStreaming = async ({ apiKey, model, messages }) => {
 
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?key=${apiKey}&alt=sse`;
 
-    const body = { contents };
+    const body = { contents, generationConfig: { temperature } };
     if (systemInstruction) {
       body.systemInstruction = { parts: [{ text: systemInstruction }] };
     }
@@ -225,23 +231,25 @@ const providers = [
   {
     name: 'openrouter',
     isAvailable: () => Boolean(env.openrouterApiKey),
-    call: async (messages) =>
+    call: async (messages, options = {}) =>
       callOpenAICompatible({
         url: 'https://openrouter.ai/api/v1/chat/completions',
         apiKey: env.openrouterApiKey,
         model: env.llmModel,
         messages,
+        temperature: options.temperature,
         extraHeaders: {
           'HTTP-Referer': env.appFrontendUrl || 'http://localhost:5173',
           'X-Title': 'Mentriv AI Chatbot',
         },
       }),
-    stream: async (messages) =>
+    stream: async (messages, options = {}) =>
       callOpenAICompatibleStreaming({
         url: 'https://openrouter.ai/api/v1/chat/completions',
         apiKey: env.openrouterApiKey,
         model: env.llmModel,
         messages,
+        temperature: options.temperature,
         extraHeaders: {
           'HTTP-Referer': env.appFrontendUrl || 'http://localhost:5173',
           'X-Title': 'Mentriv AI Chatbot',
@@ -251,35 +259,39 @@ const providers = [
   {
     name: 'groq',
     isAvailable: () => Boolean(env.groqApiKey),
-    call: async (messages) =>
+    call: async (messages, options = {}) =>
       callOpenAICompatible({
         url: 'https://api.groq.com/openai/v1/chat/completions',
         apiKey: env.groqApiKey,
         model: env.groqModel,
         messages,
+        temperature: options.temperature,
       }),
-    stream: async (messages) =>
+    stream: async (messages, options = {}) =>
       callOpenAICompatibleStreaming({
         url: 'https://api.groq.com/openai/v1/chat/completions',
         apiKey: env.groqApiKey,
         model: env.groqModel,
         messages,
+        temperature: options.temperature,
       }),
   },
   {
     name: 'gemini',
     isAvailable: () => Boolean(env.geminiApiKey),
-    call: async (messages) =>
+    call: async (messages, options = {}) =>
       callGemini({
         apiKey: env.geminiApiKey,
         model: env.geminiModel,
         messages,
+        temperature: options.temperature,
       }),
-    stream: async (messages) =>
+    stream: async (messages, options = {}) =>
       callGeminiStreaming({
         apiKey: env.geminiApiKey,
         model: env.geminiModel,
         messages,
+        temperature: options.temperature,
       }),
   },
 ];
@@ -288,6 +300,7 @@ const generateAnswer = async ({
   systemInstructions,
   question,
   context = null,
+  temperature = DEFAULT_TEMPERATURE,
 } = {}) => {
   if (!question || typeof question !== 'string' || question.trim().length === 0) {
     throw new ApiError(400, 'Question is required');
@@ -305,7 +318,7 @@ const generateAnswer = async ({
 
   for (const provider of availableProviders) {
     try {
-      const result = await provider.call(messages);
+      const result = await provider.call(messages, { temperature });
       return result;
     } catch (error) {
       errors.push({ provider: provider.name, error: error.message });
@@ -319,6 +332,7 @@ const generateAnswerStream = async ({
   systemInstructions,
   question,
   context = null,
+  temperature = DEFAULT_TEMPERATURE,
 } = {}) => {
   if (!question || typeof question !== 'string' || question.trim().length === 0) {
     throw new ApiError(400, 'Question is required');
@@ -336,7 +350,7 @@ const generateAnswerStream = async ({
 
   for (const provider of availableProviders) {
     try {
-      const stream = await provider.stream(messages);
+      const stream = await provider.stream(messages, { temperature });
       return { stream, provider: provider.name };
     } catch (error) {
       errors.push({ provider: provider.name, error: error.message });
