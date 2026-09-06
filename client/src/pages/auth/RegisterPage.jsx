@@ -253,9 +253,11 @@ export default function RegisterPage() {
           >
             Payment / Scan
           </h1>
-          <div className="student-qr-placeholder" aria-label="QR scanner placeholder">
-            <span />
-          </div>
+          <img
+            src="/payment-qr.png"
+            alt="Scan to Pay"
+            className="student-qr-placeholder"
+          />
           <p>Scan & Pay</p>
           <Button
             type="button"
