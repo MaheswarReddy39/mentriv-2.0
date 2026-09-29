@@ -16,6 +16,7 @@ export default function StudentLayout() {
   const navigate = useNavigate();
   const location = useLocation();
   const [unreadCount, setUnreadCount] = useState(0);
+  const [collapsed, setCollapsed] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
@@ -33,8 +34,11 @@ export default function StudentLayout() {
   };
 
   return (
-    <div className="app-shell" style={{ display: 'grid', gridTemplateColumns: '220px 1fr', minHeight: '100vh' }}>
-      <StudentSidebar links={LINKS} unreadCount={unreadCount} />
+    <div className="app-shell" style={{ display: 'grid', gridTemplateColumns: collapsed ? '72px 1fr' : '220px 1fr', minHeight: '100vh', transition: 'grid-template-columns var(--transition-normal, 250ms ease)' }}>
+      <StudentSidebar links={LINKS} unreadCount={unreadCount} collapsed={collapsed} 
+        onMouseEnter={() => setCollapsed(false)} 
+        onMouseLeave={() => setCollapsed(true)} 
+      />
       <div>
         <header style={{
           display: 'flex',

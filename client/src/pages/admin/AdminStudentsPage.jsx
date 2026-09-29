@@ -30,6 +30,8 @@ export default function AdminStudentsPage() {
   const [students, setStudents] = useState([]);
   const [courses, setCourses] = useState([]);
   const [totalStudents, setTotalStudents] = useState(0);
+  const [filteredStudents, setFilteredStudents] = useState(0);
+  const [pagination, setPagination] = useState({ page: 1, limit: 50, totalPages: 0, hasNextPage: false });
   const [filters, setFilters] = useState({
     search: '',
     courseId: 'all',
@@ -40,7 +42,7 @@ export default function AdminStudentsPage() {
   const [updating, setUpdating] = useState({});
   const requestIdRef = useRef(0);
 
-  const loadStudents = async (activeFilters = filters) => {
+  const loadStudents = async (activeFilters = filters, page = 1) => {
     const requestId = requestIdRef.current + 1;
     requestIdRef.current = requestId;
     setLoading(true);
@@ -50,11 +52,15 @@ export default function AdminStudentsPage() {
         search: activeFilters.search.trim(),
         courseId: activeFilters.courseId,
         level: activeFilters.level,
+        page,
+        limit: 50,
       });
       if (requestId !== requestIdRef.current) return;
       setStudents(response.data.students);
       setCourses(response.data.courses);
       setTotalStudents(response.data.totalStudents);
+      setFilteredStudents(response.data.filteredStudents);
+      setPagination(response.data.pagination);
     } catch (err) {
       if (requestId !== requestIdRef.current) return;
       setError(err.message || 'Failed to load students.');
@@ -67,7 +73,7 @@ export default function AdminStudentsPage() {
 
   useEffect(() => {
     const activeFilters = { ...filters };
-    const timer = window.setTimeout(() => loadStudents(activeFilters), filters.search ? 250 : 0);
+    const timer = window.setTimeout(() => loadStudents(activeFilters, 1), filters.search ? 250 : 0);
     return () => window.clearTimeout(timer);
   }, [filters.search, filters.courseId, filters.level]);
 
@@ -76,6 +82,11 @@ export default function AdminStudentsPage() {
       ...current,
       [field]: event.target.value,
     }));
+  };
+
+  const handlePageChange = (newPage) => {
+    if (newPage < 1 || newPage > pagination.totalPages) return;
+    loadStudents(filters, newPage);
   };
 
   const handleStatusChange = async (studentId, nextStatus) => {
@@ -150,64 +161,87 @@ export default function AdminStudentsPage() {
           message="Try adjusting the search or filters."
         />
       ) : (
-        <section className="admin-table-wrap admin-students-table-wrap" aria-label="Student Details">
-          <table className="admin-table admin-students-table">
-            <thead>
-              <tr>
-                <th scope="col">S.No</th>
-                <th scope="col">Student Name</th>
-                <th scope="col">Mobile Number</th>
-                <th scope="col">Email ID</th>
-                <th scope="col">Course</th>
-                <th scope="col">Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {students.map((student, index) => {
-                const isPending = student.displayStatus === 'pending' || student.status === 'pending';
-                const busyStatus = updating[student.id];
+        <>
+          <section className="admin-table-wrap admin-students-table-wrap" aria-label="Student Details">
+            <table className="admin-table admin-students-table">
+              <thead>
+                <tr>
+                  <th scope="col">S.No</th>
+                  <th scope="col">Student Name</th>
+                  <th scope="col">Mobile Number</th>
+                  <th scope="col">Email ID</th>
+                  <th scope="col">Course</th>
+                  <th scope="col">Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {students.map((student, index) => {
+                  const isPending = student.displayStatus === 'pending' || student.status === 'pending';
+                  const busyStatus = updating[student.id];
 
-                return (
-                  <tr key={student.id}>
-                    <td data-label="S.No">{index + 1}</td>
-                    <td data-label="Student Name">{student.name}</td>
-                    <td data-label="Mobile Number">{student.phone || '-'}</td>
-                    <td data-label="Email ID">{student.email}</td>
-                    <td data-label="Course">{formatCourseList(student.courses)}</td>
-                    <td data-label="Action">
-                      {isPending ? (
-                        <div className="admin-table-actions admin-student-actions">
-                          <Button
-                            size="sm"
-                            variant="primary"
-                            loading={busyStatus === 'accepted'}
-                            disabled={Boolean(busyStatus)}
-                            onClick={() => handleStatusChange(student.id, 'accepted')}
-                          >
-                            Accept
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            loading={busyStatus === 'rejected'}
-                            disabled={Boolean(busyStatus)}
-                            onClick={() => handleStatusChange(student.id, 'rejected')}
-                          >
-                            Reject
-                          </Button>
-                        </div>
-                      ) : (
-                        <Badge status={student.displayStatus || student.status}>
-                          {statusLabel(student)}
-                        </Badge>
-                      )}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </section>
+                  return (
+                    <tr key={student.id}>
+                      <td data-label="S.No">{index + 1}</td>
+                      <td data-label="Student Name">{student.name}</td>
+                      <td data-label="Mobile Number">{student.phone || '-'}</td>
+                      <td data-label="Email ID">{student.email}</td>
+                      <td data-label="Course">{formatCourseList(student.courses)}</td>
+                      <td data-label="Action">
+                        {isPending ? (
+                          <div className="admin-table-actions admin-student-actions">
+                            <Button
+                              size="sm"
+                              variant="primary"
+                              loading={busyStatus === 'accepted'}
+                              disabled={Boolean(busyStatus)}
+                              onClick={() => handleStatusChange(student.id, 'accepted')}
+                            >
+                              Accept
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              loading={busyStatus === 'rejected'}
+                              disabled={Boolean(busyStatus)}
+                              onClick={() => handleStatusChange(student.id, 'rejected')}
+                            >
+                              Reject
+                            </Button>
+                          </div>
+                        ) : (
+                          <Badge status={student.displayStatus || student.status}>
+                            {statusLabel(student)}
+                          </Badge>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </section>
+          <div className="admin-pagination" aria-label="Student pagination">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handlePageChange(pagination.page - 1)}
+              disabled={pagination.page <= 1}
+            >
+              Previous
+            </Button>
+            <span className="admin-pagination-info">
+              Page {pagination.page} of {pagination.totalPages} ({filteredStudents} students)
+            </span>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handlePageChange(pagination.page + 1)}
+              disabled={!pagination.hasNextPage}
+            >
+              Next
+            </Button>
+          </div>
+        </>
       )}
     </div>
   );

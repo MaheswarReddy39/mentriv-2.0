@@ -45,9 +45,11 @@ const getCourseOptions = async () => {
   return courses.map(sanitizeCourse);
 };
 
-const listStudents = async ({ search = '', courseId = 'all', level = 'all' } = {}) => {
+const listStudents = async ({ search = '', courseId = 'all', level = 'all', page = 1, limit = 50 } = {}) => {
   const selectedCourseId = normalize(courseId);
   const selectedLevel = normalize(level);
+  const pageNumber = Number(page);
+  const limitNumber = Number(limit);
 
   if (selectedCourseId && selectedCourseId !== 'all' && !mongoose.isValidObjectId(selectedCourseId)) {
     throw new ApiError(400, 'Invalid course id');
@@ -57,17 +59,9 @@ const listStudents = async ({ search = '', courseId = 'all', level = 'all' } = {
     throw new ApiError(400, 'Invalid course level');
   }
 
-  const [totalStudents, studentDocs, courseOptions] = await Promise.all([
-    User.countDocuments({ role: 'student' }),
-    User.find({ role: 'student' })
-      .select(STUDENT_VISIBLE_FIELDS)
-      .populate('selectedCourseId', COURSE_VISIBLE_FIELDS)
-      .sort({ createdAt: -1 })
-      .lean(),
-    getCourseOptions(),
-  ]);
-
-  const studentIds = studentDocs.map((student) => student._id);
+  // First get all matching student IDs (for total count)
+  const allStudentIds = await User.find({ role: 'student' }).select('_id').lean();
+  const studentIds = allStudentIds.map((s) => s._id);
   const enrollments = await Enrollment.find({ userId: { $in: studentIds } })
     .populate('courseId', COURSE_VISIBLE_FIELDS)
     .lean();
@@ -92,7 +86,38 @@ const listStudents = async ({ search = '', courseId = 'all', level = 'all' } = {
   });
 
   const searchTerm = normalize(search);
-  const students = studentDocs
+  const filteredStudentDocs = allStudentIds
+    .filter((student) => {
+      const courses = coursesByStudent.get(student._id.toString()) || [];
+      const courseMatches =
+        !selectedCourseId ||
+        selectedCourseId === 'all' ||
+        courses.some((course) => course.id === selectedCourseId);
+
+      const levelMatches =
+        !selectedLevel ||
+        selectedLevel === 'all' ||
+        courses.some((course) => course.level === selectedLevel);
+
+      return courseMatches && levelMatches;
+    });
+
+  const totalStudents = await User.countDocuments({ role: 'student' });
+  const filteredTotal = filteredStudentDocs.length;
+
+  // Get paginated students
+  const paginatedStudentDocs = await User.find({
+    role: 'student',
+    _id: { $in: filteredStudentDocs.map((s) => s._id) },
+  })
+    .select(STUDENT_VISIBLE_FIELDS)
+    .populate('selectedCourseId', COURSE_VISIBLE_FIELDS)
+    .sort({ createdAt: -1 })
+    .skip((pageNumber - 1) * limitNumber)
+    .limit(limitNumber)
+    .lean();
+
+  const students = paginatedStudentDocs
     .map((student) => {
       const courses = coursesByStudent.get(student._id.toString()) || [];
       if (student.selectedCourseId?._id && !courses.some((course) => course.id === student.selectedCourseId._id.toString())) {
@@ -104,16 +129,6 @@ const listStudents = async ({ search = '', courseId = 'all', level = 'all' } = {
       return sanitizeStudent(student, courses);
     })
     .filter((student) => {
-      const courseMatches =
-        !selectedCourseId ||
-        selectedCourseId === 'all' ||
-        student.courses.some((course) => course.id === selectedCourseId);
-
-      const levelMatches =
-        !selectedLevel ||
-        selectedLevel === 'all' ||
-        student.courses.some((course) => course.level === selectedLevel);
-
       const searchable = [
         student.name,
         student.email,
@@ -125,16 +140,23 @@ const listStudents = async ({ search = '', courseId = 'all', level = 'all' } = {
         .join(' ')
         .toLowerCase();
 
-      const searchMatches = !searchTerm || searchable.includes(searchTerm);
-
-      return courseMatches && levelMatches && searchMatches;
+      return !searchTerm || searchable.includes(searchTerm);
     });
+
+  const courseOptions = await getCourseOptions();
 
   return {
     totalStudents,
-    filteredStudents: students.length,
+    filteredStudents: filteredTotal,
     students,
     courses: courseOptions,
+    pagination: {
+      page: pageNumber,
+      limit: limitNumber,
+      totalItems: filteredTotal,
+      totalPages: Math.ceil(filteredTotal / limitNumber),
+      hasNextPage: pageNumber * limitNumber < filteredTotal,
+    },
   };
 };
 

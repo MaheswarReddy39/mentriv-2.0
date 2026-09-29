@@ -58,7 +58,7 @@ export default function AdminDashboardPage() {
         announcementsRes,
         notificationsRes,
       ] = await Promise.all([
-        listAdminCourses({ limit: 100 }),
+        listAdminCourses({ limit: 50 }),
         listStudents({ courseId: courseFilter, level: 'all' }).catch(() => null),
         listTeachers({ courseId: courseFilter }).catch(() => null),
         listEnrollments(courseScopedParams).catch(() => null),

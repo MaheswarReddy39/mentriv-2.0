@@ -4,10 +4,9 @@ import Assignment from '../models/assignment.model.js';
 import Course from '../models/course.model.js';
 import Enrollment from '../models/enrollment.model.js';
 import ApiError from '../utils/api-error.js';
-import { isAdminRole, hasActiveCourseEnrollment } from '../utils/course-access.util.js';
+import { isAdminRole, hasActiveCourseEnrollment, ACTIVE_ACCESS_STATUSES } from '../utils/course-access.util.js';
 
 const COURSE_VISIBLE_FIELDS = 'title slug level status';
-const RELEVANT_ENROLLMENT_STATUSES = ['pending', 'approved', 'completed'];
 
 const normalize = (value) => String(value ?? '').trim().toLowerCase();
 
@@ -242,9 +241,11 @@ const listSubmissions = async ({ page = 1, limit = 10, status, courseId, assignm
   };
 };
 
-const listAdminSubmissionOverview = async ({ search = '', courseId = 'all', level = 'all' } = {}) => {
+const listAdminSubmissionOverview = async ({ search = '', courseId = 'all', level = 'all', page = 1, limit = 50 } = {}) => {
   const selectedCourseId = normalize(courseId);
   const selectedLevel = normalize(level);
+  const pageNumber = Number(page);
+  const limitNumber = Number(limit);
 
   if (selectedCourseId && selectedCourseId !== 'all' && !mongoose.isValidObjectId(selectedCourseId)) {
     throw new ApiError(400, 'Invalid course id');
@@ -258,7 +259,7 @@ const listAdminSubmissionOverview = async ({ search = '', courseId = 'all', leve
     await Promise.all([
       Submission.countDocuments({}),
       Course.find({}).select(COURSE_VISIBLE_FIELDS).sort({ title: 1 }).lean(),
-      Enrollment.find({ status: { $in: RELEVANT_ENROLLMENT_STATUSES } })
+      Enrollment.find({ status: { $in: ACTIVE_ACCESS_STATUSES } })
         .populate('userId', 'name email phone status')
         .populate('courseId', COURSE_VISIBLE_FIELDS)
         .lean(),
@@ -324,36 +325,43 @@ const listAdminSubmissionOverview = async ({ search = '', courseId = 'all', leve
     0
   );
 
-  const rows = relevantEnrollments.filter((row) => {
-      const courseMatches =
-        !selectedCourseId ||
-        selectedCourseId === 'all' ||
-        row.course.id === selectedCourseId;
+  const filteredRows = relevantEnrollments.filter((row) => {
+    const courseMatches =
+      !selectedCourseId ||
+      selectedCourseId === 'all' ||
+      row.course.id === selectedCourseId;
 
-      const levelMatches =
-        !selectedLevel ||
-        selectedLevel === 'all' ||
-        row.course.level === selectedLevel;
+    const levelMatches =
+      !selectedLevel ||
+      selectedLevel === 'all' ||
+      row.course.level === selectedLevel;
 
-      const searchable = [
-        row.student.name,
-        row.student.email,
-        row.student.phone,
-        row.course.title,
-        row.course.level,
-        row.status,
-      ]
-        .join(' ')
-        .toLowerCase();
+    const searchable = [
+      row.student.name,
+      row.student.email,
+      row.student.phone,
+      row.course.title,
+      row.course.level,
+      row.status,
+    ]
+      .join(' ')
+      .toLowerCase();
 
-      return courseMatches && levelMatches && (!searchTerm || searchable.includes(searchTerm));
-    });
+    return courseMatches && levelMatches && (!searchTerm || searchable.includes(searchTerm));
+  });
+
+  const totalFiltered = filteredRows.length;
+  const paginatedRows = filteredRows.slice(
+    (pageNumber - 1) * limitNumber,
+    pageNumber * limitNumber
+  );
 
   return {
     totalStudents,
     totalSubmissions,
     pendingSubmissions,
-    rows,
+    rows: paginatedRows,
+    filteredTotal: totalFiltered,
     courses: courses.map((course) => ({
       id: course._id.toString(),
       title: course.title,
@@ -361,6 +369,13 @@ const listAdminSubmissionOverview = async ({ search = '', courseId = 'all', leve
       level: course.level,
       status: course.status,
     })),
+    pagination: {
+      page: pageNumber,
+      limit: limitNumber,
+      totalItems: totalFiltered,
+      totalPages: Math.ceil(totalFiltered / limitNumber),
+      hasNextPage: pageNumber * limitNumber < totalFiltered,
+    },
   };
 };
 

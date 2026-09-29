@@ -105,6 +105,7 @@ const adminListValidation = [
 ];
 
 const adminOverviewValidation = [
+  ...paginationRules,
   query('search').optional({ values: 'falsy' }).trim().isLength({ max: 120 }).withMessage('Search is too long'),
   query('courseId')
     .optional({ values: 'falsy' })

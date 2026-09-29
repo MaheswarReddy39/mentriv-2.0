@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import Badge from '../../components/common/Badge.jsx';
+import Button from '../../components/common/Button.jsx';
 import EmptyState from '../../components/common/EmptyState.jsx';
 import ErrorState from '../../components/common/ErrorState.jsx';
 import Input from '../../components/common/Input.jsx';
@@ -27,6 +28,7 @@ export default function AdminSubmissionsPage() {
     totalSubmissions: 0,
     pendingSubmissions: 0,
   });
+  const [pagination, setPagination] = useState({ page: 1, limit: 50, totalPages: 0, hasNextPage: false, totalItems: 0 });
   const [filters, setFilters] = useState({
     search: '',
     courseId: 'all',
@@ -36,7 +38,7 @@ export default function AdminSubmissionsPage() {
   const [error, setError] = useState(null);
   const requestIdRef = useRef(0);
 
-  const loadSubmissions = async (activeFilters = filters) => {
+  const loadSubmissions = async (activeFilters = filters, page = 1) => {
     const requestId = requestIdRef.current + 1;
     requestIdRef.current = requestId;
     setLoading(true);
@@ -44,9 +46,11 @@ export default function AdminSubmissionsPage() {
 
     try {
       const response = await getAdminSubmissionOverview({
-        search: activeFilters.search.trim(),
+        search: (activeFilters.search || '').trim(),
         courseId: activeFilters.courseId,
         level: activeFilters.level,
+        page,
+        limit: 50,
       });
 
       if (requestId !== requestIdRef.current) return;
@@ -58,6 +62,7 @@ export default function AdminSubmissionsPage() {
         totalSubmissions: response.data.totalSubmissions,
         pendingSubmissions: response.data.pendingSubmissions,
       });
+      setPagination(response.data.pagination);
     } catch (err) {
       if (requestId !== requestIdRef.current) return;
       setError(err.message || 'Failed to load submissions.');
@@ -70,7 +75,7 @@ export default function AdminSubmissionsPage() {
 
   useEffect(() => {
     const activeFilters = { ...filters };
-    const timer = window.setTimeout(() => loadSubmissions(activeFilters), filters.search ? 250 : 0);
+    const timer = window.setTimeout(() => loadSubmissions(activeFilters, 1), filters.search ? 250 : 0);
     return () => window.clearTimeout(timer);
   }, [filters.search, filters.courseId, filters.level]);
 
@@ -79,6 +84,11 @@ export default function AdminSubmissionsPage() {
       ...current,
       [field]: event.target.value,
     }));
+  };
+
+  const handlePageChange = (newPage) => {
+    if (newPage < 1 || newPage > pagination.totalPages) return;
+    loadSubmissions(filters, newPage);
   };
 
   return (
@@ -137,41 +147,64 @@ export default function AdminSubmissionsPage() {
           message="Try adjusting the search or filters."
         />
       ) : (
-        <section className="admin-table-wrap admin-submissions-table-wrap" aria-label="Student Submissions">
-          <table className="admin-table admin-submissions-table">
-            <thead>
-              <tr>
-                <th scope="col">S.No</th>
-                <th scope="col">Student Name</th>
-                <th scope="col">Course</th>
-                <th scope="col">Progress</th>
-                <th scope="col">Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((row, index) => (
-                <tr key={row.id}>
-                  <td data-label="S.No">{index + 1}</td>
-                  <td data-label="Student Name">{row.student.name}</td>
-                  <td data-label="Course">{row.course.title}</td>
-                  <td data-label="Progress">
-                    <div className="admin-submission-progress">
-                      <span>{formatProgress(row)}</span>
-                      <small>
-                        {row.submittedCount}/{row.totalAssignments} submitted
-                      </small>
-                    </div>
-                  </td>
-                  <td data-label="Status">
-                    <Badge status={row.status}>
-                      {row.status === 'submitted' ? 'Submitted' : 'Pending'}
-                    </Badge>
-                  </td>
+        <>
+          <section className="admin-table-wrap admin-submissions-table-wrap" aria-label="Student Submissions">
+            <table className="admin-table admin-submissions-table">
+              <thead>
+                <tr>
+                  <th scope="col">S.No</th>
+                  <th scope="col">Student Name</th>
+                  <th scope="col">Course</th>
+                  <th scope="col">Progress</th>
+                  <th scope="col">Status</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </section>
+              </thead>
+              <tbody>
+                {rows.map((row, index) => (
+                  <tr key={row.id}>
+                    <td data-label="S.No">{index + 1}</td>
+                    <td data-label="Student Name">{row.student.name}</td>
+                    <td data-label="Course">{row.course.title}</td>
+                    <td data-label="Progress">
+                      <div className="admin-submission-progress">
+                        <span>{formatProgress(row)}</span>
+                        <small>
+                          {row.submittedCount}/{row.totalAssignments} submitted
+                        </small>
+                      </div>
+                    </td>
+                    <td data-label="Status">
+                      <Badge status={row.status}>
+                        {row.status === 'submitted' ? 'Submitted' : 'Pending'}
+                      </Badge>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </section>
+          <div className="admin-pagination" aria-label="Submission pagination">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handlePageChange(pagination.page - 1)}
+              disabled={pagination.page <= 1}
+            >
+              Previous
+            </Button>
+            <span className="admin-pagination-info">
+              Page {pagination.page} of {pagination.totalPages} ({pagination.totalItems} students)
+            </span>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handlePageChange(pagination.page + 1)}
+              disabled={!pagination.hasNextPage}
+            >
+              Next
+            </Button>
+          </div>
+        </>
       )}
     </div>
   );

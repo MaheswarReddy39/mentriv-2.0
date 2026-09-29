@@ -54,7 +54,7 @@ export default function AdminNotificationsPage() {
     setError(null);
     try {
       const [coursesRes, notificationsRes] = await Promise.all([
-        listAdminCourses({ limit: 100 }),
+        listAdminCourses({ limit: 50 }),
         listAdminNotifications({ limit: 20 }).catch(() => ({ data: { notifications: [] } })),
       ]);
       setCourses(coursesRes?.data?.courses || []);

@@ -53,43 +53,61 @@ const getCourseOptions = async () => {
   return courses.map(sanitizeCourse).filter(Boolean);
 };
 
-const listTeachers = async ({ search = '', courseId = 'all' } = {}) => {
+const listTeachers = async ({ search = '', courseId = 'all', page = 1, limit = 50 } = {}) => {
   const selectedCourseId = normalize(courseId);
+  const pageNumber = Number(page);
+  const limitNumber = Number(limit);
 
   if (selectedCourseId && selectedCourseId !== 'all' && !mongoose.isValidObjectId(selectedCourseId)) {
     throw new ApiError(400, 'Invalid course id');
   }
 
-  const [totalTeachers, teacherDocs, courseOptions] = await Promise.all([
-    User.countDocuments({ role: 'teacher' }),
-    User.find({ role: 'teacher' })
-      .select(TEACHER_VISIBLE_FIELDS)
-      .populate('selectedCourseId', COURSE_VISIBLE_FIELDS)
-      .sort({ createdAt: -1 })
-      .lean(),
-    getCourseOptions(),
-  ]);
+  const totalTeachers = await User.countDocuments({ role: 'teacher' });
+
+  // Get filtered teacher IDs first
+  const allTeacherDocs = await User.find({ role: 'teacher' })
+    .select(TEACHER_VISIBLE_FIELDS)
+    .populate('selectedCourseId', COURSE_VISIBLE_FIELDS)
+    .sort({ createdAt: -1 })
+    .lean();
 
   const searchTerm = normalize(search);
-  const teachers = teacherDocs
-    .map(sanitizeTeacher)
-    .filter((teacher) => {
-      const courseMatches =
-        !selectedCourseId ||
-        selectedCourseId === 'all' ||
-        teacher.selectedCourse?.id === selectedCourseId;
+  const filteredTeacherDocs = allTeacherDocs.filter((teacher) => {
+    const course = sanitizeCourse(teacher.selectedCourseId);
+    const courseMatches =
+      !selectedCourseId ||
+      selectedCourseId === 'all' ||
+      (course && course.id === selectedCourseId);
 
-      const searchable = [teacher.name, teacher.phone].join(' ').toLowerCase();
-      const searchMatches = !searchTerm || searchable.includes(searchTerm);
+    const searchable = [teacher.name, teacher.phone].join(' ').toLowerCase();
+    const searchMatches = !searchTerm || searchable.includes(searchTerm);
 
-      return courseMatches && searchMatches;
-    });
+    return courseMatches && searchMatches;
+  });
+
+  const filteredTotal = filteredTeacherDocs.length;
+
+  // Get paginated teachers
+  const paginatedTeacherDocs = filteredTeacherDocs.slice(
+    (pageNumber - 1) * limitNumber,
+    pageNumber * limitNumber
+  );
+
+  const teachers = paginatedTeacherDocs.map(sanitizeTeacher);
+  const courseOptions = await getCourseOptions();
 
   return {
     totalTeachers,
-    filteredTeachers: teachers.length,
+    filteredTeachers: filteredTotal,
     teachers,
     courses: courseOptions,
+    pagination: {
+      page: pageNumber,
+      limit: limitNumber,
+      totalItems: filteredTotal,
+      totalPages: Math.ceil(filteredTotal / limitNumber),
+      hasNextPage: pageNumber * limitNumber < filteredTotal,
+    },
   };
 };
 

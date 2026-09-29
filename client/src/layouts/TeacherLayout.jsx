@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Outlet, useNavigate } from 'react-router-dom';
 import TeacherSidebar from '../components/navigation/TeacherSidebar.jsx';
 import useAuth from '../hooks/useAuth.js';
@@ -14,6 +15,7 @@ const LINKS = [
 export default function TeacherLayout() {
   const setSession = useAuth().setSession;
   const navigate = useNavigate();
+  const [collapsed, setCollapsed] = useState(true);
 
   const handleLogout = () => {
     setSession(null);
@@ -21,8 +23,11 @@ export default function TeacherLayout() {
   };
 
   return (
-    <div className="app-shell" style={{ display: 'grid', gridTemplateColumns: '220px 1fr', minHeight: '100vh' }}>
-      <TeacherSidebar links={LINKS} />
+    <div className="app-shell" style={{ display: 'grid', gridTemplateColumns: collapsed ? '72px 1fr' : '220px 1fr', minHeight: '100vh', transition: 'grid-template-columns var(--transition-normal, 250ms ease)' }}>
+      <TeacherSidebar links={LINKS} collapsed={collapsed} 
+        onMouseEnter={() => setCollapsed(false)} 
+        onMouseLeave={() => setCollapsed(true)} 
+      />
       <div>
         <header style={{
           display: 'flex',

@@ -8,7 +8,21 @@ import requireRole from '../middleware/role.middleware.js';
 const router = Router();
 const ADMIN_ROLES = ['admin', 'superAdmin'];
 
+const paginationRules = [
+  query('page')
+    .optional({ values: 'falsy' })
+    .isInt({ min: 1 })
+    .withMessage('Page must be a positive integer')
+    .toInt(),
+  query('limit')
+    .optional({ values: 'falsy' })
+    .isInt({ min: 1, max: 50 })
+    .withMessage('Limit must be between 1 and 50')
+    .toInt(),
+];
+
 const listValidation = [
+  ...paginationRules,
   query('search').optional({ values: 'falsy' }).trim().isLength({ max: 120 }).withMessage('Search is too long'),
   query('courseId')
     .optional({ values: 'falsy' })

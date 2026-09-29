@@ -40,7 +40,7 @@ const listValidation = [
   query('type')
     .optional({ values: 'falsy' })
     .trim()
-    .isIn(['class', 'assignment', 'payment', 'enrollment', 'announcement', 'system'])
+    .isIn(['class', 'assignment', 'payment', 'enrollment', 'announcement', 'class'])
     .withMessage('Invalid notification type'),
 ];
 

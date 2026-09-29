@@ -18,6 +18,8 @@ export default function AdminTeachersPage() {
   const [teachers, setTeachers] = useState([]);
   const [courses, setCourses] = useState([]);
   const [totalTeachers, setTotalTeachers] = useState(0);
+  const [filteredTeachers, setFilteredTeachers] = useState(0);
+  const [pagination, setPagination] = useState({ page: 1, limit: 50, totalPages: 0, hasNextPage: false });
   const [filters, setFilters] = useState({
     search: '',
     courseId: 'all',
@@ -27,7 +29,7 @@ export default function AdminTeachersPage() {
   const [updating, setUpdating] = useState({});
   const requestIdRef = useRef(0);
 
-  const loadTeachers = async (activeFilters = filters) => {
+  const loadTeachers = async (activeFilters = filters, page = 1) => {
     const requestId = requestIdRef.current + 1;
     requestIdRef.current = requestId;
     setLoading(true);
@@ -36,11 +38,15 @@ export default function AdminTeachersPage() {
       const response = await listTeachers({
         search: activeFilters.search.trim(),
         courseId: activeFilters.courseId,
+        page,
+        limit: 50,
       });
       if (requestId !== requestIdRef.current) return;
       setTeachers(response.data.teachers || []);
       setCourses(response.data.courses || []);
       setTotalTeachers(response.data.totalTeachers || 0);
+      setFilteredTeachers(response.data.filteredTeachers || 0);
+      setPagination(response.data.pagination);
     } catch (err) {
       if (requestId !== requestIdRef.current) return;
       setError(err.message || 'Failed to load teachers.');
@@ -53,7 +59,7 @@ export default function AdminTeachersPage() {
 
   useEffect(() => {
     const activeFilters = { ...filters };
-    const timer = window.setTimeout(() => loadTeachers(activeFilters), filters.search ? 250 : 0);
+    const timer = window.setTimeout(() => loadTeachers(activeFilters, 1), filters.search ? 250 : 0);
     return () => window.clearTimeout(timer);
   }, [filters.search, filters.courseId]);
 
@@ -62,6 +68,11 @@ export default function AdminTeachersPage() {
       ...current,
       [field]: event.target.value,
     }));
+  };
+
+  const handlePageChange = (newPage) => {
+    if (newPage < 1 || newPage > pagination.totalPages) return;
+    loadTeachers(filters, newPage);
   };
 
   const formatCourseList = (teacherCourses) => {

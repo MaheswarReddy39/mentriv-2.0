@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Outlet, useNavigate } from 'react-router-dom';
 import AdminSidebar from '../components/navigation/AdminSidebar.jsx';
 import useAuth from '../hooks/useAuth.js';
@@ -14,6 +15,7 @@ const LINKS = [
 export default function AdminLayout() {
   const setSession = useAuth().setSession;
   const navigate = useNavigate();
+  const [collapsed, setCollapsed] = useState(true);
 
   const handleLogout = () => {
     setSession(null);
@@ -21,8 +23,11 @@ export default function AdminLayout() {
   };
 
   return (
-    <div className="app-shell" style={{ display: 'grid', gridTemplateColumns: '220px 1fr', minHeight: '100vh' }}>
-      <AdminSidebar links={LINKS} />
+    <div className="app-shell" style={{ display: 'grid', gridTemplateColumns: collapsed ? '72px 1fr' : '220px 1fr', minHeight: '100vh', transition: 'grid-template-columns var(--transition-normal, 250ms ease)' }}>
+      <AdminSidebar links={LINKS} collapsed={collapsed} 
+        onMouseEnter={() => setCollapsed(false)} 
+        onMouseLeave={() => setCollapsed(true)} 
+      />
       <div>
         <header style={{
           display: 'flex',
