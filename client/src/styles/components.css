@@ -418,8 +418,11 @@
     z-index: 45;
     animation: slideDown 250ms ease-out;
   }
+  .navbar.open .navbar-links,
+  .navbar.open .navbar-actions {
+    display: flex;
+  }
   .navbar-links {
-    display: flex !important;
     flex-direction: column;
     gap: var(--space-3);
   }
@@ -433,7 +436,6 @@
     border-bottom: none;
   }
   .navbar-actions {
-    display: flex !important;
     flex-direction: column;
     gap: var(--space-3);
     padding-top: var(--space-4);
