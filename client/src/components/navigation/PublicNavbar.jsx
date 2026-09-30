@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, NavLink, useLocation } from 'react-router-dom';
 import useAuth from '../../hooks/useAuth.js';
 
@@ -13,7 +13,16 @@ export default function PublicNavbar({ actions }) {
   const location = useLocation();
   const isHomePage = location.pathname === '/';
   const [open, setOpen] = useState(false);
+
   const closeMenu = () => setOpen(false);
+
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth > 900) setOpen(false);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   return (
     <nav
@@ -32,7 +41,7 @@ export default function PublicNavbar({ actions }) {
           aria-label={open ? 'Close navigation menu' : 'Open navigation menu'}
           onClick={() => setOpen((current) => !current)}
         >
-          ☰
+          {open ? '✕' : '☰'}
         </button>
 
         <div className="navbar-links">
@@ -83,6 +92,10 @@ export default function PublicNavbar({ actions }) {
           {actions || null}
         </div>
       </div>
+
+      {open && (
+        <div className="navbar-overlay" onClick={closeMenu} />
+      )}
     </nav>
   );
 }

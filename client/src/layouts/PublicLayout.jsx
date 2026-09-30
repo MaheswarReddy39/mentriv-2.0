@@ -6,7 +6,7 @@ export default function PublicLayout() {
   return (
     <>
       <PublicNavbar />
-      <main style={{ maxWidth: 'var(--container-xl)', margin: '0 auto', padding: 'var(--space-6) var(--space-5)' }}>
+      <main className="public-layout-main">
         <Outlet />
       </main>
       <SiteFooter />
