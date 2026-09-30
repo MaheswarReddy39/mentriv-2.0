@@ -60,7 +60,9 @@ export default function AdminStudentsPage() {
       setCourses(response.data.courses);
       setTotalStudents(response.data.totalStudents);
       setFilteredStudents(response.data.filteredStudents);
-      setPagination(response.data.pagination);
+      setPagination(
+        response.data.pagination ?? { page: 1, limit: 50, totalPages: 0, hasNextPage: false }
+      );
     } catch (err) {
       if (requestId !== requestIdRef.current) return;
       setError(err.message || 'Failed to load students.');
