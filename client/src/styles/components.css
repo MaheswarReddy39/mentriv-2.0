@@ -376,6 +376,11 @@
 .navbar-actions { display: flex; align-items: center; gap: var(--space-3); }
 .navbar-toggle { display: none; font-size: var(--font-size-h3); color: var(--text); }
 
+/* Desktop: navbar-menu is transparent wrapper */
+.navbar-menu {
+  display: contents;
+}
+
 /* Mobile navbar overlay */
 .navbar-overlay {
   display: none;
