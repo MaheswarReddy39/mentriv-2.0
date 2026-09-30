@@ -39,31 +39,33 @@ export default function PublicNavbar({ actions }) {
           aria-label={open ? 'Close navigation menu' : 'Open navigation menu'}
           onClick={() => setOpen((current) => !current)}
         >
-          {open ? '✕' : '☰'}
+          ☰
         </button>
 
-        <div className="navbar-links">
-          {NAV_LINKS.map((link) => (
-            <NavLink
-              key={link.to}
-              to={link.to}
-              end={link.to === '/'}
-              className={({ isActive }) => `navbar-link${isActive ? ' active' : ''}`}
-              onClick={closeMenu}
-            >
-              {link.label}
-            </NavLink>
-          ))}
-        </div>
+        <div className="navbar-menu">
+          <div className="navbar-links">
+            {NAV_LINKS.map((link) => (
+              <NavLink
+                key={link.to}
+                to={link.to}
+                end={link.to === '/'}
+                className={({ isActive }) => `navbar-link${isActive ? ' active' : ''}`}
+                onClick={closeMenu}
+              >
+                {link.label}
+              </NavLink>
+            ))}
+          </div>
 
-        <div className="navbar-actions">
-          <Link to="/login" className="btn btn-ghost btn-sm" onClick={closeMenu}>
-            Log in
-          </Link>
-          <Link to="/register" className="btn btn-primary btn-sm" onClick={closeMenu}>
-            Get started
-          </Link>
-          {actions || null}
+          <div className="navbar-actions">
+            <Link to="/login" className="btn btn-ghost btn-sm" onClick={closeMenu}>
+              Log in
+            </Link>
+            <Link to="/register" className="btn btn-primary btn-sm" onClick={closeMenu}>
+              Get started
+            </Link>
+            {actions || null}
+          </div>
         </div>
       </div>
 
