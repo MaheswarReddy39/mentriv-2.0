@@ -95,7 +95,8 @@ const getTestById = async (requester, id) => {
   }
 
   if (educator) {
-    return { mcqTest: sanitizeTestForAdmin(test) };
+    const attemptsCount = await McqAttempt.countDocuments({ mcqTestId: test._id });
+    return { mcqTest: { ...sanitizeTestForAdmin(test), attemptsCount } };
   }
 
   if (test.status !== 'published') {

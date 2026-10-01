@@ -4,6 +4,7 @@ import Enrollment from '../models/enrollment.model.js';
 import Announcement from '../models/announcement.model.js';
 import McqTest from '../models/mcq.model.js';
 import McqAttempt from '../models/mcq-attempt.model.js';
+import Submission from '../models/submission.model.js';
 import ApiError from '../utils/api-error.js';
 import { ACTIVE_ACCESS_STATUSES } from '../utils/course-access.util.js';
 import mongoose from 'mongoose';
@@ -113,6 +114,7 @@ const buildStudentCourseProgressRows = async ({ courseId = 'all', level = 'all' 
     return {
       courses,
       rows: [],
+      courseIds: [],
     };
   }
 
@@ -204,11 +206,103 @@ const buildStudentCourseProgressRows = async ({ courseId = 'all', level = 'all' 
       };
     });
 
-  return { courses, rows };
+  return { courses, rows, courseIds: courseIds.map((id) => id.toString()) };
+};
+
+const buildSubmissionTimingRows = async ({ courseIds = [], normalizedSearch = '' } = {}) => {
+  if (courseIds.length === 0) {
+    return [];
+  }
+
+  const [submissionDocs, attemptDocs] = await Promise.all([
+    Submission.find({ courseId: { $in: courseIds } })
+      .sort({ submittedAt: -1 })
+      .limit(100)
+      .populate('studentId', 'name')
+      .populate('assignmentId', 'title duration')
+      .populate('courseId', 'title')
+      .lean(),
+    McqAttempt.find({ courseId: { $in: courseIds } })
+      .sort({ submittedAt: -1, startedAt: -1 })
+      .limit(100)
+      .populate('studentId', 'name')
+      .populate('mcqTestId', 'title duration')
+      .populate('courseId', 'title')
+      .lean(),
+  ]);
+
+  const buildRow = ({ id, doc, title, duration, status, isLate }) => {
+    const startedAt = doc.startedAt ? new Date(doc.startedAt) : null;
+    const submittedAt = doc.submittedAt ? new Date(doc.submittedAt) : null;
+    const durationMinutes = typeof duration === 'number' ? duration : null;
+    const timeTakenMinutes =
+      startedAt && submittedAt
+        ? Math.max(0, Math.round((submittedAt.getTime() - startedAt.getTime()) / 60000))
+        : null;
+
+    return {
+      id,
+      studentId: doc.studentId._id.toString(),
+      studentName: doc.studentId.name,
+      assignmentTitle: title,
+      courseTitle: doc.courseId?.title || '',
+      attemptNumber: doc.attemptNumber,
+      status,
+      isLate,
+      startedAt,
+      submittedAt,
+      duration: durationMinutes,
+      timeTakenMinutes,
+    };
+  };
+
+  const submissionRows = submissionDocs
+    .filter((doc) => doc.studentId?._id && doc.assignmentId?._id)
+    .map((doc) =>
+      buildRow({
+        id: doc._id.toString(),
+        doc,
+        title: doc.assignmentId.title,
+        duration: doc.assignmentId.duration,
+        status: doc.status,
+        isLate: Boolean(doc.isLate),
+      })
+    );
+
+  const attemptRows = attemptDocs
+    .filter((doc) => doc.studentId?._id && doc.mcqTestId?._id)
+    .map((doc) =>
+      buildRow({
+        id: `attempt-${doc._id}`,
+        doc,
+        title: doc.mcqTestId.title,
+        duration: doc.mcqTestId.duration,
+        status: doc.status === 'evaluated' ? 'submitted' : 'pending',
+        isLate: false,
+      })
+    );
+
+  const rows = [...submissionRows, ...attemptRows]
+    .sort(
+      (a, b) =>
+        (b.submittedAt ? b.submittedAt.getTime() : 0) -
+        (a.submittedAt ? a.submittedAt.getTime() : 0)
+    )
+    .slice(0, 100);
+
+  if (!normalizedSearch) {
+    return rows;
+  }
+  return rows.filter((row) =>
+    [row.studentName, row.assignmentTitle, row.courseTitle]
+      .join(' ')
+      .toLowerCase()
+      .includes(normalizedSearch)
+  );
 };
 
 const getTeacherSubmissions = async ({ search = '', courseId = 'all', level = 'all' } = {}) => {
-  const { courses, rows } = await buildStudentCourseProgressRows({ courseId, level });
+  const { courses, rows, courseIds } = await buildStudentCourseProgressRows({ courseId, level });
   const normalizedSearch = String(search || '').trim().toLowerCase();
   const submissions = rows.filter((row) => {
     if (!normalizedSearch) return true;
@@ -217,6 +311,8 @@ const getTeacherSubmissions = async ({ search = '', courseId = 'all', level = 'a
       row.courseTitle.toLowerCase().includes(normalizedSearch)
     );
   });
+
+  const timing = await buildSubmissionTimingRows({ courseIds, normalizedSearch });
 
   const totalSubmissions = submissions.filter((row) => row.status === 'submitted').length;
   const pendingSubmissions = submissions.filter((row) => row.status === 'pending').length;
@@ -228,6 +324,7 @@ const getTeacherSubmissions = async ({ search = '', courseId = 'all', level = 'a
     pendingSubmissions,
     courses: courses.map(sanitizeCourse),
     submissions,
+    timing,
   };
 };
 

@@ -40,6 +40,15 @@ const assignmentSchema = new mongoose.Schema(
       type: Date,
       default: null,
     },
+    duration: {
+      type: Number,
+      default: null,
+      validate: {
+        validator: (value) =>
+          value === null || (Number.isInteger(value) && value >= 1),
+        message: 'Duration must be a whole number of minutes (1 or more)',
+      },
+    },
     maxMarks: {
       type: Number,
       required: [true, 'Max marks is required'],

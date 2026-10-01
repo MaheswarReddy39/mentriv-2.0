@@ -19,6 +19,7 @@ const LEVELS = [
 export default function TeacherSubmissionsPage() {
   const [courses, setCourses] = useState([]);
   const [rows, setRows] = useState([]);
+  const [timing, setTiming] = useState([]);
   const [totalStudents, setTotalStudents] = useState(0);
   const [totalSubmissions, setTotalSubmissions] = useState(0);
   const [pendingSubmissions, setPendingSubmissions] = useState(0);
@@ -40,6 +41,7 @@ export default function TeacherSubmissionsPage() {
       setTotalSubmissions(response.data.totalSubmissions || 0);
       setPendingSubmissions(response.data.pendingSubmissions || 0);
       setRows(response.data.submissions || []);
+      setTiming(response.data.timing || []);
     } catch (err) {
       setError(err.message || 'Failed to load submissions overview.');
     } finally {
@@ -144,6 +146,72 @@ export default function TeacherSubmissionsPage() {
           </table>
         </section>
       )}
+
+      <section aria-labelledby="submission-timing-heading" style={{ marginTop: 'var(--space-6)' }}>
+        <h2 id="submission-timing-heading" className="text-h4" style={{ marginBottom: 'var(--space-3)' }}>
+          Submission Timing
+        </h2>
+
+        {timing.length === 0 ? (
+          <EmptyState title="No submissions yet" message="Timing details will appear after students submit." />
+        ) : (
+          <div className="admin-table-wrap teacher-submissions-table-wrap">
+            <table className="admin-table teacher-submissions-table">
+              <thead>
+                <tr>
+                  <th scope="col">S.No</th>
+                  <th scope="col">Student Name</th>
+                  <th scope="col">Assignment</th>
+                  <th scope="col">Started At</th>
+                  <th scope="col">Submitted At</th>
+                  <th scope="col">Time Taken</th>
+                  <th scope="col">Duration</th>
+                  <th scope="col">Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {timing.map((row, index) => (
+                  <tr key={row.id}>
+                    <td data-label="S.No">{index + 1}</td>
+                    <td data-label="Student Name">{row.studentName}</td>
+                    <td data-label="Assignment">
+                      {row.assignmentTitle}
+                      <span className="text-meta" style={{ display: 'block' }}>{row.courseTitle}</span>
+                    </td>
+                    <td data-label="Started At">{formatStamp(row.startedAt)}</td>
+                    <td data-label="Submitted At">{formatStamp(row.submittedAt)}</td>
+                    <td data-label="Time Taken">
+                      {row.timeTakenMinutes !== null && row.timeTakenMinutes !== undefined
+                        ? `${row.timeTakenMinutes} min`
+                        : '—'}
+                    </td>
+                    <td data-label="Duration">
+                      {row.duration ? `${row.duration} min` : 'No limit'}
+                    </td>
+                    <td data-label="Status">
+                      <Badge status={row.status}>
+                        {row.status === 'late' ? 'Late' : row.status === 'submitted' ? 'Submitted' : row.status}
+                      </Badge>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
     </div>
   );
+}
+
+function formatStamp(value) {
+  if (!value) return '—';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '—';
+  return date.toLocaleString('en-IN', {
+    day: 'numeric',
+    month: 'short',
+    hour: 'numeric',
+    minute: '2-digit',
+  });
 }

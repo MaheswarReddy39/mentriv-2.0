@@ -567,6 +567,14 @@
   overflow: hidden;
   margin-left: 0;
 }
+button.sidebar-link {
+  width: 100%;
+  background: none;
+  border: 0;
+  font: inherit;
+  cursor: pointer;
+  text-align: left;
+}
 
 /* Theme toggle */
 .sidebar-theme-toggle {

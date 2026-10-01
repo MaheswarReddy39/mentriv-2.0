@@ -13,6 +13,7 @@ const INITIAL_FORM = {
   title: '',
   courseId: '',
   assignmentType: 'MCQ',
+  duration: '',
 };
 
 const EMPTY_QUESTION = () => ({
@@ -203,6 +204,12 @@ export default function TeacherAssignmentsPage() {
     const errors = {};
     if (!form.title.trim()) errors.title = 'Assignment Title is required';
     if (!form.courseId) errors.courseId = 'Select Course is required';
+    if (form.duration !== '') {
+      const durationValue = Number(form.duration);
+      if (!Number.isInteger(durationValue) || durationValue < 1) {
+        errors.duration = 'Duration must be a whole number of minutes (1 or more)';
+      }
+    }
 
     if (form.assignmentType === 'MCQ') {
       if (!questionCount || questionCount < 1) {
@@ -227,11 +234,13 @@ export default function TeacherAssignmentsPage() {
       ? createMcqTest(form.courseId, {
           title: form.title.trim(),
           questions: buildAllQuestionPayloads(),
+          duration: form.duration === '' ? 0 : Number(form.duration),
           status: 'published',
         })
       : createAssignment(form.courseId, {
           title: form.title.trim(),
           assignmentType: 'normalTest',
+          duration: form.duration === '' ? null : Number(form.duration),
           status: 'published',
         });
 
@@ -248,6 +257,7 @@ export default function TeacherAssignmentsPage() {
           title: current.title,
           courseId: current.courseId,
           assignmentType: current.assignmentType,
+          duration: current.duration,
         }));
         setQuestionCount(null);
         setQuestions([]);
@@ -318,6 +328,21 @@ export default function TeacherAssignmentsPage() {
               <option value="MCQ">MCQ</option>
               <option value="Normal Test">Normal Test</option>
             </Select>
+          </div>
+
+          <div className="teacher-assignment-type-row">
+            <Input
+              label="Duration (minutes)"
+              type="number"
+              min="1"
+              step="1"
+              inputMode="numeric"
+              value={form.duration}
+              onChange={setField('duration')}
+              placeholder="e.g. 60"
+              error={fieldErrors.duration}
+              hint="Time limit in minutes for one attempt (e.g. 30, 60, 120). Leave empty for no time limit. Due Date stays separate."
+            />
           </div>
 
           {isMcq ? (

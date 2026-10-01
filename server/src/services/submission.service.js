@@ -19,6 +19,7 @@ const sanitizeSubmissionSummary = (submission, { includeStudent = false } = {}) 
     attemptNumber: submission.attemptNumber,
     status: submission.status,
     isLate: submission.isLate,
+    startedAt: submission.startedAt ?? null,
     submittedAt: submission.submittedAt,
     marks: submission.marks,
     feedback: submission.feedback,
@@ -30,6 +31,9 @@ const sanitizeSubmissionSummary = (submission, { includeStudent = false } = {}) 
 
   if (assignmentDoc._id) {
     payload.assignment = { id: assignmentDoc._id.toString(), title: assignmentDoc.title };
+    if (assignmentDoc.duration !== undefined && assignmentDoc.duration !== null) {
+      payload.assignment.duration = assignmentDoc.duration;
+    }
   }
   if (includeStudent && studentDoc._id) {
     payload.student = {
@@ -114,6 +118,30 @@ const createSubmission = async (requester, assignmentIdInput, data) => {
   const isLate =
     Boolean(assignment.dueDate) && new Date().getTime() > assignment.dueDate.getTime();
 
+  const durationMinutes = Number(assignment.duration);
+  const timed = Number.isFinite(durationMinutes) && durationMinutes > 0;
+  let startedAtValue = null;
+
+  if (timed) {
+    if (!data.startedAt) {
+      throw new ApiError(400, 'Start time is required for timed assignments');
+    }
+    const parsedStart = new Date(data.startedAt);
+    if (Number.isNaN(parsedStart.getTime())) {
+      throw new ApiError(400, 'Invalid start time');
+    }
+    const nowMs = Date.now();
+    if (parsedStart.getTime() > nowMs + 60 * 1000) {
+      throw new ApiError(400, 'Start time cannot be in the future');
+    }
+    const deadlineMs = parsedStart.getTime() + durationMinutes * 60 * 1000;
+    const graceMs = 2 * 60 * 1000;
+    if (nowMs > deadlineMs + graceMs) {
+      throw new ApiError(400, `The ${durationMinutes} minute time limit for this assignment has passed`);
+    }
+    startedAtValue = parsedStart;
+  }
+
   const submission = await Submission.create({
     studentId: requester.id,
     assignmentId: assignment._id,
@@ -123,11 +151,12 @@ const createSubmission = async (requester, assignmentIdInput, data) => {
     attachments: Array.isArray(data.attachments) ? data.attachments : [],
     githubRepositoryName: data.githubRepositoryName ?? '',
     githubRepositoryUrl: data.githubRepositoryUrl ?? '',
+    startedAt: startedAtValue,
     isLate,
     status: isLate ? 'late' : 'submitted',
   });
 
-  await submission.populate('assignmentId', 'title maxMarks');
+  await submission.populate('assignmentId', 'title maxMarks duration');
   await submission.populate('courseId', 'title');
 
   return { submission: sanitizeSubmissionDetail(submission) };
@@ -151,7 +180,7 @@ const getMySubmissions = async (userId, { page = 1, limit = 10, status, assignme
       .sort({ createdAt: -1 })
       .skip((pageNumber - 1) * limitNumber)
       .limit(limitNumber)
-      .populate('assignmentId', 'title')
+      .populate('assignmentId', 'title duration')
       .lean(),
   ]);
 
@@ -174,7 +203,7 @@ const getSubmissionById = async (requester, id) => {
 
   const admin = isAdminRole(requester.role);
 
-  const query = Submission.findById(id).populate('assignmentId', 'title maxMarks').populate(
+  const query = Submission.findById(id).populate('assignmentId', 'title maxMarks duration').populate(
     'courseId',
     'title'
   );
@@ -222,7 +251,7 @@ const listSubmissions = async ({ page = 1, limit = 10, status, courseId, assignm
       .sort({ createdAt: -1 })
       .skip((pageNumber - 1) * limitNumber)
       .limit(limitNumber)
-      .populate('assignmentId', 'title maxMarks')
+      .populate('assignmentId', 'title maxMarks duration')
       .populate('studentId', 'name email')
       .lean(),
   ]);
@@ -384,7 +413,7 @@ const reviewSubmission = async (reviewerId, id, { marks, feedback }) => {
     throw new ApiError(404, 'Submission not found');
   }
 
-  const submission = await Submission.findById(id).populate('assignmentId', 'title maxMarks');
+  const submission = await Submission.findById(id).populate('assignmentId', 'title maxMarks duration');
 
   if (!submission) {
     throw new ApiError(404, 'Submission not found');
@@ -412,7 +441,7 @@ const reviewSubmission = async (reviewerId, id, { marks, feedback }) => {
   await submission.save();
 
   await submission.populate([
-    { path: 'assignmentId', select: 'title maxMarks' },
+    { path: 'assignmentId', select: 'title maxMarks duration' },
     { path: 'courseId', select: 'title' },
   ]);
 

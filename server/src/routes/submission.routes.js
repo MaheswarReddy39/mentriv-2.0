@@ -46,6 +46,10 @@ const submitValidation = [
     .trim()
     .isLength({ max: 5000 })
     .withMessage('Submission text cannot exceed 5000 characters'),
+  body('startedAt')
+    .optional({ values: 'falsy' })
+    .isISO8601()
+    .withMessage('Start time must be a valid ISO 8601 date'),
   body('attachments').optional().isArray().withMessage('Attachments must be an array'),
   body('attachments.*.title')
     .if(body('attachments').isArray())

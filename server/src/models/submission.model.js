@@ -76,6 +76,10 @@ const submissionSchema = new mongoose.Schema(
       type: Date,
       default: Date.now,
     },
+    startedAt: {
+      type: Date,
+      default: null,
+    },
     isLate: {
       type: Boolean,
       default: false,

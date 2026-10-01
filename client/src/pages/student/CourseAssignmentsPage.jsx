@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import Badge from '../../components/common/Badge.jsx';
 import Button from '../../components/common/Button.jsx';
@@ -7,6 +7,7 @@ import EmptyState from '../../components/common/EmptyState.jsx';
 import ErrorState from '../../components/common/ErrorState.jsx';
 import Loading from '../../components/common/Loading.jsx';
 import ProgressBar from '../../components/common/ProgressBar.jsx';
+import { useToast } from '../../components/feedback/Toast.jsx';
 import { getMyEnrollments } from '../../services/enrollment.service.js';
 import {
   getAttemptById,
@@ -55,8 +56,18 @@ const buildResult = (test, attemptOrResult) => {
 const sortQuestions = (questions = []) =>
   [...questions].sort((a, b) => Number(a.order || 0) - Number(b.order || 0));
 
+const formatClock = (totalMs) => {
+  const totalSeconds = Math.max(0, Math.floor(totalMs / 1000));
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+  const pad = (value) => String(value).padStart(2, '0');
+  return hours > 0 ? `${hours}:${pad(minutes)}:${pad(seconds)}` : `${minutes}:${pad(seconds)}`;
+};
+
 export default function CourseAssignmentsPage() {
   const { courseId: routeCourseId } = useParams();
+  const toast = useToast();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [selectedAnswers, setSelectedAnswers] = useState({});
   const [submitted, setSubmitted] = useState(false);
@@ -68,11 +79,19 @@ export default function CourseAssignmentsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [submitError, setSubmitError] = useState(null);
+  // Instructions screen first; questions (and the countdown) only after Start Assignment.
+  const [phase, setPhase] = useState('instructions'); // 'instructions' | 'quiz'
+  const [remainingMs, setRemainingMs] = useState(null);
+  const [starting, setStarting] = useState(false);
+  const [startError, setStartError] = useState(null);
+  const autoSubmittedRef = useRef(false);
+  const submitRef = useRef(null);
 
   const loadAssignment = useCallback(async () => {
     setLoading(true);
     setError(null);
     setSubmitError(null);
+    setStartError(null);
 
     try {
       const enrollmentRes = await getMyEnrollments({ limit: 50 });
@@ -92,6 +111,8 @@ export default function CourseAssignmentsPage() {
         setAttempt(null);
         setResultSource(null);
         setSubmitted(false);
+        setPhase('instructions');
+        setRemainingMs(null);
         return;
       }
 
@@ -129,11 +150,23 @@ export default function CourseAssignmentsPage() {
         setAttempt(detailRes?.data?.attempt || evaluatedAttempt);
         setResultSource(detailRes?.data?.attempt || evaluatedAttempt);
         setSubmitted(true);
-      } else {
-        setAttempt(inProgressAttempt || null);
+        setPhase('instructions');
+      } else if (inProgressAttempt) {
+        // Resume a running attempt without restarting the countdown: the server
+        // startedAt timestamp survives refreshes, so the timer keeps counting down.
+        const detailRes = await getAttemptById(inProgressAttempt.id).catch(() => null);
+        setAttempt(detailRes?.data?.attempt || inProgressAttempt);
         setResultSource(null);
         setSubmitted(false);
+        setPhase('quiz');
+      } else {
+        setAttempt(null);
+        setResultSource(null);
+        setSubmitted(false);
+        setPhase('instructions');
       }
+      autoSubmittedRef.current = false;
+      setRemainingMs(null);
     } catch (err) {
       setError(err.message || 'Failed to load assignments.');
     } finally {
@@ -151,6 +184,16 @@ export default function CourseAssignmentsPage() {
   const isFirstQuestion = currentIndex === 0;
   const isLastQuestion = currentIndex === questions.length - 1;
   const courseTitle = selectedEnrollment?.course?.title || 'Selected Course';
+  const durationMinutes = Number(assignment?.duration || 0);
+  const durationMs = durationMinutes > 0 ? durationMinutes * 60000 : 0;
+  const startedMs = attempt?.startedAt ? new Date(attempt.startedAt).getTime() : null;
+  const timerActive = durationMs > 0 && startedMs !== null && !Number.isNaN(startedMs);
+  const timerClass =
+    remainingMs === null || remainingMs > durationMs * 0.2
+      ? 'timer-normal'
+      : remainingMs > Math.max(10000, durationMs * 0.1)
+        ? 'timer-amber'
+        : 'timer-coral';
 
   const result = useMemo(
     () => buildResult(assignment, resultSource),
@@ -205,6 +248,49 @@ export default function CourseAssignmentsPage() {
     }
   };
 
+  submitRef.current = handleSubmit;
+
+  // Countdown: based on the server-recorded startedAt so it survives refreshes
+  // without restarting; auto-submits exactly once when the time runs out.
+  useEffect(() => {
+    if (submitted || phase !== 'quiz' || !timerActive) {
+      setRemainingMs(null);
+      return undefined;
+    }
+
+    const tick = () => {
+      const remaining = startedMs + durationMs - Date.now();
+      setRemainingMs(Math.max(remaining, 0));
+      if (remaining <= 0 && !autoSubmittedRef.current) {
+        autoSubmittedRef.current = true;
+        toast.warning('Time is up — submitting your assignment now.');
+        submitRef.current?.();
+      }
+    };
+
+    tick();
+    const intervalId = window.setInterval(tick, 1000);
+    return () => window.clearInterval(intervalId);
+  }, [submitted, phase, timerActive, startedMs, durationMs, toast]);
+
+  const handleStart = async () => {
+    if (starting || !assignment) return;
+    setStarting(true);
+    setStartError(null);
+    try {
+      const res = await startAttempt(assignment.id);
+      setAttempt(res?.data?.attempt || null);
+      autoSubmittedRef.current = false;
+      setRemainingMs(null);
+      setCurrentIndex(0);
+      setPhase('quiz');
+    } catch (err) {
+      setStartError(err.message || 'Could not start this assignment.');
+    } finally {
+      setStarting(false);
+    }
+  };
+
   if (loading) return <Loading label="Loading assignments..." />;
 
   return (
@@ -235,8 +321,58 @@ export default function CourseAssignmentsPage() {
               {submitted ? <Badge status="submitted">Submitted</Badge> : null}
             </div>
 
-            {!submitted ? (
+            {!submitted && phase === 'instructions' ? (
+              <div className="student-mcq-instructions">
+                <h3>Instructions</h3>
+                <p className="text-sm" style={{ color: 'var(--text-secondary)', margin: 0 }}>
+                  {assignment.description ||
+                    'Read each question carefully. You can change your answers before submitting.'}
+                </p>
+
+                <dl className="meta-grid" style={{ marginTop: 'var(--space-4)' }}>
+                  <div>
+                    <dt>Duration</dt>
+                    <dd>{durationMinutes ? `${durationMinutes} minutes` : 'No time limit'}</dd>
+                  </div>
+                  <div>
+                    <dt>Due date</dt>
+                    <dd>No due date</dd>
+                  </div>
+                  <div>
+                    <dt>Questions</dt>
+                    <dd>{questions.length}</dd>
+                  </div>
+                </dl>
+
+                {startError ? (
+                  <p className="form-error" role="alert">
+                    {startError}
+                  </p>
+                ) : null}
+
+                <Button
+                  type="button"
+                  onClick={handleStart}
+                  loading={starting}
+                  disabled={starting}
+                  style={{ marginTop: 'var(--space-5)' }}
+                >
+                  Start Assignment
+                </Button>
+              </div>
+            ) : !submitted ? (
               <div className="student-mcq-flow">
+                {durationMs > 0 && remainingMs !== null ? (
+                  <div
+                    className={`attempt-timer ${timerClass}`}
+                    role="timer"
+                    aria-label="Time remaining"
+                    style={{ textAlign: 'center', marginBottom: 'var(--space-4)' }}
+                  >
+                    ⏱ {formatClock(remainingMs)} remaining
+                  </div>
+                ) : null}
+
                 <div className="student-mcq-question-top">
                   <p className="text-meta uppercase">
                     Question {currentIndex + 1} of {questions.length}

@@ -35,6 +35,17 @@ const attachmentItemRules = [
     .withMessage('Attachment URLs must not contain whitespace'),
 ];
 
+const durationRule = body('duration')
+  .optional()
+  .custom((value) => {
+    if (value === null || value === '') return true;
+    const numeric = Number(value);
+    if (!Number.isInteger(numeric) || numeric < 1) {
+      throw new Error('Duration must be a whole number of minutes (1 or more)');
+    }
+    return true;
+  });
+
 const createValidation = [
   ...[courseIdParamRule],
   body('title')
@@ -61,6 +72,7 @@ const createValidation = [
     .optional({ values: 'falsy' })
     .isISO8601()
     .withMessage('Due date must be a valid ISO 8601 date'),
+  durationRule,
   body('maxMarks')
     .optional({ values: 'falsy' })
     .isFloat({ min: 0 })
@@ -96,6 +108,7 @@ const updateValidation = [
     .optional({ values: 'falsy' })
     .isISO8601()
     .withMessage('Due date must be a valid ISO 8601 date'),
+  durationRule,
   body('maxMarks')
     .optional({ values: 'falsy' })
     .isFloat({ min: 0 })

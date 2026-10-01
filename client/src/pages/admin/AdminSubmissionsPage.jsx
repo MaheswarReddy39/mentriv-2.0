@@ -62,7 +62,15 @@ export default function AdminSubmissionsPage() {
         totalSubmissions: response.data.totalSubmissions,
         pendingSubmissions: response.data.pendingSubmissions,
       });
-      setPagination(response.data.pagination);
+      setPagination(
+        response.data.pagination ?? {
+          page: 1,
+          limit: 50,
+          totalPages: 0,
+          hasNextPage: false,
+          totalItems: 0,
+        }
+      );
     } catch (err) {
       if (requestId !== requestIdRef.current) return;
       setError(err.message || 'Failed to load submissions.');

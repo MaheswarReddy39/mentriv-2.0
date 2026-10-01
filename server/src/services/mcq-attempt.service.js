@@ -80,16 +80,6 @@ const startAttempt = async (requester, testIdInput) => {
     throw new ApiError(403, 'You do not have active access to this course');
   }
 
-  const evaluatedAttempt = await McqAttempt.findOne({
-    studentId: requester.id,
-    mcqTestId: test._id,
-    status: 'evaluated',
-  });
-
-  if (evaluatedAttempt) {
-    throw new ApiError(409, 'This MCQ assignment has already been submitted');
-  }
-
   let attempt = await McqAttempt.findOne({
     studentId: requester.id,
     mcqTestId: test._id,

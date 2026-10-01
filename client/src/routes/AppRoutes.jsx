@@ -31,6 +31,7 @@ import MyCoursesPage from '../pages/student/MyCoursesPage.jsx';
 import CourseLearnPage from '../pages/student/CourseLearnPage.jsx';
 import CourseAssignmentsPage from '../pages/student/CourseAssignmentsPage.jsx';
 import CourseMcqsPage from '../pages/student/CourseMcqsPage.jsx';
+import McqPracticePage from '../pages/student/McqPracticePage.jsx';
 import CourseProgressPage from '../pages/student/CourseProgressPage.jsx';
 import ClassDetailPage from '../pages/student/ClassDetailPage.jsx';
 import NotificationsPage from '../pages/student/NotificationsPage.jsx';
@@ -69,6 +70,8 @@ import TeacherDashboardPage from '../pages/teacher/TeacherDashboardPage.jsx';
 import TeacherClassesPage from '../pages/teacher/TeacherClassesPage.jsx';
 import TeacherAssignmentsPage from '../pages/teacher/TeacherAssignmentsPage.jsx';
 import TeacherSubmissionsPage from '../pages/teacher/TeacherSubmissionsPage.jsx';
+import TeacherMcqsPage from '../pages/teacher/TeacherMcqsPage.jsx';
+import TeacherPracticeFormPage from '../pages/teacher/TeacherPracticeFormPage.jsx';
 import TeacherLeaderboardPage from '../pages/teacher/TeacherLeaderboardPage.jsx';
 import TeacherProfilePage from '../pages/teacher/TeacherProfilePage.jsx';
 
@@ -103,6 +106,7 @@ export default function AppRoutes() {
             <Route path="/dashboard" element={<DashboardPage />} />
             <Route path="/classes" element={<StudentClassesPage />} />
             <Route path="/assignments" element={<CourseAssignmentsPage />} />
+            <Route path="/mcqs" element={<McqPracticePage />} />
             <Route path="/my-courses" element={<MyCoursesPage />} />
             <Route path="/courses/:courseId/learn" element={<CourseLearnPage />} />
             <Route path="/courses/:courseId/assignments" element={<CourseAssignmentsPage />} />
@@ -112,6 +116,12 @@ export default function AppRoutes() {
             <Route path="/assignments/:assignmentId" element={<AssignmentDetailPage />} />
             <Route path="/notifications" element={<NotificationsPage />} />
             <Route path="/profile" element={<ProfilePage />} />
+            <Route path="/mcq-tests/:testId" element={<McqTestDetailPage />} />
+            <Route
+              path="/mcq-tests/:testId/attempts/:attemptId"
+              element={<AttemptWorkspacePage />}
+            />
+            <Route path="/mcq-attempts/:attemptId" element={<McqAttemptResultPage />} />
           </Route>
         </Route>
       </Route>
@@ -124,6 +134,10 @@ export default function AppRoutes() {
             <Route path="/teacher/dashboard" element={<TeacherDashboardPage />} />
             <Route path="/teacher/classes" element={<TeacherClassesPage />} />
             <Route path="/teacher/assignments" element={<TeacherAssignmentsPage />} />
+            <Route path="/teacher/mcqs" element={<TeacherMcqsPage />} />
+            <Route path="/teacher/mcqs/new" element={<TeacherPracticeFormPage mode="create" />} />
+            <Route path="/teacher/mcqs/:practiceId/edit" element={<TeacherPracticeFormPage mode="edit" />} />
+            <Route path="/teacher/mcqs/:practiceId" element={<TeacherPracticeFormPage mode="view" />} />
             <Route path="/teacher/submissions" element={<TeacherSubmissionsPage />} />
             <Route path="/teacher/leaderboard" element={<TeacherLeaderboardPage />} />
             <Route path="/teacher/notifications" element={<NotificationsPage />} />

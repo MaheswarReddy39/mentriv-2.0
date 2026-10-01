@@ -14,6 +14,7 @@ const EDITABLE_FIELDS = [
   'description',
   'instructions',
   'dueDate',
+  'duration',
   'maxMarks',
   'attachments',
   'status',
@@ -26,6 +27,11 @@ const pickEditableFields = (data) => {
       picked[field] = data[field];
     }
   }
+  if (picked.duration !== undefined && picked.duration !== null && picked.duration !== '') {
+    picked.duration = Number(picked.duration);
+  } else if (picked.duration === '') {
+    picked.duration = null;
+  }
   return picked;
 };
 
@@ -36,6 +42,7 @@ const sanitizeAssignmentSummary = (assignment, { includeStatus = false } = {}) =
     assignmentType: assignment.assignmentType,
     maxMarks: assignment.maxMarks,
     dueDate: assignment.dueDate,
+    duration: assignment.duration ?? null,
   };
   if (includeStatus) {
     payload.status = assignment.status;
@@ -51,6 +58,7 @@ const sanitizeAssignmentDetail = (assignment) => ({
   description: assignment.description,
   instructions: assignment.instructions,
   dueDate: assignment.dueDate,
+  duration: assignment.duration ?? null,
   maxMarks: assignment.maxMarks,
   attachments: assignment.attachments,
   status: assignment.status,

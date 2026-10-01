@@ -13,7 +13,7 @@ export default function AssignmentFormPage() {
 
   const [form, setForm] = useState({
     title: '', description: '', instructions: '',
-    dueDate: '', maxMarks: 100, status: 'draft',
+    dueDate: '', duration: '', maxMarks: 100, status: 'draft',
   });
   const set = (field) => (e) => setForm((f) => ({ ...f, [field]: e.target.value }));
 
@@ -29,6 +29,17 @@ export default function AssignmentFormPage() {
           <Textarea label="Description" value={form.description || ''} onChange={set('description')} rows={3} />
           <Textarea label="Instructions" value={form.instructions || ''} onChange={set('instructions')} rows={4} />
           <Input label="Due Date" type="date" value={form.dueDate || ''} onChange={set('dueDate')} />
+          <Input
+            label="Duration (minutes)"
+            type="number"
+            min="1"
+            step="1"
+            inputMode="numeric"
+            value={form.duration}
+            onChange={set('duration')}
+            placeholder="e.g. 60"
+            hint="Time limit in minutes for one attempt. Leave empty for no time limit. Due Date stays separate."
+          />
           <Input label="Max Marks" type="number" min="0" value={form.maxMarks ?? 100} onChange={(e) => setForm(f => ({ ...f, maxMarks: Number(e.target.value) }))} />
           <Select label="Status" value={form.status} onChange={set('status')}>
             <option value="draft">Draft</option><option value="published">Published</option><option value="archived">Archived</option>

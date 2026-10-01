@@ -5,9 +5,16 @@ import useAuth from '../hooks/useAuth.js';
 import { getUnreadCount } from '../services/notification.service.js';
 
 const LINKS = [
+  { to: '/dashboard', label: 'Dashboard' },
   { to: '/classes', label: 'Classes' },
   { to: '/assignments', label: 'Assignments' },
+  { to: '/mcqs', label: 'MCQs / Practice' },
+  { to: '/coding-practice', label: 'Coding Practice' },
+  { to: '/progress', label: 'Progress' },
+  { to: '/achievements', label: 'Achievements' },
+  { to: '/leaderboard', label: 'Leaderboard' },
   { to: '/notifications', label: 'Notifications', badge: true },
+  { to: '/announcements', label: 'Announcements' },
   { to: '/profile', label: 'Profile' },
 ];
 
@@ -35,7 +42,7 @@ export default function StudentLayout() {
 
   return (
     <div className="app-shell" style={{ display: 'grid', gridTemplateColumns: collapsed ? '72px 1fr' : '220px 1fr', minHeight: '100vh', transition: 'grid-template-columns var(--transition-normal, 250ms ease)' }}>
-      <StudentSidebar links={LINKS} unreadCount={unreadCount} collapsed={collapsed} 
+      <StudentSidebar links={LINKS} unreadCount={unreadCount} collapsed={collapsed} onLogout={handleLogout}
         onMouseEnter={() => setCollapsed(false)} 
         onMouseLeave={() => setCollapsed(true)} 
       />
