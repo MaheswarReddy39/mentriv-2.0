@@ -462,12 +462,17 @@
 
 /* ================= SIDEBAR ================= */
 .sidebar {
+  position: sticky;
+  top: 0;
+  align-self: start;
+  height: 100vh;
   background: var(--surface);
   border-right: 1px solid var(--border);
   padding: var(--space-4) var(--space-3);
   width: 220px;
   transition: width var(--transition-normal, 250ms ease), padding var(--transition-normal, 250ms ease);
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
 }
 .sidebar.collapsed {
   width: 72px;
@@ -709,6 +714,7 @@ button.sidebar-link {
     top: 0;
     left: 0;
     bottom: 0;
+    height: auto;
     width: 264px;
     max-width: 85vw;
     padding: 64px var(--space-3) var(--space-4);
