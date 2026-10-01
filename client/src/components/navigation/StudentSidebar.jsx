@@ -82,10 +82,10 @@ const ICONS = {
   ),
 };
 
-export default function StudentSidebar({ links, unreadCount = 0, collapsed = false, onLogout, onMouseEnter, onMouseLeave }) {
+export default function StudentSidebar({ links, unreadCount = 0, collapsed = false, mobileOpen = false, onNavigate, onLogout, onMouseEnter, onMouseLeave }) {
   return (
-    <aside className={`sidebar${collapsed ? ' collapsed' : ''}`} aria-label="Student navigation" onMouseEnter={onMouseEnter} onMouseLeave={onMouseLeave}>
-      <Link to="/dashboard" className="sidebar-brand">
+    <aside className={`sidebar${collapsed ? ' collapsed' : ''}${mobileOpen ? ' open' : ''}`} aria-label="Student navigation" onMouseEnter={onMouseEnter} onMouseLeave={onMouseLeave}>
+      <Link to="/dashboard" className="sidebar-brand" onClick={onNavigate}>
         <span className="sidebar-brand-icon">M</span>
         <span className="sidebar-brand-text">Mentriv</span>
       </Link>
@@ -97,6 +97,7 @@ export default function StudentSidebar({ links, unreadCount = 0, collapsed = fal
             to={link.to}
             end={link.to === '/dashboard'}
             className={({ isActive }) => `sidebar-link${isActive ? ' active' : ''}`}
+            onClick={onNavigate}
           >
             {Icon}
             <span className="sidebar-link-label">{link.label}</span>
@@ -107,7 +108,14 @@ export default function StudentSidebar({ links, unreadCount = 0, collapsed = fal
         );
       })}
       {onLogout ? (
-        <button type="button" className="sidebar-link" onClick={onLogout}>
+        <button
+          type="button"
+          className="sidebar-link"
+          onClick={() => {
+            if (onNavigate) onNavigate();
+            onLogout();
+          }}
+        >
           {ICONS.logout}
           <span className="sidebar-link-label">Logout</span>
         </button>

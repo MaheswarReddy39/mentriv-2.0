@@ -653,10 +653,120 @@ button.sidebar-link {
   box-shadow: var(--shadow-sm);
 }
 
+/* ===== Authenticated app shell (Student / Teacher / Admin) ===== */
+/* Desktop: hamburger and overlay are hidden; sidebar behavior unchanged. */
+.mobile-menu-btn { display: none; }
+.mobile-sidebar-overlay { display: none; }
+
 @media (max-width: 900px) {
+  /* Single-column shell: main content takes the full available width. */
   .app-shell { grid-template-columns: 1fr !important; }
-  .sidebar { border-right: none; border-bottom: 1px solid var(--border); width: 100%; }
-  .sidebar.collapsed { width: 100%; }
+  .app-shell > * { min-width: 0; }
+
+  /* Top-left hamburger button. */
+  .mobile-menu-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--surface);
+    color: var(--text);
+    font-size: 20px;
+    line-height: 1;
+    cursor: pointer;
+    position: relative;
+    z-index: 130;
+  }
+
+  /* Dimmed overlay shown behind the open drawer. */
+  .mobile-sidebar-overlay {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(22, 22, 35, 0.45);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    opacity: 0;
+    visibility: hidden;
+    transition:
+      opacity var(--transition-normal, 250ms ease),
+      visibility var(--transition-normal, 250ms ease);
+    z-index: 100;
+  }
+  .mobile-sidebar-overlay.open {
+    opacity: 1;
+    visibility: visible;
+  }
+
+  /* Off-canvas drawer: fixed to the viewport, slides in/out. */
+  .sidebar,
+  .sidebar.collapsed {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: 264px;
+    max-width: 85vw;
+    padding: 64px var(--space-3) var(--space-4);
+    display: flex;
+    flex-direction: column;
+    border-right: 1px solid var(--border);
+    border-bottom: none;
+    background: var(--surface);
+    overflow-x: hidden;
+    overflow-y: auto;
+    transform: translateX(-100%);
+    visibility: hidden;
+    transition:
+      transform var(--transition-normal, 250ms ease),
+      visibility var(--transition-normal, 250ms ease);
+    z-index: 110;
+  }
+  .app-shell .sidebar.open,
+  .app-shell .sidebar.collapsed.open {
+    transform: translateX(0);
+    visibility: visible;
+    box-shadow: var(--shadow-md);
+  }
+
+  /* Drawer always shows icons plus full text labels. */
+  .sidebar .sidebar-brand-text,
+  .sidebar.collapsed .sidebar-brand-text {
+    opacity: 1;
+    width: auto;
+  }
+  .sidebar .sidebar-link,
+  .sidebar.collapsed .sidebar-link {
+    justify-content: flex-start;
+    gap: var(--space-3);
+    padding: var(--space-2) var(--space-3);
+  }
+  .sidebar .sidebar-link-label,
+  .sidebar.collapsed .sidebar-link-label {
+    opacity: 1;
+    width: auto;
+    min-width: 0;
+    overflow: visible;
+  }
+  .sidebar .sidebar-link-badge,
+  .sidebar.collapsed .sidebar-link-badge {
+    opacity: 1;
+    width: auto;
+    min-width: 0;
+    overflow: visible;
+    margin-left: auto;
+  }
+  .sidebar .sidebar-section-title,
+  .sidebar.collapsed .sidebar-section-title {
+    opacity: 1;
+    width: auto;
+    padding: var(--space-2) var(--space-3);
+  }
+  .sidebar-nav { flex: 1 1 auto; }
 }
 
 /* ================= MODAL ================= */

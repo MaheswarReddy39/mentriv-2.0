@@ -45,10 +45,10 @@ const ICONS = {
   ),
 };
 
-export default function AdminSidebar({ links, collapsed = false, onMouseEnter, onMouseLeave }) {
+export default function AdminSidebar({ links, collapsed = false, mobileOpen = false, onNavigate, onMouseEnter, onMouseLeave }) {
   return (
-    <aside className={`sidebar${collapsed ? ' collapsed' : ''}`} aria-label="Admin navigation" onMouseEnter={onMouseEnter} onMouseLeave={onMouseLeave}>
-      <Link to="/admin" className="sidebar-brand">
+    <aside className={`sidebar${collapsed ? ' collapsed' : ''}${mobileOpen ? ' open' : ''}`} aria-label="Admin navigation" onMouseEnter={onMouseEnter} onMouseLeave={onMouseLeave}>
+      <Link to="/admin" className="sidebar-brand" onClick={onNavigate}>
         <span className="sidebar-brand-icon">A</span>
         <span className="sidebar-brand-text">Mentriv Admin</span>
       </Link>
@@ -60,6 +60,7 @@ export default function AdminSidebar({ links, collapsed = false, onMouseEnter, o
               key={link.to}
               to={link.to}
               className={({ isActive }) => `sidebar-link${isActive ? ' active' : ''}`}
+              onClick={onNavigate}
             >
               {Icon}
               <span className="sidebar-link-label">{link.label}</span>

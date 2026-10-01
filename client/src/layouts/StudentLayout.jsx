@@ -24,6 +24,20 @@ export default function StudentLayout() {
   const location = useLocation();
   const [unreadCount, setUnreadCount] = useState(0);
   const [collapsed, setCollapsed] = useState(true);
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  // Close the mobile drawer on navigation and when resizing back to desktop.
+  useEffect(() => {
+    setMenuOpen(false);
+  }, [location.pathname]);
+
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth > 900) setMenuOpen(false);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -42,9 +56,15 @@ export default function StudentLayout() {
 
   return (
     <div className="app-shell" style={{ display: 'grid', gridTemplateColumns: collapsed ? '72px 1fr' : '220px 1fr', minHeight: '100vh', transition: 'grid-template-columns var(--transition-normal, 250ms ease)' }}>
-      <StudentSidebar links={LINKS} unreadCount={unreadCount} collapsed={collapsed} onLogout={handleLogout}
-        onMouseEnter={() => setCollapsed(false)} 
-        onMouseLeave={() => setCollapsed(true)} 
+      <StudentSidebar
+        links={LINKS}
+        unreadCount={unreadCount}
+        collapsed={collapsed && !menuOpen}
+        mobileOpen={menuOpen}
+        onNavigate={() => setMenuOpen(false)}
+        onLogout={handleLogout}
+        onMouseEnter={() => setCollapsed(false)}
+        onMouseLeave={() => setCollapsed(true)}
       />
       <div>
         <header style={{
@@ -54,7 +74,18 @@ export default function StudentLayout() {
           padding: 'var(--space-3) var(--space-5)',
           borderBottom: '1px solid var(--color-border)',
         }}>
-          <span className="text-caption">Signed in</span>
+          <div style={{ display: 'flex', alignItems: 'center' }}>
+            <button
+              type="button"
+              className="mobile-menu-btn"
+              aria-expanded={menuOpen}
+              aria-label={menuOpen ? 'Close navigation menu' : 'Open navigation menu'}
+              onClick={() => setMenuOpen((current) => !current)}
+            >
+              ☰
+            </button>
+            <span className="text-caption">Signed in</span>
+          </div>
           <button type="button" className="btn btn-ghost btn-sm" onClick={handleLogout}>
             Log out
           </button>
@@ -63,6 +94,11 @@ export default function StudentLayout() {
           <Outlet />
         </main>
       </div>
+      <div
+        className={`mobile-sidebar-overlay${menuOpen ? ' open' : ''}`}
+        onClick={() => setMenuOpen(false)}
+        aria-hidden="true"
+      />
     </div>
   );
 }

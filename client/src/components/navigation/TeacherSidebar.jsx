@@ -54,10 +54,10 @@ const ICONS = {
   ),
 };
 
-export default function TeacherSidebar({ links, collapsed = false, onMouseEnter, onMouseLeave }) {
+export default function TeacherSidebar({ links, collapsed = false, mobileOpen = false, onNavigate, onMouseEnter, onMouseLeave }) {
   return (
-    <aside className={`sidebar${collapsed ? ' collapsed' : ''}`} aria-label="Teacher navigation" onMouseEnter={onMouseEnter} onMouseLeave={onMouseLeave}>
-      <Link to="/teacher" className="sidebar-brand">
+    <aside className={`sidebar${collapsed ? ' collapsed' : ''}${mobileOpen ? ' open' : ''}`} aria-label="Teacher navigation" onMouseEnter={onMouseEnter} onMouseLeave={onMouseLeave}>
+      <Link to="/teacher" className="sidebar-brand" onClick={onNavigate}>
         <span className="sidebar-brand-icon">T</span>
         <span className="sidebar-brand-text">Mentriv Teacher</span>
       </Link>
@@ -69,6 +69,7 @@ export default function TeacherSidebar({ links, collapsed = false, onMouseEnter,
               key={link.to}
               to={link.to}
               className={({ isActive }) => `sidebar-link${isActive ? ' active' : ''}`}
+              onClick={onNavigate}
             >
               {Icon}
               <span className="sidebar-link-label">{link.label}</span>
