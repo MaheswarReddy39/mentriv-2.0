@@ -9,6 +9,9 @@ export const getAssignmentById = (assignmentId) =>
 export const createAssignment = (courseId, payload) =>
   apiClient.post(`/courses/${courseId}/assignments`, payload);
 
+export const createAssignmentsForCourses = (courseIds, payload) =>
+  apiClient.post('/assignments/bulk', { courseIds, ...payload });
+
 export const updateAssignment = (assignmentId, payload) =>
   apiClient.patch(`/assignments/${assignmentId}`, payload);
 

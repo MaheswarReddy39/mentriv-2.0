@@ -4,12 +4,14 @@ import {
   listByCourse,
   getAssignmentById,
   createAssignment,
+  createAssignmentsForCourses,
   updateAssignment,
   archiveAssignment,
 } from '../controllers/assignment.controller.js';
 import validate from '../middleware/validate.middleware.js';
 import requireAuth from '../middleware/auth.middleware.js';
 import requireRole from '../middleware/role.middleware.js';
+import { MAX_BULK_COURSES } from '../utils/course-ids.util.js';
 
 const router = Router();
 
@@ -46,8 +48,7 @@ const durationRule = body('duration')
     return true;
   });
 
-const createValidation = [
-  ...[courseIdParamRule],
+const createBodyValidation = [
   body('title')
     .trim()
     .notEmpty()
@@ -84,6 +85,24 @@ const createValidation = [
     .isIn(ASSIGNMENT_STATUSES)
     .withMessage('Status must be one of: draft, published, archived'),
 ];
+
+const courseIdsRules = [
+  body('courseIds')
+    .isArray({ min: 1, max: MAX_BULK_COURSES })
+    .withMessage(`Select between 1 and ${MAX_BULK_COURSES} courses`),
+  body('courseIds.*').isMongoId().withMessage('Invalid course id'),
+  body('courseIds').custom((value) => {
+    if (!Array.isArray(value)) return true;
+    if (new Set(value.map(String)).size !== value.length) {
+      throw new Error('Duplicate courses are not allowed');
+    }
+    return true;
+  }),
+];
+
+const createValidation = [courseIdParamRule, ...createBodyValidation];
+
+const bulkCreateValidation = [...courseIdsRules, ...createBodyValidation];
 
 const updateValidation = [
   idParamRule,
@@ -124,6 +143,13 @@ const updateValidation = [
 
 router.get('/courses/:courseId/assignments', requireAuth, validate([courseIdParamRule]), listByCourse);
 router.get('/assignments/:id', requireAuth, validate([idParamRule]), getAssignmentById);
+router.post(
+  '/assignments/bulk',
+  requireAuth,
+  requireRole(...ASSIGNMENT_CREATE_ROLES),
+  validate(bulkCreateValidation),
+  createAssignmentsForCourses
+);
 router.post(
   '/courses/:courseId/assignments',
   requireAuth,

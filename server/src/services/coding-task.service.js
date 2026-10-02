@@ -5,6 +5,7 @@ import CodingSubmission from '../models/coding-submission.model.js';
 import Enrollment from '../models/enrollment.model.js';
 import ApiError from '../utils/api-error.js';
 import { ACTIVE_ACCESS_STATUSES, isAdminRole } from '../utils/course-access.util.js';
+import { normalizeCourseIds } from '../utils/course-ids.util.js';
 import { evaluateCodingSubmission, isPlaceholderOnlyCode } from './coding-evaluation.service.js';
 
 const LEVELS = ['Beginner', 'Intermediate', 'Advanced'];
@@ -569,6 +570,20 @@ const createCodingTask = async (requester, courseIdInput, data) => {
   return { codingTask: sanitizeTaskForTeacher(task) };
 };
 
+// Creates the same coding task in every selected course. Course ids are
+// validated and de-duplicated first so one course never receives two copies.
+const createCodingTasksForCourses = async (requester, courseIdsInput, data) => {
+  const courseIds = await normalizeCourseIds(courseIdsInput);
+
+  const codingTasks = [];
+  for (const courseId of courseIds) {
+    const { codingTask } = await createCodingTask(requester, courseId, data);
+    codingTasks.push(codingTask);
+  }
+
+  return { codingTasks, courseIds };
+};
+
 const updateCodingTask = async (requester, id, data) => {
   if (!mongoose.isValidObjectId(id)) {
     throw new ApiError(404, 'Coding task not found');
@@ -608,6 +623,7 @@ export default {
   listCodingTaskGroups,
   getCodingTask,
   createCodingTask,
+  createCodingTasksForCourses,
   updateCodingTask,
   listCodingSubmissions,
   createCodingSubmission,

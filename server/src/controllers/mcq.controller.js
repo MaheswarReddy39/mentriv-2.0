@@ -29,6 +29,21 @@ const createTest = asyncHandler(async (req, res) => {
   });
 });
 
+const createTestsForCourses = asyncHandler(async (req, res) => {
+  const { mcqTests, courseIds } = await mcqService.createMcqTestsForCourses(
+    req.body.courseIds,
+    req.body
+  );
+
+  res.status(201).json({
+    status: 'success',
+    message: `MCQ test created for ${mcqTests.length} course${
+      mcqTests.length === 1 ? '' : 's'
+    }`,
+    data: { mcqTests, courseIds },
+  });
+});
+
 const updateTest = asyncHandler(async (req, res) => {
   const { mcqTest } = await mcqService.updateMcqTest(req.params.id, req.body);
 
@@ -49,4 +64,4 @@ const archiveTest = asyncHandler(async (req, res) => {
   });
 });
 
-export { listByCourse, getTestById, createTest, updateTest, archiveTest };
+export { listByCourse, getTestById, createTest, createTestsForCourses, updateTest, archiveTest };

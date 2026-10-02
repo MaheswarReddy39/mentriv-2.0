@@ -445,6 +445,7 @@ export default function LeaderboardPage() {
                   <div
                     style={{
                       display: 'flex',
+                      flexWrap: 'wrap',
                       gap: 'var(--space-3)',
                       alignItems: 'flex-start',
                     }}

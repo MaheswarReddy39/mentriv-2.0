@@ -46,6 +46,22 @@ const createTask = asyncHandler(async (req, res) => {
   });
 });
 
+const createTasksForCourses = asyncHandler(async (req, res) => {
+  const { codingTasks, courseIds } = await codingTaskService.createCodingTasksForCourses(
+    req.user,
+    req.body.courseIds,
+    req.body
+  );
+
+  res.status(201).json({
+    status: 'success',
+    message: `Coding task created for ${codingTasks.length} course${
+      codingTasks.length === 1 ? '' : 's'
+    }`,
+    data: { codingTasks, courseIds },
+  });
+});
+
 const updateTask = asyncHandler(async (req, res) => {
   const { codingTask } = await codingTaskService.updateCodingTask(req.user, req.params.id, req.body);
 
@@ -79,4 +95,13 @@ const createSubmission = asyncHandler(async (req, res) => {
   });
 });
 
-export { listTasks, listGroups, getTask, createTask, updateTask, listSubmissions, createSubmission };
+export {
+  listTasks,
+  listGroups,
+  getTask,
+  createTask,
+  createTasksForCourses,
+  updateTask,
+  listSubmissions,
+  createSubmission,
+};

@@ -67,13 +67,7 @@ export default function StudentLayout() {
         onMouseLeave={() => setCollapsed(true)}
       />
       <div>
-        <header style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          padding: 'var(--space-3) var(--space-5)',
-          borderBottom: '1px solid var(--color-border)',
-        }}>
+        <header className="app-topbar">
           <div style={{ display: 'flex', alignItems: 'center' }}>
             <button
               type="button"
@@ -90,7 +84,7 @@ export default function StudentLayout() {
             Log out
           </button>
         </header>
-        <main style={{ padding: 'var(--space-5)', maxWidth: '1200px', margin: '0 auto', width: '100%' }}>
+        <main className="app-main">
           <Outlet />
         </main>
       </div>

@@ -3,6 +3,7 @@ import Assignment from '../models/assignment.model.js';
 import Course from '../models/course.model.js';
 import ApiError from '../utils/api-error.js';
 import { isAdminRole, hasActiveCourseEnrollment } from '../utils/course-access.util.js';
+import { normalizeCourseIds } from '../utils/course-ids.util.js';
 import notificationService from './notification.service.js';
 import emailNotifications from './email-notification.service.js';
 
@@ -176,6 +177,20 @@ const createAssignment = async (courseIdInput, data, requester = null) => {
   return { assignment: sanitizeAssignmentDetail(assignment) };
 };
 
+// Creates the same assignment in every selected course. Course ids are
+// validated and de-duplicated first so one course never receives two copies.
+const createAssignmentsForCourses = async (courseIdsInput, data, requester = null) => {
+  const courseIds = await normalizeCourseIds(courseIdsInput);
+
+  const assignments = [];
+  for (const courseId of courseIds) {
+    const { assignment } = await createAssignment(courseId, data, requester);
+    assignments.push(assignment);
+  }
+
+  return { assignments, courseIds };
+};
+
 const updateAssignment = async (id, data) => {
   if (!mongoose.isValidObjectId(id)) {
     throw new ApiError(404, 'Assignment not found');
@@ -235,6 +250,7 @@ export default {
   listAssignmentsForCourse,
   getAssignmentById,
   createAssignment,
+  createAssignmentsForCourses,
   updateAssignment,
   archiveAssignment,
 };

@@ -39,6 +39,22 @@ const createAssignment = asyncHandler(async (req, res) => {
   });
 });
 
+const createAssignmentsForCourses = asyncHandler(async (req, res) => {
+  const { assignments, courseIds } = await assignmentService.createAssignmentsForCourses(
+    req.body.courseIds,
+    req.body,
+    req.user
+  );
+
+  res.status(201).json({
+    status: 'success',
+    message: `Assignment created for ${assignments.length} course${
+      assignments.length === 1 ? '' : 's'
+    }`,
+    data: { assignments, courseIds },
+  });
+});
+
 const updateAssignment = asyncHandler(async (req, res) => {
   const { assignment } = await assignmentService.updateAssignment(
     req.params.id,
@@ -62,4 +78,11 @@ const archiveAssignment = asyncHandler(async (req, res) => {
   });
 });
 
-export { listByCourse, getAssignmentById, createAssignment, updateAssignment, archiveAssignment };
+export {
+  listByCourse,
+  getAssignmentById,
+  createAssignment,
+  createAssignmentsForCourses,
+  updateAssignment,
+  archiveAssignment,
+};

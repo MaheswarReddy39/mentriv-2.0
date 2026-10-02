@@ -4,6 +4,7 @@ import McqTest from '../models/mcq.model.js';
 import McqAttempt from '../models/mcq-attempt.model.js';
 import ApiError from '../utils/api-error.js';
 import { isAdminRole, hasActiveCourseEnrollment } from '../utils/course-access.util.js';
+import { normalizeCourseIds } from '../utils/course-ids.util.js';
 
 const MCQ_STATUSES = ['draft', 'published', 'archived'];
 
@@ -131,6 +132,20 @@ const createMcqTest = async (courseIdInput, data) => {
   return { mcqTest: sanitizeTestForAdmin(mcqTest) };
 };
 
+// Creates the same practice set in every selected course. Course ids are
+// validated and de-duplicated first so one course never receives two copies.
+const createMcqTestsForCourses = async (courseIdsInput, data) => {
+  const courseIds = await normalizeCourseIds(courseIdsInput);
+
+  const mcqTests = [];
+  for (const courseId of courseIds) {
+    const { mcqTest } = await createMcqTest(courseId, data);
+    mcqTests.push(mcqTest);
+  }
+
+  return { mcqTests, courseIds };
+};
+
 const updateMcqTest = async (id, data) => {
   if (!mongoose.isValidObjectId(id)) {
     throw new ApiError(404, 'MCQ test not found');
@@ -189,6 +204,7 @@ export default {
   listTestsForCourse,
   getTestById,
   createMcqTest,
+  createMcqTestsForCourses,
   updateMcqTest,
   archiveMcqTest,
 };

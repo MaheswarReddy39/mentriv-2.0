@@ -173,7 +173,7 @@ export default function AttemptWorkspacePage() {
 
         {remainingSeconds !== null ? (
           <div className={`attempt-timer ${timerClass}`} role="timer">
-            â± {formatClock(remainingSeconds)} remaining
+            {formatClock(remainingSeconds)} remaining
           </div>
         ) : null}
       </header>

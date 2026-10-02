@@ -4,12 +4,14 @@ import {
   listByCourse,
   getTestById,
   createTest,
+  createTestsForCourses,
   updateTest,
   archiveTest,
 } from '../controllers/mcq.controller.js';
 import validate from '../middleware/validate.middleware.js';
 import requireAuth from '../middleware/auth.middleware.js';
 import requireRole from '../middleware/role.middleware.js';
+import { MAX_BULK_COURSES } from '../utils/course-ids.util.js';
 
 const router = Router();
 
@@ -61,8 +63,7 @@ const questionItemRules = [
     .withMessage('Explanation cannot exceed 2000 characters'),
 ];
 
-const createValidation = [
-  ...[courseIdParamRule],
+const createBodyValidation = [
   body('title')
     .trim()
     .notEmpty()
@@ -89,6 +90,24 @@ const createValidation = [
     .isIn(MCQ_STATUSES)
     .withMessage('Status must be one of: draft, published, archived'),
 ];
+
+const courseIdsRules = [
+  body('courseIds')
+    .isArray({ min: 1, max: MAX_BULK_COURSES })
+    .withMessage(`Select between 1 and ${MAX_BULK_COURSES} courses`),
+  body('courseIds.*').isMongoId().withMessage('Invalid course id'),
+  body('courseIds').custom((value) => {
+    if (!Array.isArray(value)) return true;
+    if (new Set(value.map(String)).size !== value.length) {
+      throw new Error('Duplicate courses are not allowed');
+    }
+    return true;
+  }),
+];
+
+const createValidation = [courseIdParamRule, ...createBodyValidation];
+
+const bulkCreateValidation = [...courseIdsRules, ...createBodyValidation];
 
 const updateValidation = [
   idParamRule,
@@ -123,6 +142,13 @@ const updateValidation = [
 
 router.get('/courses/:courseId/mcq-tests', requireAuth, validate([courseIdParamRule]), listByCourse);
 router.get('/mcq-tests/:id', requireAuth, validate([idParamRule]), getTestById);
+router.post(
+  '/mcq-tests/bulk',
+  requireAuth,
+  requireRole(...MCQ_CREATE_ROLES),
+  validate(bulkCreateValidation),
+  createTestsForCourses
+);
 router.post(
   '/courses/:courseId/mcq-tests',
   requireAuth,

@@ -2,16 +2,17 @@ import { useEffect, useState } from 'react';
 import Button from '../../components/common/Button.jsx';
 import ErrorState from '../../components/common/ErrorState.jsx';
 import Input from '../../components/common/Input.jsx';
+import MultiCourseSelect from '../../components/common/MultiCourseSelect.jsx';
 import Select from '../../components/common/Select.jsx';
 import Textarea from '../../components/common/Textarea.jsx';
 import { useToast } from '../../components/feedback/Toast.jsx';
-import { createAssignment } from '../../services/assignment.service.js';
-import { createMcqTest, parseQuestionsWithAI } from '../../services/mcq.service.js';
+import { createAssignmentsForCourses } from '../../services/assignment.service.js';
+import { createMcqTestsForCourses, parseQuestionsWithAI } from '../../services/mcq.service.js';
 import { getTeacherDashboard } from '../../services/teacher.service.js';
 
 const INITIAL_FORM = {
   title: '',
-  courseId: '',
+  courseIds: [],
   assignmentType: 'MCQ',
   duration: '',
 };
@@ -203,7 +204,7 @@ export default function TeacherAssignmentsPage() {
     event.preventDefault();
     const errors = {};
     if (!form.title.trim()) errors.title = 'Assignment Title is required';
-    if (!form.courseId) errors.courseId = 'Select Course is required';
+    if (form.courseIds.length === 0) errors.courseIds = 'Select at least one course';
     if (form.duration !== '') {
       const durationValue = Number(form.duration);
       if (!Number.isInteger(durationValue) || durationValue < 1) {
@@ -230,14 +231,17 @@ export default function TeacherAssignmentsPage() {
       return;
     }
 
+    const courseCount = form.courseIds.length;
+    const courseSuffix = courseCount > 1 ? ` across ${courseCount} courses` : '';
+
     const saveRequest = form.assignmentType === 'MCQ'
-      ? createMcqTest(form.courseId, {
+      ? createMcqTestsForCourses(form.courseIds, {
           title: form.title.trim(),
           questions: buildAllQuestionPayloads(),
           duration: form.duration === '' ? 0 : Number(form.duration),
           status: 'published',
         })
-      : createAssignment(form.courseId, {
+      : createAssignmentsForCourses(form.courseIds, {
           title: form.title.trim(),
           assignmentType: 'normalTest',
           duration: form.duration === '' ? null : Number(form.duration),
@@ -248,14 +252,14 @@ export default function TeacherAssignmentsPage() {
     saveRequest
       .then(() => {
         const msg = form.assignmentType === 'MCQ'
-          ? `Assignment created successfully with ${questionCount} questions.`
-          : 'Assignment added successfully.';
+          ? `Assignment created successfully with ${questionCount} questions${courseSuffix}.`
+          : `Assignment added successfully${courseSuffix}.`;
         toast.success(msg);
         setFieldErrors({});
         setForm((current) => ({
           ...INITIAL_FORM,
           title: current.title,
-          courseId: current.courseId,
+          courseIds: current.courseIds,
           assignmentType: current.assignmentType,
           duration: current.duration,
         }));
@@ -291,6 +295,23 @@ export default function TeacherAssignmentsPage() {
 
         <form className="teacher-class-form" onSubmit={handleSubmit}>
           <div className="teacher-class-form-grid">
+            <MultiCourseSelect
+              label="Select Courses"
+              courses={courses}
+              value={form.courseIds}
+              onChange={(courseIds) =>
+                setForm((current) => ({ ...current, courseIds }))
+              }
+              loading={loadingCourses}
+              error={fieldErrors.courseIds}
+              hint={
+                form.courseIds.length > 1
+                  ? `The same content will be created in ${form.courseIds.length} courses.`
+                  : undefined
+              }
+              style={{ gridColumn: '1 / -1' }}
+            />
+
             <Input
               label="Assignment Title"
               value={form.title}
@@ -298,23 +319,6 @@ export default function TeacherAssignmentsPage() {
               placeholder="Enter assignment title"
               error={fieldErrors.title}
             />
-
-            <Select
-              label="Select Course"
-              value={form.courseId}
-              onChange={setField('courseId')}
-              disabled={loadingCourses}
-              error={fieldErrors.courseId}
-            >
-              <option value="">
-                {loadingCourses ? 'Loading courses...' : 'Select a course'}
-              </option>
-              {courses.map((course) => (
-                <option key={course.id} value={course.id}>
-                  {course.title}
-                </option>
-              ))}
-            </Select>
           </div>
 
           {courseError ? <ErrorState message={courseError} onRetry={loadCourses} /> : null}

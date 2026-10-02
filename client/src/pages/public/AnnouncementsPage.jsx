@@ -91,7 +91,7 @@ export default function AnnouncementsPage() {
             })}
           </div>
 
-          <nav aria-label="Announcement pages" style={{ display: 'flex', justifyContent: 'center', gap: 'var(--space-4)', marginTop: 'var(--space-8)' }}>
+          <nav aria-label="Announcement pages" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', flexWrap: 'wrap', gap: 'var(--space-3) var(--space-4)', marginTop: 'var(--space-8)' }}>
             <Button variant="secondary" size="sm" disabled={page <= 1} onClick={() => setPage(page - 1)}>
               Previous
             </Button>

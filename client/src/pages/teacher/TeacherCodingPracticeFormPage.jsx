@@ -5,12 +5,13 @@ import EmptyState from '../../components/common/EmptyState.jsx';
 import ErrorState from '../../components/common/ErrorState.jsx';
 import Input from '../../components/common/Input.jsx';
 import Loading from '../../components/common/Loading.jsx';
+import MultiCourseSelect from '../../components/common/MultiCourseSelect.jsx';
 import Select from '../../components/common/Select.jsx';
 import Textarea from '../../components/common/Textarea.jsx';
 import { useToast } from '../../components/feedback/Toast.jsx';
 import { getTeacherDashboard } from '../../services/teacher.service.js';
 import {
-  createCodingTask,
+  createCodingTasksForCourses,
   getCodingTask,
   updateCodingTask,
 } from '../../services/coding-practice.service.js';
@@ -22,7 +23,7 @@ const HTTP_METHODS = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'];
 
 const EMPTY_COMMON = {
   title: '',
-  courseId: '',
+  courseIds: [],
   level: '',
   topic: '',
   taskType: 'Coding Problem',
@@ -150,7 +151,7 @@ export default function TeacherCodingPracticeFormPage({ mode = 'create' }) {
       if (!task) throw new Error('Coding task not found.');
       setCommon({
         title: task.title || '',
-        courseId: task.courseId || '',
+        courseIds: task.courseId ? [String(task.courseId)] : [],
         level: task.level || '',
         topic: task.topic || '',
         taskType: task.taskType || 'Coding Problem',
@@ -187,7 +188,7 @@ export default function TeacherCodingPracticeFormPage({ mode = 'create' }) {
     if (presetCourseId || presetLevel || presetTopic) {
       setCommon((current) => ({
         ...current,
-        courseId: presetCourseId || current.courseId,
+        courseIds: presetCourseId ? [presetCourseId] : current.courseIds,
         level: presetLevel || current.level,
         topic: presetTopic || current.topic,
       }));
@@ -230,7 +231,7 @@ export default function TeacherCodingPracticeFormPage({ mode = 'create' }) {
   const validateCommon = () => {
     const errors = {};
     if (!common.title.trim()) errors.title = 'Title is required';
-    if (!common.courseId) errors.courseId = 'Select a course';
+    if (common.courseIds.length === 0) errors.courseIds = 'Select at least one course';
     if (!common.level) errors.level = 'Select a level';
     if (!common.topic.trim()) errors.topic = 'Topic is required';
     if (!common.difficulty) errors.difficulty = 'Select a difficulty';
@@ -322,11 +323,16 @@ export default function TeacherCodingPracticeFormPage({ mode = 'create' }) {
     setSaving(true);
     try {
       if (mode === 'create') {
-        await createCodingTask(common.courseId, payload);
+        await createCodingTasksForCourses(common.courseIds, payload);
+        const courseCount = common.courseIds.length;
+        const suffix = courseCount > 1 ? ` to ${courseCount} courses` : '';
+        toast.success(
+          action === 'publish' ? `Task published${suffix}.` : `Draft saved${suffix}.`
+        );
       } else {
         await updateCodingTask(taskId, payload);
+        toast.success(action === 'publish' ? 'Task published.' : 'Draft saved.');
       }
-      toast.success(action === 'publish' ? 'Task published.' : 'Draft saved.');
       setFieldErrors({});
       navigate('/teacher/coding-practice');
     } catch (err) {
@@ -810,6 +816,23 @@ export default function TeacherCodingPracticeFormPage({ mode = 'create' }) {
           </div>
 
           <div className="teacher-class-form-grid">
+            <MultiCourseSelect
+              label="Courses"
+              courses={courses}
+              value={common.courseIds}
+              onChange={(courseIds) =>
+                setCommon((current) => ({ ...current, courseIds }))
+              }
+              disabled={isView || mode === 'edit' || loadingCourses}
+              loading={loadingCourses}
+              error={fieldErrors.courseIds}
+              hint={
+                mode === 'create'
+                  ? undefined
+                  : 'Content belongs to this course. Create a new task to reuse it in another course.'
+              }
+              style={{ gridColumn: '1 / -1' }}
+            />
             <Input
               label="Title"
               value={common.title}
@@ -818,22 +841,6 @@ export default function TeacherCodingPracticeFormPage({ mode = 'create' }) {
               disabled={isView}
               error={fieldErrors.title}
             />
-            <Select
-              label="Course"
-              value={common.courseId}
-              onChange={setField('courseId')}
-              disabled={isView || mode === 'edit' || loadingCourses}
-              error={fieldErrors.courseId}
-            >
-              <option value="">
-                {loadingCourses ? 'Loading courses...' : 'Select a course'}
-              </option>
-              {courses.map((course) => (
-                <option key={course.id} value={course.id}>
-                  {course.title}
-                </option>
-              ))}
-            </Select>
           </div>
 
           {courseError ? <ErrorState message={courseError} onRetry={loadCourses} /> : null}

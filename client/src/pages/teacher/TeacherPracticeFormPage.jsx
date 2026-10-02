@@ -6,10 +6,15 @@ import EmptyState from '../../components/common/EmptyState.jsx';
 import ErrorState from '../../components/common/ErrorState.jsx';
 import Input from '../../components/common/Input.jsx';
 import Loading from '../../components/common/Loading.jsx';
+import MultiCourseSelect from '../../components/common/MultiCourseSelect.jsx';
 import Select from '../../components/common/Select.jsx';
 import Textarea from '../../components/common/Textarea.jsx';
 import { useToast } from '../../components/feedback/Toast.jsx';
-import { createMcqTest, getMcqTestById, updateMcqTest } from '../../services/mcq.service.js';
+import {
+  createMcqTestsForCourses,
+  getMcqTestById,
+  updateMcqTest,
+} from '../../services/mcq.service.js';
 import { getTeacherDashboard } from '../../services/teacher.service.js';
 import {
   LEVEL_BADGE_CLASS,
@@ -21,7 +26,7 @@ import {
 const LETTERS = ['A', 'B', 'C', 'D'];
 
 const INITIAL_FORM = {
-  courseId: '',
+  courseIds: [],
   title: '',
   topic: '',
   level: '',
@@ -133,7 +138,7 @@ export default function TeacherPracticeFormPage({ mode = 'create' }) {
       const blocks = fromApiQuestions(test.questions);
       const { level, topic } = decodeDescription(test.description);
       setForm({
-        courseId: test.courseId || '',
+        courseIds: test.courseId ? [String(test.courseId)] : [],
         title: test.title || '',
         topic,
         level,
@@ -224,7 +229,7 @@ export default function TeacherPracticeFormPage({ mode = 'create' }) {
   const validate = () => {
     const errors = {};
     if (!form.title.trim()) errors.title = 'Title is required';
-    if (!form.courseId) errors.courseId = 'Select a course';
+    if (form.courseIds.length === 0) errors.courseIds = 'Select at least one course';
     if (!form.level) errors.level = 'Select a level';
     if (
       form.passingScore === '' ||
@@ -283,10 +288,16 @@ export default function TeacherPracticeFormPage({ mode = 'create' }) {
     try {
       if (practiceId) {
         await updateMcqTest(practiceId, payload);
+        toast.success('Practice set published.');
       } else {
-        await createMcqTest(form.courseId, payload);
+        await createMcqTestsForCourses(form.courseIds, payload);
+        const courseCount = form.courseIds.length;
+        toast.success(
+          courseCount > 1
+            ? `Practice set published to ${courseCount} courses.`
+            : 'Practice set published.'
+        );
       }
-      toast.success('Practice set published.');
       setFieldErrors({});
       navigate('/teacher/mcqs');
     } catch (err) {
@@ -449,22 +460,23 @@ export default function TeacherPracticeFormPage({ mode = 'create' }) {
           </div>
 
           <div className="teacher-class-form-grid">
-            <Select
-              label="Course"
-              value={form.courseId}
-              onChange={setField('courseId')}
-              disabled={isView || loadingCourses}
-              error={fieldErrors.courseId}
-            >
-              <option value="">
-                {loadingCourses ? 'Loading courses...' : 'Select a course'}
-              </option>
-              {courses.map((course) => (
-                <option key={course.id} value={course.id}>
-                  {course.title}
-                </option>
-              ))}
-            </Select>
+            <MultiCourseSelect
+              label="Courses"
+              courses={courses}
+              value={form.courseIds}
+              onChange={(courseIds) =>
+                setForm((current) => ({ ...current, courseIds }))
+              }
+              disabled={Boolean(practiceId) || isView || loadingCourses}
+              loading={loadingCourses}
+              error={fieldErrors.courseIds}
+              hint={
+                practiceId
+                  ? 'Content belongs to this course. Create a new practice set to reuse it in another course.'
+                  : undefined
+              }
+              style={{ gridColumn: '1 / -1' }}
+            />
 
             <Input
               label="Title"

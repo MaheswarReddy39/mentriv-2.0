@@ -190,6 +190,10 @@
   color: var(--indigo);
 }
 
+@media (max-width: 900px) {
+  .streak-calendar { min-width: 640px; }
+}
+
 @media (max-width: 640px) {
   .streak-section {
     padding: var(--space-4);

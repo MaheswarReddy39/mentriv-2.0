@@ -16,6 +16,9 @@ export const getCodingTask = (taskId) => apiClient.get(`/coding-tasks/${taskId}`
 export const createCodingTask = (courseId, payload) =>
   apiClient.post(`/courses/${courseId}/coding-tasks`, payload);
 
+export const createCodingTasksForCourses = (courseIds, payload) =>
+  apiClient.post('/coding-tasks/bulk', { courseIds, ...payload });
+
 export const updateCodingTask = (taskId, payload) =>
   apiClient.patch(`/coding-tasks/${taskId}`, payload);
 

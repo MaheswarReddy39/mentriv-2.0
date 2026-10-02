@@ -8,6 +8,9 @@ export const getMcqTestById = (testId) => apiClient.get(`/mcq-tests/${testId}`);
 export const createMcqTest = (courseId, payload) =>
   apiClient.post(`/courses/${courseId}/mcq-tests`, payload);
 
+export const createMcqTestsForCourses = (courseIds, payload) =>
+  apiClient.post('/mcq-tests/bulk', { courseIds, ...payload });
+
 export const updateMcqTest = (testId, payload) => apiClient.patch(`/mcq-tests/${testId}`, payload);
 
 export const archiveMcqTest = (testId) => apiClient.delete(`/mcq-tests/${testId}`);
