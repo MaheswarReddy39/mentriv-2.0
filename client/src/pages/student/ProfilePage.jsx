@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react';
 import Badge from '../../components/common/Badge.jsx';
 import Button from '../../components/common/Button.jsx';
+import ErrorState from '../../components/common/ErrorState.jsx';
 import Input from '../../components/common/Input.jsx';
+import Skeleton from '../../components/common/Skeleton.jsx';
 import { useToast } from '../../components/feedback/Toast.jsx';
 import useAuth from '../../hooks/useAuth.js';
 import {
@@ -181,14 +183,11 @@ export default function ProfilePage() {
       </header>
 
       {pageError ? (
-        <div className="card" role="alert">
-          {pageError}
-        </div>
-      ) : null}
-
-      {loading ? (
+        <ErrorState message={pageError} onRetry={() => window.location.reload()} />
+      ) : loading ? (
         <section className="card teacher-profile-card" aria-live="polite">
-          Loading profile details...
+          <Skeleton height="1.2rem" width="35%" />
+          <Skeleton height="1rem" width="55%" count={4} style={{ marginTop: 'var(--space-4)' }} />
         </section>
       ) : null}
 
@@ -196,7 +195,6 @@ export default function ProfilePage() {
       <section className="card teacher-profile-card" aria-labelledby="student-profile-heading">
         <div className="teacher-card-head">
           <div>
-            <p className="text-caption">Profile Details</p>
             <h2 id="student-profile-heading">Profile Details</h2>
           </div>
           {!editing ? (

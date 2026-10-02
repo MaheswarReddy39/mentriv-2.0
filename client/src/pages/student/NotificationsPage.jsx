@@ -1,10 +1,10 @@
-﻿import { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { listNotifications, getUnreadCount, markNotificationRead, markAllNotificationsRead } from '../../services/notification.service.js';
 import Badge from '../../components/common/Badge.jsx';
 import Button from '../../components/common/Button.jsx';
 import Card from '../../components/common/Card.jsx';
-import Loading from '../../components/common/Loading.jsx';
+import Skeleton from '../../components/common/Skeleton.jsx';
 import ErrorState from '../../components/common/ErrorState.jsx';
 import EmptyState from '../../components/common/EmptyState.jsx';
 
@@ -70,7 +70,7 @@ export default function NotificationsPage() {
       );
       setUnreadCount((c) => Math.max(0, (c ?? 1) - 1));
     } catch {
-      // silent â€” backend is authoritative and idempotent
+      // silent — backend is authoritative and idempotent
     }
   };
 
@@ -80,7 +80,7 @@ export default function NotificationsPage() {
       setNotifications((current) => current.map((n) => ({ ...n, isRead: true })));
       setUnreadCount(0);
     } catch {
-      // silent â€” best-effort UI refresh happens on next visit anyway
+      // silent — best-effort UI refresh happens on next visit anyway
     }
   };
 
@@ -93,15 +93,12 @@ export default function NotificationsPage() {
     }
   };
 
-  if (loading) return <Loading label="Loading notificationsâ€¦" />;
-  if (error) return <ErrorState message={error} onRetry={() => window.location.reload()} />;
-
   return (
     <>
       <div className="page-head fade-in">
         <div>
           <h1>Notifications</h1>
-          <p style={{ color: 'var(--text-secondary)', margin: 0 }}>
+          <p className="admin-welcome">
             {unreadCount === null ? '' : unreadCount > 0 ? `${unreadCount} unread` : 'You are all caught up.'}
           </p>
         </div>
@@ -148,7 +145,18 @@ export default function NotificationsPage() {
       </div>
 
       {/* List */}
-      {notifications.length === 0 ? (
+      {loading ? (
+        <div style={{ display: 'grid', gap: 'var(--space-3)' }} aria-hidden="true">
+          {[0, 1, 2, 3].map((index) => (
+            <div key={index} className="card">
+              <Skeleton height="1rem" width="45%" />
+              <Skeleton height="0.8rem" width="75%" style={{ marginTop: 'var(--space-2)' }} />
+            </div>
+          ))}
+        </div>
+      ) : error ? (
+        <ErrorState message={error} onRetry={() => window.location.reload()} />
+      ) : notifications.length === 0 ? (
         <EmptyState title="No notifications" message="You're all caught up." />
       ) : (
         <div style={{ display: 'grid', gap: 'var(--space-3)' }}>

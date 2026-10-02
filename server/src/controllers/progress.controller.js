@@ -58,4 +58,16 @@ const completeMcq = asyncHandler(async (req, res) => {
   });
 });
 
-export { getProgress, completeLesson, completeAssignment, completeMcq };
+const getProgressOverview = asyncHandler(async (req, res) => {
+  const overview = await progressService.getStudentProgressOverview(
+    req.user,
+    req.query.courseId
+  );
+
+  res.status(200).json({
+    status: 'success',
+    data: overview,
+  });
+});
+
+export { getProgress, getProgressOverview, completeLesson, completeAssignment, completeMcq };

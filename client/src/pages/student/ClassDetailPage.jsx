@@ -1,4 +1,4 @@
-﻿import { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { getClassById } from '../../services/class.service.js';
 import { getCourseProgress, completeLesson } from '../../services/progress.service.js';
@@ -6,6 +6,7 @@ import Badge from '../../components/common/Badge.jsx';
 import Button from '../../components/common/Button.jsx';
 import Card from '../../components/common/Card.jsx';
 import Loading from '../../components/common/Loading.jsx';
+import EmptyState from '../../components/common/EmptyState.jsx';
 import ErrorState from '../../components/common/ErrorState.jsx';
 import { useToast } from '../../components/feedback/Toast.jsx';
 
@@ -79,7 +80,7 @@ export default function ClassDetailPage() {
     }
   };
 
-  if (loading) return <Loading label="Loading lessonâ€¦" />;
+  if (loading) return <Loading label="Loading lesson…" />;
 
   if (error && !lesson) {
     return (
@@ -93,12 +94,18 @@ export default function ClassDetailPage() {
   return (
     <>
       <Link to={`/courses/${courseId}/learn`} className="back-link">
-        â† Back to course
+        ← Back to course
       </Link>
 
       {lesson.videoUrl ? (
         <div className="class-video-card">
-          <a href={lesson.videoUrl} target="_blank" rel="noopener noreferrer" className="btn btn-primary">
+          <a
+            href={lesson.videoUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="btn btn-primary"
+            onClick={handleMarkComplete}
+          >
             Watch Class
           </a>
         </div>
@@ -158,9 +165,10 @@ export default function ClassDetailPage() {
             ))}
           </div>
         ) : (
-          <Card>
-            <p className="text-sm" style={{ color: 'var(--text-secondary)', margin: 0 }}>No Notes</p>
-          </Card>
+          <EmptyState
+            title="No resources"
+            message="Notes and downloads for this lesson will appear here."
+          />
         )}
       </section>
     </>

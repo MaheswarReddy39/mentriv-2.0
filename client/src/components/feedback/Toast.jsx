@@ -9,12 +9,19 @@ export function ToastProvider({ children }) {
   const timersRef = useRef(new Map());
 
   const dismiss = useCallback((id) => {
-    setToasts((current) => current.filter((toast) => toast.id !== id));
+    setToasts((current) =>
+      current.map((toast) =>
+        toast.id === id && !toast.exiting ? { ...toast, exiting: true } : toast
+      )
+    );
     const timer = timersRef.current.get(id);
     if (timer) {
       clearTimeout(timer);
       timersRef.current.delete(id);
     }
+    setTimeout(() => {
+      setToasts((current) => current.filter((toast) => toast.id !== id));
+    }, 200);
   }, []);
 
   const showToast = useCallback(
@@ -46,7 +53,11 @@ export function ToastProvider({ children }) {
       {children}
       <div className="toast-stack" aria-live="polite" aria-atomic="false">
         {toasts.map((toast) => (
-          <div key={toast.id} className={`toast toast-${toast.type}`} role={toast.type === 'error' ? 'alert' : 'status'}>
+          <div
+            key={toast.id}
+            className={`toast toast-${toast.type}${toast.exiting ? ' toast-exit' : ''}`}
+            role={toast.type === 'error' ? 'alert' : 'status'}
+          >
             <p className="toast-message">{toast.message}</p>
             <button
               type="button"

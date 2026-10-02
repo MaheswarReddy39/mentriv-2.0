@@ -7,6 +7,7 @@ const LINKS = [
   { to: '/teacher/classes', label: 'Classes' },
   { to: '/teacher/assignments', label: 'Assignments' },
   { to: '/teacher/mcqs', label: 'MCQs / Practice' },
+  { to: '/teacher/coding-practice', label: 'Coding Practice' },
   { to: '/teacher/submissions', label: 'Submissions' },
   { to: '/teacher/leaderboard', label: 'Leaderboard' },
   { to: '/teacher/notifications', label: 'Notifications' },

@@ -1,13 +1,14 @@
-﻿import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { getMyEnrollments } from '../../services/enrollment.service.js';
 import { getCourseProgress } from '../../services/progress.service.js';
 import Badge from '../../components/common/Badge.jsx';
 import Button from '../../components/common/Button.jsx';
+import Card from '../../components/common/Card.jsx';
 import ProgressBar from '../../components/common/ProgressBar.jsx';
 import CategoryThumb from '../../components/common/CategoryThumb.jsx';
 import Input from '../../components/common/Input.jsx';
-import Loading from '../../components/common/Loading.jsx';
+import Skeleton from '../../components/common/Skeleton.jsx';
 import ErrorState from '../../components/common/ErrorState.jsx';
 import EmptyState from '../../components/common/EmptyState.jsx';
 
@@ -67,17 +68,12 @@ export default function MyCoursesPage() {
     return enrollments.filter((e) => e.course.title.toLowerCase().includes(q));
   }, [enrollments, search]);
 
-  if (loading) return <Loading label="Loading your coursesâ€¦" />;
-  if (error) return <ErrorState message={error} onRetry={() => window.location.reload()} />;
-
   return (
     <>
       <div className="page-head fade-in">
         <div>
           <h1>My Courses</h1>
-          <p style={{ color: 'var(--text-secondary)', margin: 0 }}>
-            Everything you're learning, in one place.
-          </p>
+          <p className="admin-welcome">Everything you're learning, in one place.</p>
         </div>
         <Input
           label="Search my courses"
@@ -89,7 +85,23 @@ export default function MyCoursesPage() {
         />
       </div>
 
-      {visible.length === 0 ? (
+      {loading ? (
+        <div className="card-grid" aria-hidden="true">
+          {[0, 1, 2, 3].map((index) => (
+            <div key={index} className="card card-course">
+              <Skeleton height="9rem" radius="0" />
+              <div className="card-course-body">
+                <Skeleton height="0.9rem" width="40%" />
+                <Skeleton height="1.2rem" width="85%" />
+                <Skeleton height="0.6rem" radius="var(--radius-pill)" />
+                <Skeleton height="2.25rem" width="45%" />
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : error ? (
+        <ErrorState message={error} onRetry={() => window.location.reload()} />
+      ) : visible.length === 0 ? (
         search ? (
           <EmptyState title="No matches" message={`No courses match "${search}".`} />
         ) : (

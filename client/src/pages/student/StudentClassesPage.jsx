@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
 import { getMyEnrollments } from '../../services/enrollment.service.js';
 import { listCourseClasses } from '../../services/class.service.js';
+import { completeLesson } from '../../services/progress.service.js';
 import Card from '../../components/common/Card.jsx';
 import EmptyState from '../../components/common/EmptyState.jsx';
 import ErrorState from '../../components/common/ErrorState.jsx';
-import Loading from '../../components/common/Loading.jsx';
+import Skeleton from '../../components/common/Skeleton.jsx';
+import { useToast } from '../../components/feedback/Toast.jsx';
 
 const ACTIVE_STATUSES = ['approved', 'completed'];
 
@@ -23,10 +25,25 @@ const openExternalLink = (url) => {
 };
 
 export default function StudentClassesPage() {
+  const toast = useToast();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [selectedEnrollment, setSelectedEnrollment] = useState(null);
   const [classes, setClasses] = useState([]);
+
+  const handleWatchClass = (recordedClass, videoUrl) => {
+    const courseId = getCourseId(selectedEnrollment);
+    if (courseId) {
+      completeLesson(courseId, recordedClass.id)
+        .then((res) => {
+          if (res?.data && res.data.alreadyCompleted === false) {
+            toast.success('Class marked as complete.');
+          }
+        })
+        .catch((err) => toast.error(err.message || 'Could not update class progress.'));
+    }
+    openExternalLink(videoUrl);
+  };
 
   const loadClasses = async () => {
     setLoading(true);
@@ -65,18 +82,12 @@ export default function StudentClassesPage() {
     [classes]
   );
 
-  if (loading) return <Loading label="Loading classes..." />;
-
   return (
-    <div className="admin-dashboard student-classes-page">
+    <div className="admin-dashboard student-classes-page fade-in">
       <header className="admin-dashboard-header">
         <div>
           <h1>Classes</h1>
-          {selectedCourseTitle ? (
-            <p className="text-sm" style={{ color: 'var(--text-secondary)', margin: 0 }}>
-              {selectedCourseTitle}
-            </p>
-          ) : null}
+          {selectedCourseTitle ? <p className="admin-welcome">{selectedCourseTitle}</p> : null}
         </div>
       </header>
 
@@ -85,7 +96,16 @@ export default function StudentClassesPage() {
           Recorded Classes
         </h2>
 
-        {error ? (
+        {loading ? (
+          <div className="student-classes-grid" aria-hidden="true">
+            {[0, 1, 2, 3].map((index) => (
+              <div key={index} className="card">
+                <Skeleton height="1.1rem" width="70%" />
+                <Skeleton height="2.25rem" width="55%" style={{ marginTop: 'var(--space-4)' }} />
+              </div>
+            ))}
+          </div>
+        ) : error ? (
           <ErrorState message={error} onRetry={loadClasses} />
         ) : sortedClasses.length === 0 ? (
           <EmptyState title="No recorded classes" message="Recorded classes will appear here." />
@@ -111,7 +131,7 @@ export default function StudentClassesPage() {
                       type="button"
                       className="btn btn-primary btn-sm"
                       disabled={!videoUrl}
-                      onClick={() => openExternalLink(videoUrl)}
+                      onClick={() => handleWatchClass(recordedClass, videoUrl)}
                     >
                       Watch Class
                     </button>

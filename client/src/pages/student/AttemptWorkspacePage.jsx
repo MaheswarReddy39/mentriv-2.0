@@ -1,4 +1,4 @@
-﻿import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { getMcqTestById, getAttemptById, submitAttempt } from '../../services/mcq.service.js';
 import Button from '../../components/common/Button.jsx';
@@ -145,14 +145,14 @@ export default function AttemptWorkspacePage() {
 
   /* ---------------- Render ---------------- */
 
-  if (loading) return <Loading label="Preparing your testâ€¦" />;
+  if (loading) return <Loading label="Preparing your test…" />;
 
   if (error) return <ErrorState message={error} onRetry={() => window.location.reload()} />;
 
   if (attempt.status !== 'in_progress') {
     return (
       <>
-        <Link to={`/mcq-tests/${testId}`} className="back-link">â† Back to test</Link>
+        <Link to={`/mcq-tests/${testId}`} className="back-link">← Back to test</Link>
         <ErrorState
           title="This attempt is already submitted"
           message="View your result from the test page or attempt history."
@@ -235,7 +235,7 @@ export default function AttemptWorkspacePage() {
 
         <aside className="navigator card" aria-label="Question navigator">
           <p className="text-meta uppercase" style={{ margin: 0 }}>
-            Progress Â· {answeredCount}/{questions.length} answered
+            Progress · {answeredCount}/{questions.length} answered
           </p>
 
           <div className="nav-grid">

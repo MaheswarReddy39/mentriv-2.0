@@ -5,7 +5,7 @@ import Button from '../../components/common/Button.jsx';
 import Card from '../../components/common/Card.jsx';
 import EmptyState from '../../components/common/EmptyState.jsx';
 import ErrorState from '../../components/common/ErrorState.jsx';
-import Loading from '../../components/common/Loading.jsx';
+import Skeleton from '../../components/common/Skeleton.jsx';
 import ProgressBar from '../../components/common/ProgressBar.jsx';
 import { useToast } from '../../components/feedback/Toast.jsx';
 import { getMyEnrollments } from '../../services/enrollment.service.js';
@@ -291,17 +291,24 @@ export default function CourseAssignmentsPage() {
     }
   };
 
-  if (loading) return <Loading label="Loading assignments..." />;
-
   return (
-    <div className="admin-dashboard student-assignments-page">
+    <div className="admin-dashboard student-assignments-page fade-in">
       <header className="admin-dashboard-header">
         <div>
           <h1>Assignments</h1>
         </div>
       </header>
 
-      {error ? (
+      {loading ? (
+        <div className="student-assignment-list" aria-hidden="true">
+          <div className="card">
+            <Skeleton height="1.4rem" width="55%" />
+            <Skeleton height="0.85rem" width="35%" style={{ marginTop: 'var(--space-3)' }} />
+            <Skeleton height="0.9rem" width="85%" style={{ marginTop: 'var(--space-5)' }} />
+            <Skeleton height="0.9rem" width="75%" style={{ marginTop: 'var(--space-3)' }} />
+          </div>
+        </div>
+      ) : error ? (
         <ErrorState message={error} onRetry={loadAssignment} />
       ) : !assignment ? (
         <EmptyState title="No assignments" message="MCQ assignments will appear here." />

@@ -1,0 +1,219 @@
+.streak-section {
+  --streak-gap: 3px;
+  --streak-cell: 16px;
+  min-width: 0;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+  padding: var(--space-5);
+}
+
+.streak-section .section-head {
+  align-items: flex-end;
+}
+
+.streak-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-5);
+}
+
+.streak-stat {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 96px;
+}
+
+.streak-stat-value {
+  font-family: var(--font-heading);
+  font-weight: 800;
+  font-size: var(--font-size-h3);
+  line-height: var(--line-height-tight);
+  color: var(--text);
+}
+
+.streak-stat-label {
+  font-size: var(--font-size-meta);
+  font-weight: 600;
+  color: var(--text-tertiary);
+}
+
+.streak-scroll {
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-bottom: var(--space-2);
+  -webkit-overflow-scrolling: touch;
+}
+
+.streak-calendar {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  width: 100%;
+  min-width: 807px;
+}
+
+.streak-months {
+  display: flex;
+  gap: var(--streak-gap);
+}
+
+.streak-month-slot {
+  position: relative;
+  flex: 1 1 0;
+  min-width: 0;
+  height: 18px;
+}
+
+.streak-month-label {
+  position: absolute;
+  top: 0;
+  left: 0;
+  white-space: nowrap;
+  font-size: var(--font-size-meta);
+  line-height: 1;
+  color: var(--text-tertiary);
+}
+
+.streak-weeks {
+  display: flex;
+  gap: var(--streak-gap);
+}
+
+.streak-week {
+  display: flex;
+  flex-direction: column;
+  gap: var(--streak-gap);
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.streak-cell {
+  display: block;
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: 3px;
+  background: var(--color-surface-muted);
+}
+
+.streak-cell:not(.streak-cell-empty) {
+  outline: 1px solid transparent;
+  outline-offset: 1px;
+  transition: outline-color 150ms ease;
+}
+
+.streak-cell:not(.streak-cell-empty):hover {
+  outline-color: var(--text-secondary);
+}
+
+.streak-legend .streak-cell {
+  flex: 0 0 var(--streak-cell);
+  width: var(--streak-cell);
+  height: var(--streak-cell);
+  aspect-ratio: auto;
+}
+
+.streak-cell-empty {
+  background: transparent;
+}
+
+.streak-cell.lvl-1 {
+  background: color-mix(in srgb, var(--indigo) 30%, var(--color-surface-muted));
+}
+
+.streak-cell.lvl-2 {
+  background: color-mix(in srgb, var(--indigo) 55%, var(--color-surface-muted));
+}
+
+.streak-cell.lvl-3 {
+  background: color-mix(in srgb, var(--indigo) 80%, var(--color-surface-muted));
+}
+
+.streak-cell.lvl-4 {
+  background: var(--indigo);
+}
+
+.streak-legend {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  margin-top: var(--space-4);
+}
+
+.streak-tooltip {
+  position: fixed;
+  z-index: 1000;
+  min-width: 140px;
+  max-width: 240px;
+  padding: var(--space-3);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+  pointer-events: none;
+  animation: fadeIn 150ms ease both;
+}
+
+.streak-tooltip-date {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: var(--font-size-sm);
+  color: var(--text);
+}
+
+.streak-tooltip-count {
+  margin: var(--space-1) 0 0;
+  font-size: var(--font-size-meta);
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.streak-tooltip-types {
+  list-style: none;
+  display: grid;
+  gap: var(--space-1);
+  margin: var(--space-2) 0 0;
+  padding: 0;
+}
+
+.streak-tooltip-types li {
+  font-size: var(--font-size-meta);
+  color: var(--text-secondary);
+}
+
+.streak-tooltip-types li::before {
+  content: '\2022  ';
+  color: var(--indigo);
+}
+
+@media (max-width: 640px) {
+  .streak-section {
+    padding: var(--space-4);
+  }
+
+  .streak-section .section-head {
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--space-3);
+    margin-bottom: var(--space-5);
+  }
+
+  .streak-stats {
+    width: 100%;
+    justify-content: space-between;
+    gap: var(--space-3);
+  }
+
+  .streak-stat {
+    min-width: 0;
+  }
+
+  .streak-stat-value {
+    font-size: var(--font-size-h4);
+  }
+
+}

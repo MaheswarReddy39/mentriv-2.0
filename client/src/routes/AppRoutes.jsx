@@ -32,7 +32,14 @@ import CourseLearnPage from '../pages/student/CourseLearnPage.jsx';
 import CourseAssignmentsPage from '../pages/student/CourseAssignmentsPage.jsx';
 import CourseMcqsPage from '../pages/student/CourseMcqsPage.jsx';
 import McqPracticePage from '../pages/student/McqPracticePage.jsx';
+import StudentCodingPracticePage from '../pages/student/StudentCodingPracticePage.jsx';
+import StudentCodingTopicPage from '../pages/student/StudentCodingTopicPage.jsx';
+import StudentCodingTaskPage from '../pages/student/StudentCodingTaskPage.jsx';
+import StudentCodingWorkspacePage from '../pages/student/StudentCodingWorkspacePage.jsx';
 import CourseProgressPage from '../pages/student/CourseProgressPage.jsx';
+import ProgressPage from '../pages/student/ProgressPage.jsx';
+import LeaderboardPage from '../pages/student/LeaderboardPage.jsx';
+import AchievementsPage from '../pages/student/AchievementsPage.jsx';
 import ClassDetailPage from '../pages/student/ClassDetailPage.jsx';
 import NotificationsPage from '../pages/student/NotificationsPage.jsx';
 import ProfilePage from '../pages/student/ProfilePage.jsx';
@@ -72,6 +79,9 @@ import TeacherAssignmentsPage from '../pages/teacher/TeacherAssignmentsPage.jsx'
 import TeacherSubmissionsPage from '../pages/teacher/TeacherSubmissionsPage.jsx';
 import TeacherMcqsPage from '../pages/teacher/TeacherMcqsPage.jsx';
 import TeacherPracticeFormPage from '../pages/teacher/TeacherPracticeFormPage.jsx';
+import TeacherCodingPracticePage from '../pages/teacher/TeacherCodingPracticePage.jsx';
+import TeacherCodingTopicPage from '../pages/teacher/TeacherCodingTopicPage.jsx';
+import TeacherCodingPracticeFormPage from '../pages/teacher/TeacherCodingPracticeFormPage.jsx';
 import TeacherLeaderboardPage from '../pages/teacher/TeacherLeaderboardPage.jsx';
 import TeacherProfilePage from '../pages/teacher/TeacherProfilePage.jsx';
 
@@ -107,6 +117,16 @@ export default function AppRoutes() {
             <Route path="/classes" element={<StudentClassesPage />} />
             <Route path="/assignments" element={<CourseAssignmentsPage />} />
             <Route path="/mcqs" element={<McqPracticePage />} />
+            <Route path="/coding-practice" element={<StudentCodingPracticePage />} />
+            <Route path="/coding-practice/topic" element={<StudentCodingTopicPage />} />
+            <Route path="/coding-practice/tasks/:taskId" element={<StudentCodingTaskPage />} />
+            <Route
+              path="/coding-practice/tasks/:taskId/solve"
+              element={<StudentCodingWorkspacePage />}
+            />
+            <Route path="/progress" element={<ProgressPage />} />
+            <Route path="/leaderboard" element={<LeaderboardPage />} />
+            <Route path="/achievements" element={<AchievementsPage />} />
             <Route path="/my-courses" element={<MyCoursesPage />} />
             <Route path="/courses/:courseId/learn" element={<CourseLearnPage />} />
             <Route path="/courses/:courseId/assignments" element={<CourseAssignmentsPage />} />
@@ -138,6 +158,11 @@ export default function AppRoutes() {
             <Route path="/teacher/mcqs/new" element={<TeacherPracticeFormPage mode="create" />} />
             <Route path="/teacher/mcqs/:practiceId/edit" element={<TeacherPracticeFormPage mode="edit" />} />
             <Route path="/teacher/mcqs/:practiceId" element={<TeacherPracticeFormPage mode="view" />} />
+            <Route path="/teacher/coding-practice" element={<TeacherCodingPracticePage />} />
+            <Route path="/teacher/coding-practice/topic" element={<TeacherCodingTopicPage />} />
+            <Route path="/teacher/coding-practice/new" element={<TeacherCodingPracticeFormPage mode="create" />} />
+            <Route path="/teacher/coding-practice/:taskId/edit" element={<TeacherCodingPracticeFormPage mode="edit" />} />
+            <Route path="/teacher/coding-practice/:taskId" element={<TeacherCodingPracticeFormPage mode="view" />} />
             <Route path="/teacher/submissions" element={<TeacherSubmissionsPage />} />
             <Route path="/teacher/leaderboard" element={<TeacherLeaderboardPage />} />
             <Route path="/teacher/notifications" element={<NotificationsPage />} />

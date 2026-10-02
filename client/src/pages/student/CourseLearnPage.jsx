@@ -1,7 +1,7 @@
-﻿import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { getMyEnrollments } from '../../services/enrollment.service.js';
-import { getCourseProgress } from '../../services/progress.service.js';
+import { getCourseProgress, completeLesson } from '../../services/progress.service.js';
 import { listCourseClasses } from '../../services/class.service.js';
 import { listCourseAssignments } from '../../services/assignment.service.js';
 import { listCourseMcqTests } from '../../services/mcq.service.js';
@@ -12,6 +12,7 @@ import ProgressBar from '../../components/common/ProgressBar.jsx';
 import Loading from '../../components/common/Loading.jsx';
 import ErrorState from '../../components/common/ErrorState.jsx';
 import EmptyState from '../../components/common/EmptyState.jsx';
+import { useToast } from '../../components/feedback/Toast.jsx';
 
 const TABS = ['Overview', 'Classes', 'Assignments', 'MCQs', 'Progress'];
 
@@ -22,6 +23,7 @@ const getNotesResource = (lesson) =>
 
 export default function CourseLearnPage() {
   const { courseId } = useParams();
+  const toast = useToast();
   const [activeTab, setActiveTab] = useState('Classes');
 
   const [enrollment, setEnrollment] = useState(null);
@@ -115,6 +117,20 @@ export default function CourseLearnPage() {
     [progress]
   );
 
+  const handleWatchLesson = (lesson) => {
+    if (completedLessonIds.has(lesson.id)) return;
+    completeLesson(courseId, lesson.id)
+      .then((res) => {
+        if (res?.data && res.data.alreadyCompleted === false) {
+          toast.success('Class marked as complete.');
+        }
+        return getCourseProgress(courseId)
+          .then((progressRes) => setProgress(progressRes.data.progress))
+          .catch(() => {});
+      })
+      .catch((err) => toast.error(err.message || 'Could not update class progress.'));
+  };
+
   const modules = useMemo(() => {
     const map = new Map();
     lessons.forEach((lesson, index) => {
@@ -127,7 +143,7 @@ export default function CourseLearnPage() {
 
   const nextLesson = lessons.find((l) => !completedLessonIds.has(l.id));
 
-  if (loading) return <Loading label="Loading your courseâ€¦" />;
+  if (loading) return <Loading label="Loading your course…" />;
 
   if (forbidden) {
     return (
@@ -155,7 +171,7 @@ export default function CourseLearnPage() {
           <h1 id="learn-heading">{courseTitle}</h1>
           <p className="text-sm" style={{ color: 'var(--text-secondary)', margin: 'var(--space-2) 0 var(--space-4)' }}>
             {enrollment?.status === 'completed'
-              ? 'You have completed this course â€” review any lesson whenever you like.'
+              ? 'You have completed this course — review any lesson whenever you like.'
               : 'Work through the modules in order to complete this course.'}
           </p>
           <ProgressBar value={pct} label="Overall course progress" />
@@ -210,12 +226,18 @@ export default function CourseLearnPage() {
                           {lesson.title}
                         </Link>
                         <span className="text-meta" style={{ display: 'block' }}>
-                          {lesson.duration ? `${lesson.duration} min` : 'â€”'}
+                          {lesson.duration ? `${lesson.duration} min` : '—'}
                         </span>
                       </span>
                       <span className="lesson-row-actions">
                         {lesson.videoUrl ? (
-                          <a href={lesson.videoUrl} target="_blank" rel="noopener noreferrer" className="btn btn-primary btn-sm">
+                          <a
+                            href={lesson.videoUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="btn btn-primary btn-sm"
+                            onClick={() => handleWatchLesson(lesson)}
+                          >
                             Watch Class
                           </a>
                         ) : (
@@ -298,7 +320,7 @@ export default function CourseLearnPage() {
       {/* ---------------- MCQS ---------------- */}
       {activeTab === 'MCQs' ? (
         mcqTests === null ? (
-          <Loading label="Loading testsâ€¦" />
+          <Loading label="Loading tests…" />
         ) : mcqTests.length === 0 ? (
           <EmptyState title="No MCQ tests yet" message="Published tests will appear here." />
         ) : (
@@ -308,7 +330,7 @@ export default function CourseLearnPage() {
                 <h3>{test.title}</h3>
                 <p className="text-meta" style={{ margin: 0 }}>
                   {test.questions.length} questions
-                  {test.duration ? ` Â· ${test.duration} minutes` : ''} Â· passing score {test.passingScore}%
+                  {test.duration ? ` · ${test.duration} minutes` : ''} · passing score {test.passingScore}%
                 </p>
               </Link>
             ))}
@@ -322,8 +344,8 @@ export default function CourseLearnPage() {
           <Card>
             <h3>Course summary</h3>
             <p className="text-sm" style={{ color: 'var(--text-secondary)', margin: 0 }}>
-              {lessons.length} published lessons Â· {(progress?.completedAssignments || []).length} assignments
-              submitted-and-graded items tracked Â· overall completion {pct}%.
+              {lessons.length} published lessons · {(progress?.completedAssignments || []).length} assignments
+              submitted-and-graded items tracked · overall completion {pct}%.
             </p>
           </Card>
 

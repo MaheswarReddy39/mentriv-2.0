@@ -60,8 +60,14 @@ p {
 .text-h1 { font-family: var(--font-heading); font-size: var(--font-size-h1); font-weight: 800; }
 .text-h2 { font-family: var(--font-heading); font-size: var(--font-size-h2); font-weight: 800; letter-spacing: -0.02em; }
 .text-h3 { font-family: var(--font-heading); font-size: var(--font-size-h3); font-weight: 800; color: var(--text); }
+.text-h4 { font-family: var(--font-heading); font-size: var(--font-size-h4); font-weight: 800; color: var(--text); }
 .text-body-lg { font-size: var(--font-size-body-lg); }
 .text-sm { font-size: var(--font-size-sm); }
+.text-caption {
+  font-size: var(--font-size-meta);
+  font-weight: 600;
+  color: var(--text-secondary);
+}
 .text-meta {
   font-size: var(--font-size-meta);
   font-weight: 500;
@@ -121,7 +127,11 @@ button:disabled, input:disabled, textarea:disabled, select:disabled {
 :focus-visible {
   outline: none;
   box-shadow: var(--focus-ring);
-  border-radius: var(--radius-sm);
+}
+
+::selection {
+  background: color-mix(in srgb, var(--indigo) 18%, transparent);
+  color: var(--text);
 }
 
 .sr-only {
@@ -136,8 +146,23 @@ button:disabled, input:disabled, textarea:disabled, select:disabled {
 
 /* ---------- Motion system ---------- */
 @keyframes fadeUp {
-  from { opacity: 0; transform: translateY(18px); }
+  from { opacity: 0; transform: translateY(12px); }
   to { opacity: 1; transform: translateY(0); }
+}
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes modalIn {
+  from { opacity: 0; transform: translateY(10px) scale(0.97); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes toastOut {
+  to { opacity: 0; transform: translateY(-6px); }
+}
+@keyframes shimmer {
+  from { background-position: 200% 0; }
+  to { background-position: -200% 0; }
 }
 @keyframes float {
   0%, 100% { transform: translate(0, 0) scale(1); }
@@ -149,7 +174,7 @@ button:disabled, input:disabled, textarea:disabled, select:disabled {
 }
 @keyframes spin { to { transform: rotate(360deg); } }
 
-.fade-in { animation: fadeUp 0.7s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+.fade-in { animation: fadeUp 0.55s cubic-bezier(0.2, 0.8, 0.2, 1) backwards; }
 .d1 { animation-delay: 0.08s; }
 .d2 { animation-delay: 0.16s; }
 .d3 { animation-delay: 0.24s; }
@@ -157,7 +182,7 @@ button:disabled, input:disabled, textarea:disabled, select:disabled {
 .spinner {
   width: 1.75rem;
   height: 1.75rem;
-  border: 3px solid rgba(79, 70, 229, 0.15);
+  border: 3px solid color-mix(in srgb, var(--indigo) 15%, transparent);
   border-top-color: var(--indigo);
   border-radius: 50%;
   animation: spin 700ms linear infinite;

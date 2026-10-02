@@ -307,7 +307,7 @@ export default function McqPracticePage() {
 
     if (loading) {
       return (
-        <div className="admin-dashboard student-practice-page">
+        <div className="admin-dashboard student-practice-page fade-in">
           {listHeader}
           <Loading label="Loading practice sets..." />
         </div>
@@ -316,7 +316,7 @@ export default function McqPracticePage() {
 
     if (error) {
       return (
-        <div className="admin-dashboard student-practice-page">
+        <div className="admin-dashboard student-practice-page fade-in">
           {listHeader}
           <ErrorState message={error} onRetry={load} />
         </div>
@@ -324,7 +324,7 @@ export default function McqPracticePage() {
     }
 
     return (
-      <div className="admin-dashboard student-practice-page">
+      <div className="admin-dashboard student-practice-page fade-in">
         {listHeader}
 
         {noEnrollments ? (

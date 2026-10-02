@@ -9,7 +9,7 @@
   --surface: #FFFFFF;
   --text: #161623;
   --text-secondary: #5E5E72;
-  --text-tertiary: #8B8BA0;
+  --text-tertiary: #6F6F85;
   --border: #E7E7F1;
 
   /* ---------- Accent palette (locked set) ---------- */
@@ -54,6 +54,7 @@
   --font-size-body-lg: 1.09rem;   /* 17.5px */
   --font-size-body: 1rem;         /* 16px */
   --font-size-sm: 0.8125rem;      /* 13px */
+  --font-size-base: 1rem;
   --font-size-meta: 0.78125rem;   /* 12.5px */
   --font-size-button: 0.9375rem;  /* 15px */
 
@@ -68,6 +69,7 @@
   --space-4: 1rem;
   --space-5: 1.25rem;
   --space-6: 1.5rem;
+  --space-7: 1.75rem;
   --space-8: 2rem;
   --space-10: 2.5rem;
   --space-12: 3rem;
@@ -76,6 +78,7 @@
   --section-pad-mobile: 60px;
 
   --transition-fast: 180ms ease;
+  --transition-normal: 250ms ease;
 
   /* =====================================================
      LEGACY ALIASES — existing components consume these names.
@@ -84,6 +87,9 @@
   --color-bg: var(--bg);
   --color-surface: var(--surface);
   --color-surface-muted: #f4f4fb;
+  --surface-muted: var(--color-surface-muted);
+  --primary: var(--indigo);
+  --teal-dark: #0F766E;
   --color-text: var(--text);
   --color-text-secondary: var(--text-secondary);
   --color-text-tertiary: var(--text-tertiary);
@@ -109,8 +115,6 @@
 
   --shadow-xs: 0 1px 2px rgba(79, 70, 229, 0.04);
 
-  --transition-fast: 180ms ease;
-
   /* ---------- Breakpoint constants (docs; media queries hardcode) ----------
      mobile ≤ 640 · tablet 768 · desktop 1024 · wide 1280                    */
 }
@@ -121,11 +125,12 @@
   --surface: #18182B;
   --text: #F4F4F8;
   --text-secondary: #A0A0B8;
-  --text-tertiary: #6E6E8A;
+  --text-tertiary: #9494B0;
   --border: #2A2A4A;
 
   --color-surface-muted: #1E1E36;
   --color-border-strong: #3A3A5A;
+  --teal-dark: #2DD4BF;
 
   --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.3);
   --shadow-md: 0 12px 32px rgba(0, 0, 0, 0.4);

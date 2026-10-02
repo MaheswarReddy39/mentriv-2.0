@@ -1,10 +1,11 @@
-﻿import { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { getMcqTestById, getMyAttempts, startAttempt } from '../../services/mcq.service.js';
 import Badge from '../../components/common/Badge.jsx';
 import Button from '../../components/common/Button.jsx';
 import Card from '../../components/common/Card.jsx';
 import Loading from '../../components/common/Loading.jsx';
+import EmptyState from '../../components/common/EmptyState.jsx';
 import ErrorState from '../../components/common/ErrorState.jsx';
 
 export default function McqTestDetailPage() {
@@ -64,12 +65,12 @@ export default function McqTestDetailPage() {
     }
   };
 
-  if (loading) return <Loading label="Loading testâ€¦" />;
+  if (loading) return <Loading label="Loading test…" />;
 
   if (forbidden) {
     return (
       <>
-        <Link to="/my-courses" className="back-link">â† Back</Link>
+        <Link to="/my-courses" className="back-link">← Back</Link>
         <ErrorState
           title="You don't have access to this test"
           message="An approved enrollment for this course is required."
@@ -81,7 +82,7 @@ export default function McqTestDetailPage() {
   if (error) {
     return (
       <>
-        <Link to="/my-courses" className="back-link">â† Back</Link>
+        <Link to="/my-courses" className="back-link">← Back</Link>
         <ErrorState message={error} />
       </>
     );
@@ -91,7 +92,7 @@ export default function McqTestDetailPage() {
 
   return (
     <>
-      <Link to="/my-courses" className="back-link">â† Back to My Courses</Link>
+      <Link to="/my-courses" className="back-link">← Back to My Courses</Link>
 
       <section className="asg-head fade-in" aria-labelledby="test-heading">
         <h1 id="test-heading">{test.title}</h1>
@@ -127,10 +128,10 @@ export default function McqTestDetailPage() {
         <Card style={{ marginTop: 'var(--space-6)' }}>
           <h3>Instructions</h3>
           <ul style={{ display: 'grid', gap: 'var(--space-2)', color: 'var(--text-secondary)', fontSize: 'var(--font-size-sm)' }}>
-            <li>Â· Answer every question â€” unanswered questions score zero.</li>
-            {test.duration > 0 ? <li>Â· You have {test.duration} minutes once you start.</li> : null}
-            <li>Â· You need at least {test.passingScore}% to pass.</li>
-            <li>Â· Answers are evaluated automatically on submission.</li>
+            <li>· Answer every question — unanswered questions score zero.</li>
+            {test.duration > 0 ? <li>· You have {test.duration} minutes once you start.</li> : null}
+            <li>· You need at least {test.passingScore}% to pass.</li>
+            <li>· Answers are evaluated automatically on submission.</li>
           </ul>
 
           <Button onClick={handleStart} loading={starting} style={{ marginTop: 'var(--space-5)' }}>
@@ -144,7 +145,7 @@ export default function McqTestDetailPage() {
         <h3 id="history-heading" className="text-h4">Attempt history</h3>
 
         {attempts.length === 0 ? (
-          <p className="text-meta">No attempts yet.</p>
+          <EmptyState title="No attempts yet" message="Start the test to record your first attempt." />
         ) : (
           <ol style={{ display: 'grid', gap: 'var(--space-3)', marginTop: 'var(--space-4)' }}>
             {[...attempts]
@@ -160,12 +161,12 @@ export default function McqTestDetailPage() {
                       <p style={{ margin: 0, fontWeight: 600 }}>Attempt #{attempt.attemptNumber}</p>
                       <p className="text-meta" style={{ margin: 0 }}>
                         {attempt.status === 'evaluated'
-                          ? `Score ${attempt.score}/${attempt.totalMarks} Â· ${attempt.percentage}%`
+                          ? `Score ${attempt.score}/${attempt.totalMarks} · ${attempt.percentage}%`
                           : `Started ${new Date(attempt.startedAt).toLocaleDateString('en-IN')}`}
                       </p>
                     </div>
                     <Badge status={attempt.status}>{attempt.status.replace('_', ' ')}</Badge>
-                    <span aria-hidden="true">â†’</span>
+                    <span aria-hidden="true">→</span>
                   </Link>
                 </li>
               ))}

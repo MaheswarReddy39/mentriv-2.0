@@ -22,17 +22,17 @@ export default function CourseProgressPage() {
   }, [courseId]);
 
   if (loading) return <Loading label="Loading progress…" />;
-  if (error && !progress) return <ErrorState message={error} />;
+  if (error && !progress) return <ErrorState message={error} onRetry={() => window.location.reload()} />;
 
   const pct = progress?.overallPercentage ?? 0;
 
   return (
-    <>
+    <div className="fade-in">
       <Link to={`/courses/${courseId}/learn`} className="back-link">← Back to course</Link>
-      <h1 style={{ fontFamily: 'var(--font-heading)', fontWeight: 800 }}>Course Progress</h1>
+      <h1>Course Progress</h1>
       <Card style={{ marginTop: 'var(--space-4)' }}>
         <ProgressBar value={pct} label={`${pct}% complete`} />
       </Card>
-    </>
+    </div>
   );
 }

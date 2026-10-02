@@ -1,7 +1,8 @@
 import { Router } from 'express';
-import { body, param } from 'express-validator';
+import { body, param, query } from 'express-validator';
 import {
   getProgress,
+  getProgressOverview,
   completeLesson,
   completeAssignment,
   completeMcq,
@@ -27,6 +28,17 @@ router.get(
   requireAuth,
   validate([courseIdParamRule]),
   getProgress
+);
+router.get(
+  '/progress/overview',
+  requireAuth,
+  validate([
+    query('courseId')
+      .optional({ values: 'falsy' })
+      .isMongoId()
+      .withMessage('Invalid course id'),
+  ]),
+  getProgressOverview
 );
 router.post(
   '/courses/:courseId/progress/lessons/:classId/complete',
