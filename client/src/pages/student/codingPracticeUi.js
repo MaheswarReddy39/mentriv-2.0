@@ -192,7 +192,7 @@ export const formatDateTime = (value) => {
 
 export const topicSearchUrl = (task) => {
   const params = new URLSearchParams({
-    courseId: task.courseId,
+    courseId: task.courseIds?.[0] || '',
     level: task.level,
     topic: task.topic,
   });

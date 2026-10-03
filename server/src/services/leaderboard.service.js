@@ -148,10 +148,12 @@ const loadStudentEvents = async ({ courseIds, students, pairs }) => {
         .sort({ submittedAt: 1, attemptNumber: 1 })
         .lean(),
       ClassModel.find({ courseId: courseFilter, status: 'published' }).select('courseId').lean(),
-      Assignment.find({ courseId: courseFilter, status: 'published' })
-        .select('courseId maxMarks')
+      Assignment.find({ courseIds: courseFilter, status: 'published' })
+        .select('courseIds maxMarks')
         .lean(),
-      McqTest.find({ courseId: courseFilter, status: 'published' }).select('courseId').lean(),
+      McqTest.find({ courseIds: courseFilter, status: 'published' })
+        .select('courseIds')
+        .lean(),
     ]);
 
   // Published items only, matching what the Student Progress page counts.
@@ -164,16 +166,21 @@ const loadStudentEvents = async ({ courseIds, students, pairs }) => {
 
   const publishedAssignments = new Map();
   assignmentDocs.forEach((doc) => {
-    const courseId = doc.courseId.toString();
-    if (!publishedAssignments.has(courseId)) publishedAssignments.set(courseId, new Map());
-    publishedAssignments.get(courseId).set(doc._id.toString(), Number(doc.maxMarks) || 0);
+    // One shared assignment counts once for every course it belongs to.
+    (doc.courseIds || []).forEach((courseId) => {
+      const key = courseId.toString();
+      if (!publishedAssignments.has(key)) publishedAssignments.set(key, new Map());
+      publishedAssignments.get(key).set(doc._id.toString(), Number(doc.maxMarks) || 0);
+    });
   });
 
   const publishedTests = new Map();
   testDocs.forEach((doc) => {
-    const courseId = doc.courseId.toString();
-    if (!publishedTests.has(courseId)) publishedTests.set(courseId, new Set());
-    publishedTests.get(courseId).add(doc._id.toString());
+    (doc.courseIds || []).forEach((courseId) => {
+      const key = courseId.toString();
+      if (!publishedTests.has(key)) publishedTests.set(key, new Set());
+      publishedTests.get(key).add(doc._id.toString());
+    });
   });
 
   // ---- CLASSES: unique completions from CourseProgress (one reward each) ----

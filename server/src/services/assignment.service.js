@@ -2,7 +2,11 @@ import mongoose from 'mongoose';
 import Assignment from '../models/assignment.model.js';
 import Course from '../models/course.model.js';
 import ApiError from '../utils/api-error.js';
-import { isAdminRole, hasActiveCourseEnrollment } from '../utils/course-access.util.js';
+import {
+  isAdminRole,
+  hasActiveCourseEnrollmentIn,
+  findActiveCourseIn,
+} from '../utils/course-access.util.js';
 import { normalizeCourseIds } from '../utils/course-ids.util.js';
 import notificationService from './notification.service.js';
 import emailNotifications from './email-notification.service.js';
@@ -51,34 +55,70 @@ const sanitizeAssignmentSummary = (assignment, { includeStatus = false } = {}) =
   return payload;
 };
 
-const sanitizeAssignmentDetail = (assignment) => ({
-  id: assignment._id.toString(),
-  courseId: assignment.courseId._id ? assignment.courseId._id.toString() : assignment.courseId.toString(),
-  title: assignment.title,
-  assignmentType: assignment.assignmentType,
-  description: assignment.description,
-  instructions: assignment.instructions,
-  dueDate: assignment.dueDate,
-  duration: assignment.duration ?? null,
-  maxMarks: assignment.maxMarks,
-  attachments: assignment.attachments,
-  status: assignment.status,
-  createdAt: assignment.createdAt,
-});
+// `courseIds` holds raw ids or populated Course docs depending on the query.
+const toCourseList = (courseIds) =>
+  (Array.isArray(courseIds) ? courseIds : [])
+    .filter(Boolean)
+    .map((course) =>
+      course._id
+        ? { id: course._id.toString(), title: course.title || '', slug: course.slug || '' }
+        : { id: String(course), title: '', slug: '' }
+    );
 
-const assertCanAccessCourseAssignments = async (requester, courseId) => {
+const sanitizeAssignmentDetail = (assignment, { primaryCourseId = null } = {}) => {
+  const courses = toCourseList(assignment.courseIds);
+  return {
+    id: assignment._id.toString(),
+    courseIds: courses.map((course) => course.id),
+    courses,
+    primaryCourseId: primaryCourseId || courses[0]?.id || null,
+    title: assignment.title,
+    assignmentType: assignment.assignmentType,
+    description: assignment.description,
+    instructions: assignment.instructions,
+    dueDate: assignment.dueDate,
+    duration: assignment.duration ?? null,
+    maxMarks: assignment.maxMarks,
+    attachments: assignment.attachments,
+    status: assignment.status,
+    createdAt: assignment.createdAt,
+  };
+};
+
+const assertCourseExists = async (courseId) => {
   const courseExists = await Course.exists({ _id: courseId });
   if (!courseExists) {
     throw new ApiError(404, 'Course not found');
   }
+};
 
+// Shared documents: access is granted when the requester is an admin or is
+// actively enrolled in ANY of the document's courses.
+const assertCanAccessCourseContent = async (requester, courseIds) => {
   if (isAdminRole(requester.role)) {
     return;
   }
 
-  if (!(await hasActiveCourseEnrollment(requester.id, courseId))) {
+  if (!(await hasActiveCourseEnrollmentIn(requester.id, courseIds))) {
     throw new ApiError(403, 'You do not have active access to this course');
   }
+};
+
+const notifyCourseStudents = (courseId, assignment, courseTitle) => {
+  notificationService.notifyCourseStudents({
+    courseId,
+    type: 'assignment',
+    title: 'New assignment available',
+    message: `A new assignment "${assignment.title}" is now available.`,
+    link: `/assignments/${assignment._id.toString()}`,
+  }).catch(() => {});
+
+  emailNotifications.sendAssignmentPublishedEmails({
+    courseId,
+    courseTitle: courseTitle || 'the course',
+    assignmentTitle: assignment.title,
+    assignmentId: assignment._id.toString(),
+  }).catch(() => {});
 };
 
 const listAssignmentsForCourse = async (requester, courseIdInput) => {
@@ -88,9 +128,11 @@ const listAssignmentsForCourse = async (requester, courseIdInput) => {
 
   const admin = isAdminRole(requester.role);
 
-  await assertCanAccessCourseAssignments(requester, courseIdInput);
+  await assertCourseExists(courseIdInput);
+  await assertCanAccessCourseContent(requester, [courseIdInput]);
 
-  const filter = { courseId: courseIdInput };
+  // Membership query: returns every shared assignment covering this course.
+  const filter = { courseIds: courseIdInput };
   if (!admin) {
     filter.status = 'published';
   }
@@ -115,10 +157,12 @@ const getAssignmentById = async (requester, id) => {
 
   const admin = isAdminRole(requester.role);
 
-  const assignment = await Assignment.findById(id).populate('courseId', 'title slug');
+  const assignment = await Assignment.findById(id).populate('courseIds', 'title slug');
   if (!assignment) {
     throw new ApiError(404, 'Assignment not found');
   }
+
+  const courses = toCourseList(assignment.courseIds);
 
   if (admin) {
     return { assignment: sanitizeAssignmentDetail(assignment) };
@@ -128,21 +172,26 @@ const getAssignmentById = async (requester, id) => {
     throw new ApiError(404, 'Assignment not found');
   }
 
-  if (!(await hasActiveCourseEnrollment(requester.id, assignment.courseId._id))) {
-    throw new ApiError(403, 'You do not have active access to this course');
-  }
+  await assertCanAccessCourseContent(requester, courses.map((course) => course.id));
 
-  return { assignment: sanitizeAssignmentDetail(assignment) };
+  // Back-link / attempt context follows a course the student is enrolled in.
+  const primaryCourseId =
+    (await findActiveCourseIn(requester.id, courses.map((course) => course.id))) ||
+    courses[0]?.id ||
+    null;
+
+  return { assignment: sanitizeAssignmentDetail(assignment, { primaryCourseId }) };
 };
 
-const createAssignment = async (courseIdInput, data, requester = null) => {
-  if (!mongoose.isValidObjectId(courseIdInput)) {
-    throw new ApiError(404, 'Course not found');
-  }
+// Creates ONE assignment shared by every course in `courseIdsInput`.
+const createAssignment = async (courseIdsInput, data, requester = null) => {
+  const courseIds = await normalizeCourseIds(
+    Array.isArray(courseIdsInput) ? courseIdsInput : [courseIdsInput]
+  );
 
-  const courseExists = await Course.exists({ _id: courseIdInput });
-  if (!courseExists) {
-    throw new ApiError(404, 'Course not found');
+  for (const courseId of courseIds) {
+    // eslint-disable-next-line no-await-in-loop
+    await assertCourseExists(courseId);
   }
 
   const payload = pickEditableFields(data);
@@ -155,40 +204,24 @@ const createAssignment = async (courseIdInput, data, requester = null) => {
     throw new ApiError(400, 'Invalid assignment status');
   }
 
-  const assignment = await Assignment.create({ ...payload, courseId: courseIdInput });
-  await assignment.populate('courseId', 'title slug');
+  const assignment = await Assignment.create({ ...payload, courseIds });
+  await assignment.populate('courseIds', 'title slug');
 
   if (assignment.status === 'published') {
-    notificationService.notifyCourseStudents({
-      courseId: courseIdInput,
-      type: 'assignment',
-      title: 'New assignment available',
-      message: `A new assignment "${assignment.title}" is now available.`,
-      link: `/assignments/${assignment._id.toString()}`,
-    }).catch(() => {});
-    emailNotifications.sendAssignmentPublishedEmails({
-      courseId: courseIdInput,
-      courseTitle: assignment.courseId?.title || 'the course',
-      assignmentTitle: assignment.title,
-      assignmentId: assignment._id.toString(),
-    }).catch(() => {});
+    toCourseList(assignment.courseIds).forEach((course) => {
+      notifyCourseStudents(course.id, assignment, course.title);
+    });
   }
 
   return { assignment: sanitizeAssignmentDetail(assignment) };
 };
 
-// Creates the same assignment in every selected course. Course ids are
-// validated and de-duplicated first so one course never receives two copies.
 const createAssignmentsForCourses = async (courseIdsInput, data, requester = null) => {
   const courseIds = await normalizeCourseIds(courseIdsInput);
 
-  const assignments = [];
-  for (const courseId of courseIds) {
-    const { assignment } = await createAssignment(courseId, data, requester);
-    assignments.push(assignment);
-  }
+  const { assignment } = await createAssignment(courseIds, data, requester);
 
-  return { assignments, courseIds };
+  return { assignments: [assignment], courseIds };
 };
 
 const updateAssignment = async (id, data) => {
@@ -205,7 +238,7 @@ const updateAssignment = async (id, data) => {
   const assignment = await Assignment.findByIdAndUpdate(id, updates, {
     new: true,
     runValidators: true,
-  }).populate('courseId', 'title slug');
+  }).populate('courseIds', 'title slug');
 
   if (!assignment) {
     throw new ApiError(404, 'Assignment not found');
@@ -216,12 +249,14 @@ const updateAssignment = async (id, data) => {
     updates.status === 'published' &&
     previousStatus !== 'published'
   ) {
-    await notificationService.notifyCourseStudents({
-      courseId: assignment.courseId._id.toString(),
-      type: 'assignment',
-      title: 'New assignment available',
-      message: `A new assignment "${assignment.title}" is now available.`,
-      link: `/assignments/${assignment._id.toString()}`,
+    toCourseList(assignment.courseIds).forEach((course) => {
+      notificationService.notifyCourseStudents({
+        courseId: course.id,
+        type: 'assignment',
+        title: 'New assignment available',
+        message: `A new assignment "${assignment.title}" is now available.`,
+        link: `/assignments/${assignment._id.toString()}`,
+      }).catch(() => {});
     });
   }
 
@@ -237,7 +272,7 @@ const archiveAssignment = async (id) => {
     id,
     { status: 'archived' },
     { new: true, runValidators: true }
-  ).populate('courseId', 'title slug');
+  ).populate('courseIds', 'title slug');
 
   if (!assignment) {
     throw new ApiError(404, 'Assignment not found');

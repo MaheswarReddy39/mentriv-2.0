@@ -151,7 +151,7 @@ export default function TeacherCodingPracticeFormPage({ mode = 'create' }) {
       if (!task) throw new Error('Coding task not found.');
       setCommon({
         title: task.title || '',
-        courseIds: task.courseId ? [String(task.courseId)] : [],
+        courseIds: Array.isArray(task.courseIds) ? task.courseIds.map(String) : [],
         level: task.level || '',
         topic: task.topic || '',
         taskType: task.taskType || 'Coding Problem',

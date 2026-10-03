@@ -48,8 +48,8 @@ const createAssignmentsForCourses = asyncHandler(async (req, res) => {
 
   res.status(201).json({
     status: 'success',
-    message: `Assignment created for ${assignments.length} course${
-      assignments.length === 1 ? '' : 's'
+    message: `Assignment created and shared with ${courseIds.length} course${
+      courseIds.length === 1 ? '' : 's'
     }`,
     data: { assignments, courseIds },
   });

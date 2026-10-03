@@ -2,7 +2,11 @@ import mongoose from 'mongoose';
 import McqAttempt from '../models/mcq-attempt.model.js';
 import McqTest from '../models/mcq.model.js';
 import ApiError from '../utils/api-error.js';
-import { isAdminRole, hasActiveCourseEnrollment } from '../utils/course-access.util.js';
+import {
+  isAdminRole,
+  hasActiveCourseEnrollmentIn,
+  findActiveCourseIn,
+} from '../utils/course-access.util.js';
 import { sanitizeTestForStudent } from './mcq.service.js';
 
 const round2 = (value) => Math.round(value * 100) / 100;
@@ -39,9 +43,12 @@ const sanitizeAttemptSummary = (attempt, { includeStudent = false } = {}) => {
 
 const sanitizeAttemptDetail = (attempt, { includeStudent = false, explanations = null } = {}) => {
   const base = sanitizeAttemptSummary(attempt, { includeStudent });
-  const courseId = attempt.courseId._id
-    ? attempt.courseId._id.toString()
-    : attempt.courseId.toString();
+  // Attempt context stays course-specific even when the test spans courses.
+  const courseId = attempt.courseId
+    ? attempt.courseId._id
+      ? attempt.courseId._id.toString()
+      : attempt.courseId.toString()
+    : null;
 
   const answers = (attempt.answers || []).map((a) => {
     const row = {
@@ -61,6 +68,7 @@ const sanitizeAttemptDetail = (attempt, { includeStudent = false, explanations =
 
   return {
     ...base,
+    courseId,
     mcqTestId: base.test?.id ?? attempt.mcqTestId.toString(),
     answers,
   };
@@ -76,7 +84,10 @@ const startAttempt = async (requester, testIdInput) => {
     throw new ApiError(404, 'MCQ test not found');
   }
 
-  if (!(await hasActiveCourseEnrollment(requester.id, test.courseId))) {
+  // The test may be shared by several courses; the attempt is recorded against
+  // the first of its courses the student is actively enrolled in.
+  const attemptCourseId = await findActiveCourseIn(requester.id, test.courseIds);
+  if (!attemptCourseId) {
     throw new ApiError(403, 'You do not have active access to this course');
   }
 
@@ -95,7 +106,7 @@ const startAttempt = async (requester, testIdInput) => {
     attempt = await McqAttempt.create({
       studentId: requester.id,
       mcqTestId: test._id,
-      courseId: test.courseId,
+      courseId: attemptCourseId,
       attemptNumber: (previous?.attemptNumber || 0) + 1,
       status: 'in_progress',
       startedAt: new Date(),
@@ -131,7 +142,7 @@ const submitAttempt = async (requester, attemptIdInput, rawAnswers) => {
     throw new ApiError(404, 'MCQ test not found');
   }
 
-  if (!(await hasActiveCourseEnrollment(requester.id, test.courseId))) {
+  if (!(await hasActiveCourseEnrollmentIn(requester.id, test.courseIds))) {
     throw new ApiError(403, 'You do not have active access to this course');
   }
 

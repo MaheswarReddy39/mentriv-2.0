@@ -138,6 +138,7 @@ const updateValidation = [
     .isIn(MCQ_STATUSES)
     .withMessage('Status must be one of: draft, published, archived'),
   body('courseId').not().exists().withMessage('Tests cannot be moved between courses'),
+  body('courseIds').not().exists().withMessage('Tests cannot be moved between courses'),
 ];
 
 router.get('/courses/:courseId/mcq-tests', requireAuth, validate([courseIdParamRule]), listByCourse);

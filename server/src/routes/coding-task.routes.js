@@ -237,6 +237,10 @@ const updateValidation = [
     .not()
     .exists()
     .withMessage('Coding tasks cannot be moved between courses'),
+  body('courseIds')
+    .not()
+    .exists()
+    .withMessage('Coding tasks cannot be moved between courses'),
 ];
 
 router.get('/coding-tasks', requireAuth, validate(listQueryRules), listTasks);

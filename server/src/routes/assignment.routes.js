@@ -139,6 +139,7 @@ const updateValidation = [
     .isIn(ASSIGNMENT_STATUSES)
     .withMessage('Status must be one of: draft, published, archived'),
   body('courseId').not().exists().withMessage('Assignments cannot be moved between courses'),
+  body('courseIds').not().exists().withMessage('Assignments cannot be moved between courses'),
 ];
 
 router.get('/courses/:courseId/assignments', requireAuth, validate([courseIdParamRule]), listByCourse);

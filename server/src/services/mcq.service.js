@@ -3,7 +3,7 @@ import Course from '../models/course.model.js';
 import McqTest from '../models/mcq.model.js';
 import McqAttempt from '../models/mcq-attempt.model.js';
 import ApiError from '../utils/api-error.js';
-import { isAdminRole, hasActiveCourseEnrollment } from '../utils/course-access.util.js';
+import { isAdminRole, hasActiveCourseEnrollmentIn } from '../utils/course-access.util.js';
 import { normalizeCourseIds } from '../utils/course-ids.util.js';
 
 const MCQ_STATUSES = ['draft', 'published', 'archived'];
@@ -27,9 +27,14 @@ const sanitizeQuestionForStudent = (question) => ({
   order: question.order,
 });
 
+const toCourseIdStrings = (courseIds) =>
+  (Array.isArray(courseIds) ? courseIds : [])
+    .filter(Boolean)
+    .map((id) => (id?._id ? id._id.toString() : id.toString()));
+
 const sanitizeTestForStudent = (test) => ({
   id: test._id.toString(),
-  courseId: test.courseId._id ? test.courseId._id.toString() : undefined,
+  courseIds: toCourseIdStrings(test.courseIds),
   title: test.title,
   description: test.description,
   duration: test.duration,
@@ -39,7 +44,7 @@ const sanitizeTestForStudent = (test) => ({
 
 const sanitizeTestForAdmin = (test) => ({
   id: test._id.toString(),
-  courseId: test.courseId._id ? test.courseId._id.toString() : test.courseId.toString(),
+  courseIds: toCourseIdStrings(test.courseIds),
   title: test.title,
   description: test.description,
   duration: test.duration,
@@ -62,21 +67,22 @@ const listTestsForCourse = async (requester, courseIdInput) => {
     throw new ApiError(404, 'Course not found');
   }
 
-  if (!educator && !(await hasActiveCourseEnrollment(requester.id, courseIdInput))) {
+  if (!educator && !(await hasActiveCourseEnrollmentIn(requester.id, [courseIdInput]))) {
     throw new ApiError(403, 'You do not have active access to this course');
   }
 
-  const filter = { courseId: courseIdInput };
+  // Membership query: returns every shared test whose courseIds include this course.
+  const filter = { courseIds: courseIdInput };
   if (!educator) {
     filter.status = 'published';
   }
 
-  const documents = await McqTest.find(filter).sort({ createdAt: -1 }).limit(500).lean();
+  const documents = await McqTest.find(filter).sort({ createdAt: 1 }).limit(500).lean();
 
   return {
     mcqTests: educator
       ? documents.map(sanitizeTestForAdmin)
-      : documents.map((doc) => sanitizeTestForStudent({ ...doc, courseId: doc.courseId })),
+      : documents.map(sanitizeTestForStudent),
     totalItems: documents.length,
   };
 };
@@ -104,22 +110,18 @@ const getTestById = async (requester, id) => {
     throw new ApiError(404, 'MCQ test not found');
   }
 
-  if (!(await hasActiveCourseEnrollment(requester.id, test.courseId))) {
+  if (!(await hasActiveCourseEnrollmentIn(requester.id, test.courseIds))) {
     throw new ApiError(403, 'You do not have active access to this course');
   }
 
   return { mcqTest: sanitizeTestForStudent(test) };
 };
 
-const createMcqTest = async (courseIdInput, data) => {
-  if (!mongoose.isValidObjectId(courseIdInput)) {
-    throw new ApiError(404, 'Course not found');
-  }
-
-  const courseExists = await Course.exists({ _id: courseIdInput });
-  if (!courseExists) {
-    throw new ApiError(404, 'Course not found');
-  }
+// Single shared document: `courseIds` decides which courses can access it.
+const createMcqTest = async (courseIdsInput, data) => {
+  const courseIds = await normalizeCourseIds(
+    Array.isArray(courseIdsInput) ? courseIdsInput : [courseIdsInput]
+  );
 
   const payload = pickEditableFields(data);
 
@@ -127,23 +129,16 @@ const createMcqTest = async (courseIdInput, data) => {
     throw new ApiError(400, 'Invalid MCQ test status');
   }
 
-  const mcqTest = await McqTest.create({ ...payload, courseId: courseIdInput });
+  const mcqTest = await McqTest.create({ ...payload, courseIds });
 
-  return { mcqTest: sanitizeTestForAdmin(mcqTest) };
+  return { mcqTest: sanitizeTestForAdmin(mcqTest), courseIds };
 };
 
-// Creates the same practice set in every selected course. Course ids are
-// validated and de-duplicated first so one course never receives two copies.
+// Creates ONE practice set shared by every selected course.
 const createMcqTestsForCourses = async (courseIdsInput, data) => {
-  const courseIds = await normalizeCourseIds(courseIdsInput);
+  const { mcqTest, courseIds } = await createMcqTest(courseIdsInput, data);
 
-  const mcqTests = [];
-  for (const courseId of courseIds) {
-    const { mcqTest } = await createMcqTest(courseId, data);
-    mcqTests.push(mcqTest);
-  }
-
-  return { mcqTests, courseIds };
+  return { mcqTests: [mcqTest], courseIds };
 };
 
 const updateMcqTest = async (id, data) => {

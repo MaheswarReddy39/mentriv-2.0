@@ -9,12 +9,15 @@ import { useToast } from '../../components/feedback/Toast.jsx';
 import { createAssignmentsForCourses } from '../../services/assignment.service.js';
 import { createMcqTestsForCourses, parseQuestionsWithAI } from '../../services/mcq.service.js';
 import { getTeacherDashboard } from '../../services/teacher.service.js';
+import { PRACTICE_LEVELS, encodeDescription } from '../../utils/practiceLevels.js';
 
 const INITIAL_FORM = {
   title: '',
   courseIds: [],
   assignmentType: 'MCQ',
   duration: '',
+  level: '',
+  topic: '',
 };
 
 const EMPTY_QUESTION = () => ({
@@ -213,6 +216,8 @@ export default function TeacherAssignmentsPage() {
     }
 
     if (form.assignmentType === 'MCQ') {
+      if (!form.level) errors.level = 'Select a level';
+      if (!form.topic.trim()) errors.topic = 'Topic is required';
       if (!questionCount || questionCount < 1) {
         errors.questionCount = 'Select the number of questions';
       }
@@ -237,8 +242,10 @@ export default function TeacherAssignmentsPage() {
     const saveRequest = form.assignmentType === 'MCQ'
       ? createMcqTestsForCourses(form.courseIds, {
           title: form.title.trim(),
+          description: encodeDescription(form.topic.trim(), form.level),
           questions: buildAllQuestionPayloads(),
           duration: form.duration === '' ? 0 : Number(form.duration),
+          passingScore: 50,
           status: 'published',
         })
       : createAssignmentsForCourses(form.courseIds, {
@@ -252,7 +259,7 @@ export default function TeacherAssignmentsPage() {
     saveRequest
       .then(() => {
         const msg = form.assignmentType === 'MCQ'
-          ? `Assignment created successfully with ${questionCount} questions${courseSuffix}.`
+          ? `MCQ test created with ${questionCount} questions${courseSuffix}.`
           : `Assignment added successfully${courseSuffix}.`;
         toast.success(msg);
         setFieldErrors({});
@@ -262,6 +269,8 @@ export default function TeacherAssignmentsPage() {
           courseIds: current.courseIds,
           assignmentType: current.assignmentType,
           duration: current.duration,
+          level: current.level,
+          topic: current.topic,
         }));
         setQuestionCount(null);
         setQuestions([]);
@@ -306,7 +315,7 @@ export default function TeacherAssignmentsPage() {
               error={fieldErrors.courseIds}
               hint={
                 form.courseIds.length > 1
-                  ? `The same content will be created in ${form.courseIds.length} courses.`
+                  ? `One shared copy will be visible to all ${form.courseIds.length} selected courses.`
                   : undefined
               }
               style={{ gridColumn: '1 / -1' }}
@@ -351,6 +360,31 @@ export default function TeacherAssignmentsPage() {
 
           {isMcq ? (
             <div className="teacher-assignment-fields">
+              <div className="teacher-class-form-grid">
+                <Select
+                  label="Level"
+                  value={form.level}
+                  onChange={setField('level')}
+                  error={fieldErrors.level}
+                  hint="Level is the section heading on the student practice page."
+                >
+                  <option value="">Select level</option>
+                  {PRACTICE_LEVELS.map((level) => (
+                    <option key={level} value={level}>
+                      {level}
+                    </option>
+                  ))}
+                </Select>
+                <Input
+                  label="Topic"
+                  value={form.topic}
+                  onChange={setField('topic')}
+                  placeholder="e.g. How the Internet Works"
+                  error={fieldErrors.topic}
+                  hint="Topic appears on the practice card."
+                />
+              </div>
+
               <div className="teacher-assignment-type-row">
                 <label className="field-label">Question Input Method</label>
                 <div className="teacher-input-mode-toggle">

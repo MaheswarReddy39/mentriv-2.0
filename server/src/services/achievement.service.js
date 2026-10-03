@@ -241,10 +241,10 @@ const loadActivity = async (requester, courseIds) => {
         .sort({ submittedAt: 1, attemptNumber: 1 })
         .lean(),
       ClassModel.find({ courseId: courseFilter, status: 'published' }).select('_id').lean(),
-      Assignment.find({ courseId: courseFilter, status: 'published' })
+      Assignment.find({ courseIds: courseFilter, status: 'published' })
         .select('_id maxMarks')
         .lean(),
-      McqTest.find({ courseId: courseFilter, status: 'published' }).select('_id').lean(),
+      McqTest.find({ courseIds: courseFilter, status: 'published' }).select('_id').lean(),
     ]);
 
   const publishedClassIds = new Set(classDocs.map((doc) => doc._id.toString()));

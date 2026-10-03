@@ -4,7 +4,7 @@ import Assignment from '../models/assignment.model.js';
 import Course from '../models/course.model.js';
 import Enrollment from '../models/enrollment.model.js';
 import ApiError from '../utils/api-error.js';
-import { isAdminRole, hasActiveCourseEnrollment, ACTIVE_ACCESS_STATUSES } from '../utils/course-access.util.js';
+import { isAdminRole, findActiveCourseIn, ACTIVE_ACCESS_STATUSES } from '../utils/course-access.util.js';
 
 const COURSE_VISIBLE_FIELDS = 'title slug level status';
 
@@ -80,12 +80,10 @@ const createSubmission = async (requester, assignmentIdInput, data) => {
     throw new ApiError(404, 'Assignment not found');
   }
 
-  if (
-    !(await hasActiveCourseEnrollment(
-      requester.id,
-      assignment.courseId._id ?? assignment.courseId
-    ))
-  ) {
+  // The assignment may be shared by several courses; the submission is stored
+  // against the first of its courses the student is actively enrolled in.
+  const submissionCourseId = await findActiveCourseIn(requester.id, assignment.courseIds);
+  if (!submissionCourseId) {
     throw new ApiError(403, 'You do not have active access to this course');
   }
 
@@ -145,7 +143,7 @@ const createSubmission = async (requester, assignmentIdInput, data) => {
   const submission = await Submission.create({
     studentId: requester.id,
     assignmentId: assignment._id,
-    courseId: assignment.courseId._id ?? assignment.courseId,
+    courseId: submissionCourseId,
     attemptNumber,
     submissionText: data.submissionText ?? '',
     attachments: Array.isArray(data.attachments) ? data.attachments : [],
@@ -293,7 +291,9 @@ const listAdminSubmissionOverview = async ({ search = '', courseId = 'all', leve
         .populate('courseId', COURSE_VISIBLE_FIELDS)
         .lean(),
       Assignment.aggregate([
-        { $group: { _id: '$courseId', totalAssignments: { $sum: 1 } } },
+        { $project: { c: { $ifNull: ['$courseIds', '$courseId'] } } },
+        { $unwind: '$c' },
+        { $group: { _id: '$c', totalAssignments: { $sum: 1 } } },
       ]),
       Submission.find({})
         .select('studentId courseId assignmentId status')

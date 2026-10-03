@@ -193,7 +193,9 @@ const assertCanModifyTask = (requester, task) => {
 
 const sanitizeTaskForTeacher = (task) => ({
   id: task._id.toString(),
-  courseId: String(task.courseId),
+  courseIds: (Array.isArray(task.courseIds) ? task.courseIds : [])
+    .filter(Boolean)
+    .map((id) => String(id)),
   createdBy: String(task.createdBy),
   title: task.title,
   description: task.description,
@@ -289,13 +291,15 @@ const getStudentSubmissionStats = async (studentId, taskIds) => {
 };
 
 const attachCourseTitles = async (tasks) => {
-  const courseIds = [...new Set(tasks.map((task) => String(task.courseId)))];
+  const courseIds = [
+    ...new Set(tasks.flatMap((task) => (task.courseIds || []).map(String))),
+  ];
   if (courseIds.length === 0) return tasks;
   const courses = await Course.find({ _id: { $in: courseIds } }).select('title').lean();
   const titleById = new Map(courses.map((course) => [String(course._id), course.title]));
   return tasks.map((task) => ({
     ...task,
-    courseTitle: titleById.get(String(task.courseId)) || '',
+    courseTitle: titleById.get(String(task.courseIds?.[0])) || '',
   }));
 };
 
@@ -305,7 +309,7 @@ const assertStudentTaskAccess = async (requester, task) => {
   }
   const hasAccess = await Enrollment.exists({
     userId: requester.id,
-    courseId: task.courseId,
+    courseId: { $in: task.courseIds || [] },
     status: { $in: ACTIVE_ACCESS_STATUSES },
   });
   if (!hasAccess) {
@@ -335,13 +339,13 @@ const buildScopedQuery = async (requester, filters) => {
       return null;
     }
     query.status = 'published';
-    query.courseId = filters.courseId || { $in: enrolledCourseIds };
+    query.courseIds = filters.courseId || { $in: enrolledCourseIds };
   } else {
     if (!isAdminRole(requester.role)) {
       query.createdBy = requester.id;
     }
     if (filters.courseId) {
-      query.courseId = filters.courseId;
+      query.courseIds = filters.courseId;
     }
   }
 
@@ -389,7 +393,9 @@ const listCodingTaskGroups = async (requester) => {
   const documents = await CodingTask.find(query).lean();
   const student = !isEducatorRole(requester.role);
 
-  const courseIds = [...new Set(documents.map((doc) => String(doc.courseId)))];
+  const courseIds = [
+    ...new Set(documents.flatMap((doc) => (doc.courseIds || []).map(String))),
+  ];
   const courseDocs = courseIds.length
     ? await Course.find({ _id: { $in: courseIds } }).select('title').lean()
     : [];
@@ -403,33 +409,36 @@ const listCodingTaskGroups = async (requester) => {
     : null;
 
   const byKey = new Map();
+  // A shared task appears once under every course it belongs to.
   documents.forEach((doc) => {
-    const courseId = String(doc.courseId);
-    const key = JSON.stringify([courseId, doc.level, doc.topic]);
-    let group = byKey.get(key);
-    if (!group) {
-      group = {
-        id: key,
-        courseId,
-        courseTitle: titleById.get(courseId) || '',
-        level: doc.level,
-        topic: doc.topic,
-        taskCount: 0,
-        publishedCount: 0,
-      };
-      if (student) {
-        group.solvedCount = 0;
-        group.attemptedCount = 0;
+    (doc.courseIds || []).forEach((rawCourseId) => {
+      const courseId = String(rawCourseId);
+      const key = JSON.stringify([courseId, doc.level, doc.topic]);
+      let group = byKey.get(key);
+      if (!group) {
+        group = {
+          id: key,
+          courseId,
+          courseTitle: titleById.get(courseId) || '',
+          level: doc.level,
+          topic: doc.topic,
+          taskCount: 0,
+          publishedCount: 0,
+        };
+        if (student) {
+          group.solvedCount = 0;
+          group.attemptedCount = 0;
+        }
+        byKey.set(key, group);
       }
-      byKey.set(key, group);
-    }
-    group.taskCount += 1;
-    if (doc.status === 'published') group.publishedCount += 1;
-    if (student) {
-      const taskStatus = statusFromStats(studentStats.get(String(doc._id)));
-      if (taskStatus === 'solved') group.solvedCount += 1;
-      if (taskStatus !== 'not_started') group.attemptedCount += 1;
-    }
+      group.taskCount += 1;
+      if (doc.status === 'published') group.publishedCount += 1;
+      if (student) {
+        const taskStatus = statusFromStats(studentStats.get(String(doc._id)));
+        if (taskStatus === 'solved') group.solvedCount += 1;
+        if (taskStatus !== 'not_started') group.attemptedCount += 1;
+      }
+    });
   });
 
   const groups = [...byKey.values()].sort(
@@ -539,13 +548,18 @@ const createCodingSubmission = async (requester, taskId, data = {}) => {
   return { submission: sanitizeSubmission(submission) };
 };
 
-const createCodingTask = async (requester, courseIdInput, data) => {
-  if (!mongoose.isValidObjectId(courseIdInput)) {
-    throw new ApiError(404, 'Course not found');
-  }
-  const courseExists = await Course.exists({ _id: courseIdInput });
-  if (!courseExists) {
-    throw new ApiError(404, 'Course not found');
+// Creates ONE coding task shared by every course in `courseIdsInput`.
+const createCodingTask = async (requester, courseIdsInput, data) => {
+  const courseIds = await normalizeCourseIds(
+    Array.isArray(courseIdsInput) ? courseIdsInput : [courseIdsInput]
+  );
+
+  for (const courseId of courseIds) {
+    // eslint-disable-next-line no-await-in-loop
+    const courseExists = await Course.exists({ _id: courseId });
+    if (!courseExists) {
+      throw new ApiError(404, 'Course not found');
+    }
   }
 
   validateCommonFields(data);
@@ -563,25 +577,19 @@ const createCodingTask = async (requester, courseIdInput, data) => {
 
   const task = await CodingTask.create({
     ...payload,
-    courseId: courseIdInput,
+    courseIds,
     createdBy: requester.id,
   });
 
   return { codingTask: sanitizeTaskForTeacher(task) };
 };
 
-// Creates the same coding task in every selected course. Course ids are
-// validated and de-duplicated first so one course never receives two copies.
 const createCodingTasksForCourses = async (requester, courseIdsInput, data) => {
   const courseIds = await normalizeCourseIds(courseIdsInput);
 
-  const codingTasks = [];
-  for (const courseId of courseIds) {
-    const { codingTask } = await createCodingTask(requester, courseId, data);
-    codingTasks.push(codingTask);
-  }
+  const { codingTask } = await createCodingTask(requester, courseIds, data);
 
-  return { codingTasks, courseIds };
+  return { codingTasks: [codingTask], courseIds };
 };
 
 const updateCodingTask = async (requester, id, data) => {

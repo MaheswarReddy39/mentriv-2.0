@@ -61,8 +61,8 @@ const getOrCreateProgress = async (studentId, courseId) => {
 const recalculateOverallPercentage = async (progress) => {
   const [publishedLessons, publishedAssignments, publishedMcqs] = await Promise.all([
     ClassModel.countDocuments({ courseId: progress.courseId, status: 'published' }),
-    Assignment.countDocuments({ courseId: progress.courseId, status: 'published' }),
-    McqTest.countDocuments({ courseId: progress.courseId, status: 'published' }),
+    Assignment.countDocuments({ courseIds: progress.courseId, status: 'published' }),
+    McqTest.countDocuments({ courseIds: progress.courseId, status: 'published' }),
   ]);
 
   const totalItems = publishedLessons + publishedAssignments + publishedMcqs;
@@ -146,7 +146,7 @@ const markAssignmentComplete = async (requester, courseIdInput, assignmentIdInpu
 
   const assignment = await Assignment.findOne({
     _id: assignmentIdInput,
-    courseId: courseIdInput,
+    courseIds: courseIdInput,
     status: 'published',
   });
 
@@ -196,7 +196,7 @@ const markMcqComplete = async (requester, courseIdInput, mcqTestIdInput) => {
 
   const mcqTest = await McqTest.findOne({
     _id: mcqTestIdInput,
-    courseId: courseIdInput,
+    courseIds: courseIdInput,
     status: 'published',
   });
 
@@ -254,12 +254,12 @@ const buildCourseBucket = async (studentId, courseDoc) => {
       .select('title module order')
       .limit(MAX_ITEMS_PER_COURSE)
       .lean(),
-    Assignment.find({ courseId, status: 'published' })
+    Assignment.find({ courseIds: courseId, status: 'published' })
       .sort({ dueDate: 1, createdAt: 1 })
       .select('title dueDate maxMarks')
       .limit(MAX_ITEMS_PER_COURSE)
       .lean(),
-    McqTest.find({ courseId, status: 'published' })
+    McqTest.find({ courseIds: courseId, status: 'published' })
       .sort({ createdAt: 1 })
       .select('title description passingScore duration')
       .limit(MAX_ITEMS_PER_COURSE)

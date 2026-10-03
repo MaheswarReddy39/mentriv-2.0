@@ -5,10 +5,15 @@ const ASSIGNMENT_TYPES = ['normalTest'];
 
 const assignmentSchema = new mongoose.Schema(
   {
-    courseId: {
-      type: mongoose.Schema.Types.ObjectId,
+    // One document is shared by every course that can access it.
+    courseIds: {
+      type: [mongoose.Schema.Types.ObjectId],
       ref: 'Course',
       required: [true, 'Course reference is required'],
+      validate: {
+        validator: (value) => Array.isArray(value) && value.length > 0,
+        message: 'At least one course is required',
+      },
     },
     title: {
       type: String,
@@ -80,11 +85,12 @@ const assignmentSchema = new mongoose.Schema(
   },
   {
     timestamps: true,
+    collection: 'assignments',
   }
 );
 
-assignmentSchema.index({ courseId: 1, status: 1 });
-assignmentSchema.index({ courseId: 1, status: 1, dueDate: 1 });
+assignmentSchema.index({ courseIds: 1, status: 1 });
+assignmentSchema.index({ courseIds: 1, status: 1, dueDate: 1 });
 assignmentSchema.index({ status: 1, dueDate: 1 });
 
 const Assignment = mongoose.model('Assignment', assignmentSchema);

@@ -117,11 +117,15 @@ export default function McqPracticePage() {
       }
 
       const items = [];
+      const seenIds = new Set();
       loaded.forEach(({ enrollment, tests }) => {
         const courseTitle = enrollment?.course?.title || '';
         tests
           .filter((test) => !test.status || test.status === 'published')
           .forEach((test) => {
+            // One shared test can come back from several enrollments — keep one card.
+            if (seenIds.has(test.id)) return;
+            seenIds.add(test.id);
             const { level, topic } = decodeDescription(test.description);
             items.push({
               ...test,
@@ -132,9 +136,8 @@ export default function McqPracticePage() {
           });
       });
 
-      items.sort(
-        (a, b) => levelRank(a.level) - levelRank(b.level) || a.title.localeCompare(b.title)
-      );
+      // Keep the API's creation order (oldest first) within each level group.
+      items.sort((a, b) => levelRank(a.level) - levelRank(b.level));
       setSets(items);
       setAttemptStats(stats);
     } catch (err) {
@@ -148,14 +151,17 @@ export default function McqPracticePage() {
     load();
   }, [load]);
 
+  /* Sections are the LEVEL only — topic/description/title stay inside the card. */
   const groups = useMemo(() => {
     const map = new Map();
     sets.forEach((set) => {
-      const key = set.topic || 'Practice';
+      const key = set.level || 'All levels';
       if (!map.has(key)) map.set(key, []);
       map.get(key).push(set);
     });
-    return [...map.entries()].map(([title, groupSets]) => ({ title, sets: groupSets }));
+    return [...map.entries()]
+      .map(([title, groupSets]) => ({ title, sets: groupSets }))
+      .sort((a, b) => levelRank(a.title) - levelRank(b.title));
   }, [sets]);
 
   const currentQuestion = questions[currentIndex] || null;

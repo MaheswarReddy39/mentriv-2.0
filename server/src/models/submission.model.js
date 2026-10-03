@@ -113,6 +113,7 @@ const submissionSchema = new mongoose.Schema(
   },
   {
     timestamps: true,
+    collection: 'submissions',
   }
 );
 

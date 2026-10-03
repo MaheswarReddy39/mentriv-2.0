@@ -37,8 +37,8 @@ const createTestsForCourses = asyncHandler(async (req, res) => {
 
   res.status(201).json({
     status: 'success',
-    message: `MCQ test created for ${mcqTests.length} course${
-      mcqTests.length === 1 ? '' : 's'
+    message: `MCQ test created and shared with ${courseIds.length} course${
+      courseIds.length === 1 ? '' : 's'
     }`,
     data: { mcqTests, courseIds },
   });

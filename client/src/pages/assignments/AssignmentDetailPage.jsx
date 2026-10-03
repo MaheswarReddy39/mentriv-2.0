@@ -332,7 +332,7 @@ export default function AssignmentDetailPage() {
     return <ErrorState message={error} onRetry={loadData} />;
   }
 
-  const courseIdForBack = assignment.courseId;
+  const courseIdForBack = assignment.primaryCourseId || assignment.courseIds?.[0] || '';
   const maxMarks = Number(assignment.maxMarks);
   const questionCount = Array.isArray(assignment.questions) ? assignment.questions.length : 0;
   const timerWarning = remainingMs !== null && remainingMs <= 5 * 60 * 1000;

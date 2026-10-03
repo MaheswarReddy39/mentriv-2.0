@@ -127,8 +127,8 @@ const buildStudentCourseProgressRows = async ({ courseId = 'all', level = 'all' 
       .populate('courseId', 'title level')
       .sort({ createdAt: -1 })
       .lean(),
-    McqTest.find({ courseId: { $in: courseIds }, status: 'published' })
-      .select('courseId questions')
+    McqTest.find({ courseIds: { $in: courseIds }, status: 'published' })
+      .select('courseIds questions')
       .lean(),
     McqAttempt.find({
       courseId: { $in: courseIds },
@@ -142,13 +142,16 @@ const buildStudentCourseProgressRows = async ({ courseId = 'all', level = 'all' 
   const questionCountByCourse = new Map();
   const testIdsByCourse = new Map();
   mcqTests.forEach((test) => {
-    const courseKey = test.courseId.toString();
     const questionCount = Array.isArray(test.questions) ? test.questions.length : 0;
-    questionCountByCourse.set(courseKey, (questionCountByCourse.get(courseKey) || 0) + questionCount);
-    if (!testIdsByCourse.has(courseKey)) {
-      testIdsByCourse.set(courseKey, new Set());
-    }
-    testIdsByCourse.get(courseKey).add(test._id.toString());
+    // A shared test contributes its questions to every course it belongs to.
+    (test.courseIds || []).forEach((courseId) => {
+      const courseKey = courseId.toString();
+      questionCountByCourse.set(courseKey, (questionCountByCourse.get(courseKey) || 0) + questionCount);
+      if (!testIdsByCourse.has(courseKey)) {
+        testIdsByCourse.set(courseKey, new Set());
+      }
+      testIdsByCourse.get(courseKey).add(test._id.toString());
+    });
   });
 
   const latestAttemptByStudentCourseTest = new Map();

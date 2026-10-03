@@ -138,7 +138,7 @@ export default function TeacherPracticeFormPage({ mode = 'create' }) {
       const blocks = fromApiQuestions(test.questions);
       const { level, topic } = decodeDescription(test.description);
       setForm({
-        courseIds: test.courseId ? [String(test.courseId)] : [],
+        courseIds: Array.isArray(test.courseIds) ? test.courseIds.map(String) : [],
         title: test.title || '',
         topic,
         level,

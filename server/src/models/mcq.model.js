@@ -65,10 +65,15 @@ const questionSchema = new mongoose.Schema(
 
 const mcqSchema = new mongoose.Schema(
   {
-    courseId: {
-      type: mongoose.Schema.Types.ObjectId,
+    // One document is shared by every course that can access it.
+    courseIds: {
+      type: [mongoose.Schema.Types.ObjectId],
       ref: 'Course',
       required: [true, 'Course reference is required'],
+      validate: {
+        validator: (value) => Array.isArray(value) && value.length > 0,
+        message: 'At least one course is required',
+      },
     },
     title: {
       type: String,
@@ -93,7 +98,7 @@ const mcqSchema = new mongoose.Schema(
     },
     passingScore: {
       type: Number,
-      default: 0,
+      default: 50,
       min: [0, 'Passing score cannot be negative'],
       max: [100, 'Passing score cannot exceed 100'],
     },
@@ -109,7 +114,7 @@ const mcqSchema = new mongoose.Schema(
   }
 );
 
-mcqSchema.index({ courseId: 1, status: 1 });
+mcqSchema.index({ courseIds: 1, status: 1 });
 mcqSchema.index({ status: 1, createdAt: -1 });
 
 const McqTest = mongoose.model('McqTest', mcqSchema);

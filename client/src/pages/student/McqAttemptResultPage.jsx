@@ -53,7 +53,8 @@ export default function McqAttemptResultPage() {
           try {
             const enrollmentRes = await getMyEnrollments({ limit: 50 });
             const match = (enrollmentRes?.data?.enrollments || []).find(
-              (enrollment) => getCourseId(enrollment) === loadedTest.courseId
+              (enrollment) =>
+                (loadedTest.courseIds || []).includes(getCourseId(enrollment))
             );
             if (!cancelled) setCourseTitle(match?.course?.title || '');
           } catch {
