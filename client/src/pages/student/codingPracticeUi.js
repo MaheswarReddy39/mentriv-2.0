@@ -5,6 +5,18 @@ export const CODING_LEVEL_BADGE_CLASS = {
   Advanced: 'badge-danger',
 };
 
+// Display-only labels (Basic / Medium / Advanced). URLs and API params always
+// keep the backend values (Beginner / Intermediate / Advanced) — only the
+// rendered text changes. Unknown levels pass through unchanged.
+const LEVEL_DISPLAY_LABEL = {
+  Beginner: 'Basic',
+  Intermediate: 'Medium',
+  Advanced: 'Advanced',
+};
+
+export const levelDisplayLabel = (level) =>
+  LEVEL_DISPLAY_LABEL[level] || String(level || '');
+
 export const CODING_DIFFICULTY_BADGE_CLASS = {
   Easy: 'badge-success',
   Medium: 'badge-warning',
@@ -192,7 +204,6 @@ export const formatDateTime = (value) => {
 export const topicSearchUrl = (task, courseId) => {
   const params = new URLSearchParams({
     courseId: courseId || task.courseIds?.[0] || '',
-    level: task.level,
     topic: task.topic,
   });
   return `/coding-practice/topic?${params.toString()}`;

@@ -27,6 +27,7 @@ import {
   formatCheckLabel,
   formatDateTime,
   isPlaceholderCode,
+  levelDisplayLabel,
   requirementsBullets,
   resolveEditorLanguage,
   submissionBadgeStatus,
@@ -302,7 +303,7 @@ export default function StudentCodingWorkspacePage() {
       <section className="asg-head" aria-labelledby="coding-workspace-heading">
         <div className="student-assignment-meta" style={{ marginBottom: 'var(--space-3)' }}>
           <span className={`badge ${CODING_LEVEL_BADGE_CLASS[task.level] || 'badge-neutral'}`}>
-            {task.level}
+            {levelDisplayLabel(task.level)}
           </span>
           <span
             className={`badge ${CODING_DIFFICULTY_BADGE_CLASS[task.difficulty] || 'badge-neutral'}`}

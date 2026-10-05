@@ -9,7 +9,6 @@ import { getMyEnrollments } from '../../services/enrollment.service.js';
 import { listCodingTasks } from '../../services/coding-practice.service.js';
 import {
   CODING_DIFFICULTY_BADGE_CLASS,
-  CODING_LEVEL_BADGE_CLASS,
   STUDENT_STATUS_LABEL,
   TASK_ACTION_LABEL,
   TASK_STATUS_BADGE_CLASS,
@@ -24,10 +23,12 @@ export default function StudentCodingTopicPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
+  // ONE list per topic across ALL levels and courses. courseId is optional:
+  // it only remembers the course context a task was opened from; the list
+  // itself is server-scoped to the student's enrolled courses.
   const courseId = searchParams.get('courseId') || '';
-  const level = searchParams.get('level') || '';
   const topic = searchParams.get('topic') || '';
-  const paramsValid = Boolean(courseId && level && topic);
+  const paramsValid = Boolean(topic);
 
   const [tasks, setTasks] = useState([]);
   const [enrolledCourseIds, setEnrolledCourseIds] = useState([]);
@@ -42,7 +43,7 @@ export default function StudentCodingTopicPage() {
       // Tasks are already scoped server-side to this student's enrolled courses.
       // Enrollments are only used to pick the right course context per task.
       const [response, enrollmentRes] = await Promise.all([
-        listCodingTasks({ courseId, level, topic }),
+        listCodingTasks({ topic }),
         getMyEnrollments({ limit: 50 }).catch(() => null),
       ]);
       setTasks(response?.data?.tasks || []);
@@ -57,7 +58,7 @@ export default function StudentCodingTopicPage() {
     } finally {
       setLoading(false);
     }
-  }, [paramsValid, courseId, level, topic]);
+  }, [paramsValid, topic]);
 
   useEffect(() => {
     load();
@@ -99,21 +100,16 @@ export default function StudentCodingTopicPage() {
   const attemptedCount = tasks.filter((task) => task.studentStatus !== 'not_started').length;
   const progress =
     taskCount > 0 ? Math.round((solvedCount / taskCount) * 1000) / 10 : 0;
-  const courseTitle = [...new Set(tasks.map((task) => task.courseTitle).filter(Boolean))].join(' · ');
 
   return (
     <>
       {backLink}
 
       <section className="asg-head fade-in" aria-labelledby="coding-topic-heading">
-        <div className="student-assignment-meta" style={{ marginBottom: 'var(--space-3)' }}>
-          <span className={`badge ${CODING_LEVEL_BADGE_CLASS[level] || 'badge-neutral'}`}>
-            {level}
-          </span>
-          {courseTitle ? <span>{courseTitle}</span> : null}
-        </div>
-
         <h1 id="coding-topic-heading">{topic}</h1>
+        <p className="text-meta" style={{ margin: 'var(--space-2) 0 0' }}>
+          Practice {topic} coding tasks and improve your skills.
+        </p>
 
         {error ? null : loading ? null : (
           <div style={{ marginTop: 'var(--space-5)', display: 'grid', gap: 'var(--space-2)' }}>
@@ -136,8 +132,8 @@ export default function StudentCodingTopicPage() {
           <Loading label="Loading tasks..." />
         ) : tasks.length === 0 ? (
           <EmptyState
-            title="No published tasks in this topic"
-            message="Tasks published by your teacher for this topic will appear here."
+            title="No tasks in this topic yet"
+            message="Tasks published for this topic will appear here."
             action={
               <Button type="button" onClick={() => navigate('/coding-practice')}>
                 Back to Coding Practice
@@ -150,9 +146,9 @@ export default function StudentCodingTopicPage() {
               <thead>
                 <tr>
                   <th scope="col">#</th>
-                  <th scope="col">Title</th>
+                  <th scope="col">Task Title</th>
                   <th scope="col">Difficulty</th>
-                  <th scope="col">Type</th>
+                  <th scope="col">Task Type</th>
                   <th scope="col">Status</th>
                   <th scope="col">Action</th>
                 </tr>
@@ -164,7 +160,7 @@ export default function StudentCodingTopicPage() {
                   return (
                     <tr key={task.id}>
                       <td data-label="#">{index + 1}</td>
-                      <td data-label="Title">{task.title}</td>
+                      <td data-label="Task Title">{task.title}</td>
                       <td data-label="Difficulty">
                         <span
                           className={`badge ${CODING_DIFFICULTY_BADGE_CLASS[task.difficulty] || 'badge-neutral'}`}
@@ -172,7 +168,7 @@ export default function StudentCodingTopicPage() {
                           {task.difficulty}
                         </span>
                       </td>
-                      <td data-label="Type">{task.taskType}</td>
+                      <td data-label="Task Type">{task.taskType}</td>
                       <td data-label="Status">
                         <span
                           className={`badge ${TASK_STATUS_BADGE_CLASS[statusLabel] || 'badge-neutral'}`}

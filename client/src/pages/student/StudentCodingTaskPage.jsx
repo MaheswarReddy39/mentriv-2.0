@@ -12,6 +12,7 @@ import {
   STUDENT_STATUS_LABEL,
   constraintsList,
   examplesForTask,
+  levelDisplayLabel,
   requirementsBullets,
   topicSearchUrl,
   workspaceVariant,
@@ -142,7 +143,7 @@ export default function StudentCodingTaskPage() {
       <section className="asg-head fade-in" aria-labelledby="coding-task-heading">
         <div className="student-assignment-meta" style={{ marginBottom: 'var(--space-3)' }}>
           <span className={`badge ${CODING_LEVEL_BADGE_CLASS[task.level] || 'badge-neutral'}`}>
-            {task.level}
+            {levelDisplayLabel(task.level)}
           </span>
           <span
             className={`badge ${CODING_DIFFICULTY_BADGE_CLASS[task.difficulty] || 'badge-neutral'}`}
