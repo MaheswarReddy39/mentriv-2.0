@@ -44,6 +44,13 @@ const codingSubmissionSchema = new mongoose.Schema(
       ref: 'User',
       required: [true, 'Student reference is required'],
     },
+    // Course under which this attempt was made; attempts and history are
+    // scoped per (task, student, course) because tasks are shared across courses.
+    courseId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Course',
+      required: [true, 'Course reference is required'],
+    },
     attemptNumber: {
       type: Number,
       default: 1,
@@ -109,7 +116,10 @@ const codingSubmissionSchema = new mongoose.Schema(
   }
 );
 
-codingSubmissionSchema.index({ taskId: 1, studentId: 1, attemptNumber: 1 }, { unique: true });
+codingSubmissionSchema.index(
+  { taskId: 1, studentId: 1, courseId: 1, attemptNumber: 1 },
+  { unique: true }
+);
 codingSubmissionSchema.index({ studentId: 1, createdAt: -1 });
 codingSubmissionSchema.index({ taskId: 1, status: 1 });
 

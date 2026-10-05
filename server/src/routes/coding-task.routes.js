@@ -249,7 +249,13 @@ router.get(
   '/coding-tasks/:id/submissions',
   requireAuth,
   requireRole('student'),
-  validate([idParamRule]),
+  validate([
+    idParamRule,
+    query('courseId')
+      .optional({ values: 'falsy' })
+      .isMongoId()
+      .withMessage('Invalid course id'),
+  ]),
   listSubmissions
 );
 router.post(
@@ -258,6 +264,10 @@ router.post(
   requireRole('student'),
   validate([
     idParamRule,
+    body('courseId')
+      .optional({ values: 'falsy' })
+      .isMongoId()
+      .withMessage('Invalid course id'),
     body('code')
       .optional({ values: 'falsy' })
       .trim()

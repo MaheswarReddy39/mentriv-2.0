@@ -1,5 +1,5 @@
 import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import Badge from '../../components/common/Badge.jsx';
 import Button from '../../components/common/Button.jsx';
 import Card from '../../components/common/Card.jsx';
@@ -111,6 +111,10 @@ export default function StudentCodingWorkspacePage() {
   const toast = useToast();
   const editorRef = useRef(null);
   const editorContainerRef = useRef(null);
+  const [searchParams] = useSearchParams();
+  // Course context from the task details page: scopes submissions and history
+  // to one course so Course A attempts never mix with Course B attempts.
+  const courseId = searchParams.get('courseId') || '';
 
   const [task, setTask] = useState(null);
   const [loadingTask, setLoadingTask] = useState(true);
@@ -147,10 +151,10 @@ export default function StudentCodingWorkspacePage() {
     }
   }, [taskId]);
 
-  const loadSubmissions = useCallback(async (id) => {
+  const loadSubmissions = useCallback(async (id, courseContext) => {
     setLoadingSubmissions(true);
     try {
-      const response = await listCodingSubmissions(id);
+      const response = await listCodingSubmissions(id, courseContext);
       setSubmissions(response?.data?.submissions || []);
     } catch {
       setSubmissions([]);
@@ -165,9 +169,9 @@ export default function StudentCodingWorkspacePage() {
 
   useEffect(() => {
     if (task?.id) {
-      loadSubmissions(task.id);
+      loadSubmissions(task.id, courseId);
     }
-  }, [task?.id, loadSubmissions]);
+  }, [task?.id, courseId, loadSubmissions]);
 
   const handleRun = () => {
     if (variant === 'frontend') {
@@ -190,7 +194,10 @@ export default function StudentCodingWorkspacePage() {
     }
     setSubmitting(true);
     try {
-      const response = await createCodingSubmission(task.id, { code: trimmed });
+      const response = await createCodingSubmission(task.id, {
+        code: trimmed,
+        ...(courseId ? { courseId } : {}),
+      });
       const created = response?.data?.submission;
       if (created) {
         if (created.status === 'accepted') {
@@ -206,7 +213,7 @@ export default function StudentCodingWorkspacePage() {
             `Submission evaluated — ${submissionStatusLabel(created.status)}${summary}.`
           );
         }
-        await loadSubmissions(task.id);
+        await loadSubmissions(task.id, courseId);
       }
     } catch (err) {
       toast.error(err.message || 'Could not record this submission.');
@@ -285,7 +292,10 @@ export default function StudentCodingWorkspacePage() {
 
   return (
     <div className="admin-dashboard fade-in" aria-label={`${task.title} workspace`}>
-      <Link to={`/coding-practice/tasks/${task.id}`} className="back-link">
+      <Link
+        to={`/coding-practice/tasks/${task.id}${courseId ? `?courseId=${encodeURIComponent(courseId)}` : ''}`}
+        className="back-link"
+      >
         Back to instructions
       </Link>
 

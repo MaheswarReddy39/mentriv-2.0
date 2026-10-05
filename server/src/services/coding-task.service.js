@@ -4,7 +4,7 @@ import CodingTask from '../models/coding-task.model.js';
 import CodingSubmission from '../models/coding-submission.model.js';
 import Enrollment from '../models/enrollment.model.js';
 import ApiError from '../utils/api-error.js';
-import { ACTIVE_ACCESS_STATUSES, isAdminRole } from '../utils/course-access.util.js';
+import { ACTIVE_ACCESS_STATUSES, findActiveCourseIn, isAdminRole } from '../utils/course-access.util.js';
 import { normalizeCourseIds } from '../utils/course-ids.util.js';
 import { evaluateCodingSubmission, isPlaceholderOnlyCode } from './coding-evaluation.service.js';
 
@@ -246,6 +246,7 @@ const sanitizeTaskForStudent = (task) => {
 const sanitizeSubmission = (submission) => ({
   id: submission._id.toString(),
   taskId: String(submission.taskId),
+  courseId: submission.courseId ? String(submission.courseId) : null,
   attemptNumber: submission.attemptNumber,
   status: submission.status,
   code: submission.code || '',
@@ -315,6 +316,41 @@ const assertStudentTaskAccess = async (requester, task) => {
   if (!hasAccess) {
     throw new ApiError(403, 'You do not have active access to this course');
   }
+};
+
+// Attempts and history are stored per (task, student, course). The course is
+// always determined server-side: an explicit courseId must belong to the task
+// AND to an active enrollment; otherwise the first of the task's courses the
+// student can access is used.
+const resolveSubmissionCourseContext = async (requester, task, requestedCourseId) => {
+  const taskCourseIds = (Array.isArray(task.courseIds) ? task.courseIds : [])
+    .filter(Boolean)
+    .map(String);
+
+  if (requestedCourseId) {
+    if (!mongoose.isValidObjectId(requestedCourseId)) {
+      throw new ApiError(400, 'Invalid course id');
+    }
+    const courseId = String(requestedCourseId);
+    if (!taskCourseIds.includes(courseId)) {
+      throw new ApiError(403, 'This course does not have access to this coding task');
+    }
+    const hasAccess = await Enrollment.exists({
+      userId: requester.id,
+      courseId,
+      status: { $in: ACTIVE_ACCESS_STATUSES },
+    });
+    if (!hasAccess) {
+      throw new ApiError(403, 'You do not have active access to this course');
+    }
+    return courseId;
+  }
+
+  const resolved = await findActiveCourseIn(requester.id, taskCourseIds);
+  if (!resolved) {
+    throw new ApiError(403, 'You do not have active access to this course');
+  }
+  return resolved;
 };
 
 const validateListFilters = (filters) => {
@@ -390,7 +426,9 @@ const listCodingTasks = async (requester, filters = {}) => {
 
 const listCodingTaskGroups = async (requester) => {
   const query = await buildScopedQuery(requester, {});
-  const documents = await CodingTask.find(query).lean();
+  const documents = await CodingTask.find(query)
+    .sort({ taskOrder: 1, createdAt: 1 })
+    .lean();
   const student = !isEducatorRole(requester.role);
 
   const courseIds = [
@@ -401,6 +439,15 @@ const listCodingTaskGroups = async (requester) => {
     : [];
   const titleById = new Map(courseDocs.map((course) => [String(course._id), course.title]));
 
+  const enrolledSet = student
+    ? new Set(
+        (await Enrollment.distinct('courseId', {
+          userId: requester.id,
+          status: { $in: ACTIVE_ACCESS_STATUSES },
+        })).map((id) => String(id))
+      )
+    : null;
+
   const studentStats = student
     ? await getStudentSubmissionStats(
         requester.id,
@@ -408,37 +455,57 @@ const listCodingTaskGroups = async (requester) => {
       )
     : null;
 
+  // Groups are level+topic only: one shared task must appear exactly once,
+  // carrying every course it belongs to.
   const byKey = new Map();
-  // A shared task appears once under every course it belongs to.
   documents.forEach((doc) => {
-    (doc.courseIds || []).forEach((rawCourseId) => {
-      const courseId = String(rawCourseId);
-      const key = JSON.stringify([courseId, doc.level, doc.topic]);
-      let group = byKey.get(key);
-      if (!group) {
-        group = {
-          id: key,
-          courseId,
-          courseTitle: titleById.get(courseId) || '',
-          level: doc.level,
-          topic: doc.topic,
-          taskCount: 0,
-          publishedCount: 0,
-        };
-        if (student) {
-          group.solvedCount = 0;
-          group.attemptedCount = 0;
-        }
-        byKey.set(key, group);
-      }
-      group.taskCount += 1;
-      if (doc.status === 'published') group.publishedCount += 1;
+    const docCourses = (doc.courseIds || []).map(String);
+    const key = JSON.stringify([doc.level, doc.topic]);
+    let group = byKey.get(key);
+    if (!group) {
+      group = {
+        id: key,
+        level: doc.level,
+        topic: doc.topic,
+        courseIds: [],
+        courseTitles: [],
+        taskCount: 0,
+        publishedCount: 0,
+        _courseLists: [],
+      };
       if (student) {
-        const taskStatus = statusFromStats(studentStats.get(String(doc._id)));
-        if (taskStatus === 'solved') group.solvedCount += 1;
-        if (taskStatus !== 'not_started') group.attemptedCount += 1;
+        group.solvedCount = 0;
+        group.attemptedCount = 0;
       }
+      byKey.set(key, group);
+    }
+    group.taskCount += 1;
+    if (doc.status === 'published') group.publishedCount += 1;
+    if (student) {
+      const taskStatus = statusFromStats(studentStats.get(String(doc._id)));
+      if (taskStatus === 'solved') group.solvedCount += 1;
+      if (taskStatus !== 'not_started') group.attemptedCount += 1;
+    }
+    docCourses.forEach((courseId) => {
+      if (!group.courseIds.includes(courseId)) group.courseIds.push(courseId);
     });
+    group._courseLists.push(docCourses);
+  });
+
+  // Legacy single-course fields keep existing UI navigation working: prefer a
+  // course that spans the whole group and that the student is enrolled in.
+  byKey.forEach((group) => {
+    const intersection = group._courseLists.reduce(
+      (common, list) => common.filter((id) => list.includes(id)),
+      [...(group._courseLists[0] || [])]
+    );
+    const eligible = enrolledSet ? group.courseIds.filter((id) => enrolledSet.has(id)) : group.courseIds;
+    const preferred =
+      eligible.find((id) => intersection.includes(id)) ?? eligible[0] ?? '';
+    group.courseId = preferred;
+    group.courseTitle = preferred ? titleById.get(preferred) || '' : '';
+    group.courseTitles = group.courseIds.map((id) => titleById.get(id) || '');
+    delete group._courseLists;
   });
 
   const groups = [...byKey.values()].sort(
@@ -486,7 +553,7 @@ const getCodingTask = async (requester, id) => {
   return { codingTask: sanitizeTaskForTeacher(task) };
 };
 
-const listCodingSubmissions = async (requester, taskId) => {
+const listCodingSubmissions = async (requester, taskId, courseId) => {
   if (!mongoose.isValidObjectId(taskId)) {
     throw new ApiError(404, 'Coding task not found');
   }
@@ -495,15 +562,18 @@ const listCodingSubmissions = async (requester, taskId) => {
     throw new ApiError(404, 'Coding task not found');
   }
   await assertStudentTaskAccess(requester, task);
+  const contextCourseId = await resolveSubmissionCourseContext(requester, task, courseId);
 
   const documents = await CodingSubmission.find({
     taskId: task._id,
     studentId: requester.id,
+    courseId: contextCourseId,
   })
     .sort({ attemptNumber: -1 })
     .lean();
 
   return {
+    courseId: contextCourseId,
     submissions: documents.map(sanitizeSubmission),
     totalItems: documents.length,
   };
@@ -518,6 +588,7 @@ const createCodingSubmission = async (requester, taskId, data = {}) => {
     throw new ApiError(404, 'Coding task not found');
   }
   await assertStudentTaskAccess(requester, task);
+  const contextCourseId = await resolveSubmissionCourseContext(requester, task, data.courseId);
 
   const trimmedCode = String(data.code ?? '').trim();
   if (isPlaceholderOnlyCode(task, trimmedCode)) {
@@ -529,11 +600,13 @@ const createCodingSubmission = async (requester, taskId, data = {}) => {
   const existing = await CodingSubmission.countDocuments({
     taskId: task._id,
     studentId: requester.id,
+    courseId: contextCourseId,
   });
 
   const submission = await CodingSubmission.create({
     taskId: task._id,
     studentId: requester.id,
+    courseId: contextCourseId,
     attemptNumber: existing + 1,
     status: evaluation?.status ?? 'submitted',
     code: trimmedCode,

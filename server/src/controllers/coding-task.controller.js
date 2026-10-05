@@ -73,7 +73,11 @@ const updateTask = asyncHandler(async (req, res) => {
 });
 
 const listSubmissions = asyncHandler(async (req, res) => {
-  const result = await codingTaskService.listCodingSubmissions(req.user, req.params.id);
+  const result = await codingTaskService.listCodingSubmissions(
+    req.user,
+    req.params.id,
+    req.query.courseId
+  );
 
   res.status(200).json({
     status: 'success',

@@ -12,10 +12,20 @@
  *
  * It also normalises the legacy `{ courseId }` shape to `{ courseIds: [...] }`.
  *
+ * Coding submissions additionally get their per-course attempt context:
+ *   - `CodingSubmission.courseId` is backfilled (first of the task's courses
+ *     the student is actively enrolled in; first active enrollment for
+ *     orphaned rows whose task no longer exists)
+ *   - attempt numbers are renumbered 1..n per (taskId, studentId, courseId)
+ *     so merged duplicates cannot collide on the unique index
+ *   - the legacy unique index {taskId, studentId, attemptNumber} is dropped
+ *     before any write and replaced by {taskId, studentId, courseId, attemptNumber}
+ *
  * Safety rules:
  *   - default mode is a dry run; `--apply` is required to write anything
  *   - a duplicate is never deleted while a reference cannot be remapped
  *   - unique-index collisions block the merge for that duplicate
+ *     (coding submissions are renumbered instead of blocked)
  *   - references pointing at ids that no longer exist are reported, never deleted
  *   - idempotent: re-running after a successful apply reports "nothing to do"
  *
@@ -31,6 +41,8 @@ import connectDB from '../src/config/db.js';
 import McqTest from '../src/models/mcq.model.js';
 import Assignment from '../src/models/assignment.model.js';
 import CodingTask from '../src/models/coding-task.model.js';
+import CodingSubmission from '../src/models/coding-submission.model.js';
+import { ACTIVE_ACCESS_STATUSES } from '../src/utils/course-access.util.js';
 
 const APPLY = process.argv.includes('--apply');
 
@@ -80,6 +92,9 @@ const CONTENT_FIELDS = [
         collection: 'coding_submissions',
         field: 'taskId',
         uniqueBy: ['studentId', 'attemptNumber'],
+        // Attempt numbers are recomputed per (taskId, studentId, courseId)
+        // after the remap, so a collision never blocks the merge.
+        renumber: true,
       },
     ],
   },
@@ -129,6 +144,7 @@ const readReferenceIds = (doc, field) => {
 
 // Keys that must stay unique if two documents collapse onto one id.
 const uniqueKeysFor = (refDoc, reference) => {
+  if (reference.renumber) return [];
   const keys = [];
   if (reference.uniqueBy) {
     keys.push(`main:${stableStringify(reference.uniqueBy.map((field) => refDoc[field]))}`);
@@ -360,6 +376,149 @@ const applyCollection = async (spec, plan) => {
   return { removed, kept, remappedRefs };
 };
 
+const LEGACY_SUBMISSION_INDEX = 'taskId_1_studentId_1_attemptNumber_1';
+
+const submissionCollection = () => mongoose.connection.db.collection('coding_submissions');
+
+const dropLegacySubmissionIndex = async () => {
+  const existing = await submissionCollection().indexes();
+  const hasLegacy = existing.some((index) => index.name === LEGACY_SUBMISSION_INDEX);
+  if (!hasLegacy) return { hadLegacy: false, dropped: false };
+  if (!APPLY) return { hadLegacy: true, dropped: false };
+  await submissionCollection().dropIndex(LEGACY_SUBMISSION_INDEX);
+  return { hadLegacy: true, dropped: true };
+};
+
+const reportSubmissionContext = async () => {
+  const collection = submissionCollection();
+  const total = await collection.countDocuments();
+  const missingCourseId = await collection.countDocuments({ courseId: { $exists: false } });
+  const rows = await collection.find({}).toArray();
+
+  const resolve = buildSubmissionCourseResolver();
+  const groups = new Map();
+  for (const row of rows) {
+    // eslint-disable-next-line no-await-in-loop
+    const courseId = row.courseId ? String(row.courseId) : await resolve(row);
+    if (!courseId) continue;
+    const key = `${String(row.taskId)}|${String(row.studentId)}|${courseId}`;
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(row);
+  }
+
+  let wouldRenumber = 0;
+  for (const groupRows of groups.values()) {
+    groupRows.sort(
+      (a, b) =>
+        new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime() ||
+        String(a._id).localeCompare(String(b._id))
+    );
+    groupRows.forEach((row, index) => {
+      if (row.attemptNumber !== index + 1) wouldRenumber += 1;
+    });
+  }
+
+  return { total, missingCourseId, wouldRenumber, scopedGroups: groups.size };
+};
+
+// Mirrors the service rule: first of the task's own courses in which the
+// student is actively enrolled. Falls back to the first task course (attempt
+// happened under that content) and, for orphaned rows, the student's first
+// active enrollment.
+const buildSubmissionCourseResolver = () => {
+  const db = mongoose.connection.db;
+  const taskCache = new Map();
+  const enrollmentCache = new Map();
+
+  const loadTask = async (taskId) => {
+    const key = String(taskId);
+    if (!taskCache.has(key)) {
+      taskCache.set(key, await db.collection('coding_tasks').findOne({ _id: oid(key) }));
+    }
+    return taskCache.get(key);
+  };
+
+  const loadEnrollments = async (userId) => {
+    const key = String(userId);
+    if (!enrollmentCache.has(key)) {
+      const rows = await db
+        .collection('enrollments')
+        .find({ userId: oid(key), status: { $in: ACTIVE_ACCESS_STATUSES } })
+        .toArray();
+      enrollmentCache.set(key, [...new Set(rows.map((row) => String(row.courseId)))].sort());
+    }
+    return enrollmentCache.get(key);
+  };
+
+  return async (submission) => {
+    const task = await loadTask(submission.taskId);
+    if (task) {
+      const taskCourseIds = docCourseIds(task).map(String);
+      const enrolled = new Set(await loadEnrollments(submission.studentId));
+      return taskCourseIds.find((id) => enrolled.has(id)) || taskCourseIds[0] || null;
+    }
+    const active = await loadEnrollments(submission.studentId);
+    return active[0] || null;
+  };
+};
+
+const backfillSubmissionCourseIds = async () => {
+  const submissions = submissionCollection();
+  const missing = await submissions.find({ courseId: { $exists: false } }).toArray();
+  const resolve = buildSubmissionCourseResolver();
+
+  let backfilled = 0;
+  const unresolved = [];
+  for (const submission of missing) {
+    // eslint-disable-next-line no-await-in-loop
+    const courseId = await resolve(submission);
+    if (courseId) {
+      // eslint-disable-next-line no-await-in-loop
+      await submissions.updateOne({ _id: submission._id }, { $set: { courseId: oid(courseId) } });
+      backfilled += 1;
+    } else {
+      unresolved.push(String(submission._id));
+    }
+  }
+
+  return { backfilled, unresolved };
+};
+
+// 1..n per (taskId, studentId, courseId), oldest first, so history survives a
+// duplicate merge without ever colliding on the new unique index.
+const renumberSubmissionAttempts = async () => {
+  const collection = submissionCollection();
+  const rows = await collection.find({}).toArray();
+
+  const groups = new Map();
+  for (const row of rows) {
+    const key = `${String(row.taskId)}|${String(row.studentId)}|${String(row.courseId)}`;
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(row);
+  }
+
+  let renumbered = 0;
+  const updates = [];
+  for (const groupRows of groups.values()) {
+    groupRows.sort(
+      (a, b) =>
+        new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime() ||
+        String(a._id).localeCompare(String(b._id))
+    );
+    for (let index = 0; index < groupRows.length; index += 1) {
+      const next = index + 1;
+      if (groupRows[index].attemptNumber !== next) {
+        updates.push(
+          collection.updateOne({ _id: groupRows[index]._id }, { $set: { attemptNumber: next } })
+        );
+        renumbered += 1;
+      }
+    }
+  }
+  await Promise.all(updates);
+  return { renumbered };
+};
+
 const run = async () => {
   const conn = await connectDB();
   const dbName = conn.connection.name;
@@ -367,6 +526,19 @@ const run = async () => {
 
   console.log(`\n[consolidate] database: "${dbName}"`);
   console.log(`[consolidate] mode: ${APPLY ? 'APPLY (migrating)' : 'DRY RUN (no writes)'}\n`);
+
+  // The legacy unique index must go before any taskId remap or attempt
+  // renumbering, otherwise intermediate writes can collide with it.
+  const legacyIndex = await dropLegacySubmissionIndex();
+  console.log(
+    `[consolidate] legacy submission unique index {taskId, studentId, attemptNumber}: ${
+      legacyIndex.hadLegacy
+        ? APPLY
+          ? 'dropped'
+          : 'present (will be dropped on --apply)'
+        : 'not present'
+    }`
+  );
 
   let totalDuplicates = 0;
   let totalRemoved = 0;
@@ -436,14 +608,55 @@ const run = async () => {
     console.log(`  documents after: ${after}\n`);
   }
 
+  // Per-course attempt context for coding submissions.
+  const contextBefore = await reportSubmissionContext();
+  console.log('[consolidate] coding_submissions course context');
+  console.log(`  documents: ${contextBefore.total}`);
+  console.log(
+    `  missing courseId ${APPLY ? 'backfilled' : 'to backfill'} -> ${contextBefore.missingCourseId}`
+  );
+  console.log(
+    `  attempt numbers ${APPLY ? 'renumbered' : 'to renumber'} (per task+student+course) -> ${contextBefore.wouldRenumber}`
+  );
+  console.log(`  scoped (task, student, course) groups: ${contextBefore.scopedGroups}`);
+
+  if (APPLY) {
+    const backfill = await backfillSubmissionCourseIds();
+    console.log(`  backfilled courseId on ${backfill.backfilled} submission(s)`);
+    if (backfill.unresolved.length > 0) {
+      backfill.unresolved.forEach((id) => {
+        console.log(`    UNRESOLVED ${id}: no task course and no active enrollment, left unset`);
+      });
+    }
+
+    const renumber = await renumberSubmissionAttempts();
+    console.log(`  renumbered ${renumber.renumbered} attempt number(s)`);
+
+    await CodingSubmission.syncIndexes();
+    console.log(
+      '  indexes: synced to schema for "coding_submissions" (unique {taskId, studentId, courseId, attemptNumber})'
+    );
+
+    const contextAfter = await reportSubmissionContext();
+    console.log(
+      `  after: ${contextAfter.total} documents, ${contextAfter.missingCourseId} without courseId, ${contextAfter.wouldRenumber} attempt numbers out of sequence`
+    );
+  }
+  console.log('');
+
   console.log(`[consolidate] duplicates found: ${totalDuplicates}`);
   console.log(`[consolidate] blocked (kept, never deleted): ${totalBlocked}`);
   console.log(`[consolidate] orphaned references reported: ${totalOrphans}`);
 
   if (!APPLY) {
     console.log('\n[consolidate] dry run complete - no data was modified');
-    if (totalDuplicates > 0) {
-      console.log('[consolidate] re-run with --apply to consolidate');
+    const pendingWork =
+      totalDuplicates > 0 ||
+      contextBefore.missingCourseId > 0 ||
+      contextBefore.wouldRenumber > 0 ||
+      legacyIndex.hadLegacy;
+    if (pendingWork) {
+      console.log('[consolidate] re-run with --apply to migrate');
     } else {
       console.log('[consolidate] nothing to consolidate');
     }

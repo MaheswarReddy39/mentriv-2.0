@@ -7,7 +7,7 @@ import ErrorState from '../../components/common/ErrorState.jsx';
 import Loading from '../../components/common/Loading.jsx';
 import ProgressBar from '../../components/common/ProgressBar.jsx';
 import { listCodingTaskGroups } from '../../services/coding-practice.service.js';
-import { CODING_LEVELS, CODING_LEVEL_BADGE_CLASS } from './codingPracticeUi.js';
+import { CODING_LEVEL_BADGE_CLASS } from './codingPracticeUi.js';
 
 export default function StudentCodingPracticePage() {
   const navigate = useNavigate();
@@ -41,12 +41,25 @@ export default function StudentCodingPracticePage() {
     navigate(`/coding-practice/topic?${params.toString()}`);
   };
 
+  // Levels are derived from whatever the backend returned (backend-sorted),
+  // so nothing here is hardcoded and empty levels never render.
+  const levels = groups.reduce((list, group) => {
+    if (group.level && !list.includes(group.level)) list.push(group.level);
+    return list;
+  }, []);
+
+  const groupCourseTitles = (group) => {
+    const titles = Array.isArray(group.courseTitles) ? group.courseTitles.filter(Boolean) : [];
+    if (titles.length > 0) return titles.join(' · ');
+    return group.courseTitle || '';
+  };
+
   const header = (
     <header className="admin-dashboard-header">
       <div>
         <h1>Coding Practice</h1>
         <p className="admin-welcome">
-          Pick a topic, solve tasks and track your progress from Beginner to Advanced.
+          Pick a topic, solve tasks and track your progress.
         </p>
       </div>
     </header>
@@ -66,13 +79,14 @@ export default function StudentCodingPracticePage() {
           message="Coding tasks published for your enrolled courses will appear here."
         />
       ) : (
-        CODING_LEVELS.map((level) => {
+        levels.map((level) => {
           const levelGroups = groups.filter((group) => group.level === level);
           if (levelGroups.length === 0) return null;
+          const levelAnchor = level.replace(/\s+/g, '-');
 
           return (
-            <section key={level} aria-labelledby={`coding-level-${level}`}>
-              <h2 id={`coding-level-${level}`} className="student-classes-heading">
+            <section key={level} aria-labelledby={`coding-level-${levelAnchor}`}>
+              <h2 id={`coding-level-${levelAnchor}`} className="student-classes-heading">
                 {level}
               </h2>
 
@@ -82,6 +96,7 @@ export default function StudentCodingPracticePage() {
                   const solvedCount = Number(group.solvedCount) || 0;
                   const attemptedCount = Number(group.attemptedCount) || 0;
                   const progress = Number(group.progress) || 0;
+                  const courseTitles = groupCourseTitles(group);
 
                   return (
                     <Card key={group.id} variant="student-class-card">
@@ -92,9 +107,11 @@ export default function StudentCodingPracticePage() {
                           </span>
                         </div>
                         <h3>{group.topic}</h3>
-                        <p className="text-meta" style={{ margin: 0 }}>
-                          {group.courseTitle}
-                        </p>
+                        {courseTitles ? (
+                          <p className="text-meta" style={{ margin: 0 }}>
+                            {courseTitles}
+                          </p>
+                        ) : null}
                         <p className="text-meta" style={{ margin: 0 }}>
                           {taskCount} {taskCount === 1 ? 'task' : 'tasks'} &middot; {solvedCount}{' '}
                           solved &middot; {attemptedCount} attempted

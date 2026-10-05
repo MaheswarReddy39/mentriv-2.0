@@ -5,6 +5,7 @@ import EmptyState from '../../components/common/EmptyState.jsx';
 import ErrorState from '../../components/common/ErrorState.jsx';
 import Loading from '../../components/common/Loading.jsx';
 import ProgressBar from '../../components/common/ProgressBar.jsx';
+import { getMyEnrollments } from '../../services/enrollment.service.js';
 import { listCodingTasks } from '../../services/coding-practice.service.js';
 import {
   CODING_DIFFICULTY_BADGE_CLASS,
@@ -12,7 +13,12 @@ import {
   STUDENT_STATUS_LABEL,
   TASK_ACTION_LABEL,
   TASK_STATUS_BADGE_CLASS,
+  resolveAccessibleCourseId,
 } from './codingPracticeUi.js';
+
+const ACTIVE_ENROLLMENT_STATUSES = ['approved', 'completed'];
+const enrollmentCourseId = (enrollment) =>
+  enrollment?.course?.id || enrollment?.course?._id || null;
 
 export default function StudentCodingTopicPage() {
   const navigate = useNavigate();
@@ -24,6 +30,7 @@ export default function StudentCodingTopicPage() {
   const paramsValid = Boolean(courseId && level && topic);
 
   const [tasks, setTasks] = useState([]);
+  const [enrolledCourseIds, setEnrolledCourseIds] = useState([]);
   const [loading, setLoading] = useState(paramsValid);
   const [error, setError] = useState(null);
 
@@ -32,8 +39,19 @@ export default function StudentCodingTopicPage() {
     setLoading(true);
     setError(null);
     try {
-      const response = await listCodingTasks({ courseId, level, topic });
+      // Tasks are already scoped server-side to this student's enrolled courses.
+      // Enrollments are only used to pick the right course context per task.
+      const [response, enrollmentRes] = await Promise.all([
+        listCodingTasks({ courseId, level, topic }),
+        getMyEnrollments({ limit: 50 }).catch(() => null),
+      ]);
       setTasks(response?.data?.tasks || []);
+      setEnrolledCourseIds(
+        (enrollmentRes?.data?.enrollments || [])
+          .filter((enrollment) => ACTIVE_ENROLLMENT_STATUSES.includes(enrollment.status))
+          .map(enrollmentCourseId)
+          .filter(Boolean)
+      );
     } catch (err) {
       setError(err.message || 'Failed to load this topic.');
     } finally {
@@ -44,6 +62,14 @@ export default function StudentCodingTopicPage() {
   useEffect(() => {
     load();
   }, [load]);
+
+  const openTask = (task) => {
+    const taskCourseId = resolveAccessibleCourseId(task, courseId, enrolledCourseIds);
+    const params = new URLSearchParams();
+    if (taskCourseId) params.set('courseId', taskCourseId);
+    const qs = params.toString();
+    navigate(`/coding-practice/tasks/${task.id}${qs ? `?${qs}` : ''}`);
+  };
 
   const backLink = (
     <Link to="/coding-practice" className="back-link">
@@ -73,7 +99,7 @@ export default function StudentCodingTopicPage() {
   const attemptedCount = tasks.filter((task) => task.studentStatus !== 'not_started').length;
   const progress =
     taskCount > 0 ? Math.round((solvedCount / taskCount) * 1000) / 10 : 0;
-  const courseTitle = tasks[0]?.courseTitle || '';
+  const courseTitle = [...new Set(tasks.map((task) => task.courseTitle).filter(Boolean))].join(' · ');
 
   return (
     <>
@@ -126,6 +152,7 @@ export default function StudentCodingTopicPage() {
                   <th scope="col">#</th>
                   <th scope="col">Title</th>
                   <th scope="col">Difficulty</th>
+                  <th scope="col">Type</th>
                   <th scope="col">Status</th>
                   <th scope="col">Action</th>
                 </tr>
@@ -145,6 +172,7 @@ export default function StudentCodingTopicPage() {
                           {task.difficulty}
                         </span>
                       </td>
+                      <td data-label="Type">{task.taskType}</td>
                       <td data-label="Status">
                         <span
                           className={`badge ${TASK_STATUS_BADGE_CLASS[statusLabel] || 'badge-neutral'}`}
@@ -157,7 +185,7 @@ export default function StudentCodingTopicPage() {
                           <Button
                             size="sm"
                             variant="outline"
-                            onClick={() => navigate(`/coding-practice/tasks/${task.id}`)}
+                            onClick={() => openTask(task)}
                           >
                             {TASK_ACTION_LABEL[statusLabel] || 'Solve'}
                           </Button>

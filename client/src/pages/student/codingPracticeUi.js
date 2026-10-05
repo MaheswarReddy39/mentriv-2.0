@@ -1,5 +1,4 @@
-export const CODING_LEVELS = ['Beginner', 'Intermediate', 'Advanced'];
-
+// Levels are never hardcoded: they come from the backend groups response.
 export const CODING_LEVEL_BADGE_CLASS = {
   Beginner: 'badge-success',
   Intermediate: 'badge-warning',
@@ -190,13 +189,30 @@ export const formatDateTime = (value) => {
     : date.toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' });
 };
 
-export const topicSearchUrl = (task) => {
+export const topicSearchUrl = (task, courseId) => {
   const params = new URLSearchParams({
-    courseId: task.courseIds?.[0] || '',
+    courseId: courseId || task.courseIds?.[0] || '',
     level: task.level,
     topic: task.topic,
   });
   return `/coding-practice/topic?${params.toString()}`;
+};
+
+// Picks the course context used for a task navigation/submission:
+// prefers `preferredCourseId` when the student reaches the task through it,
+// otherwise the first of the task's courses the student is enrolled in.
+// Returns '' when nothing is known — the backend then resolves the
+// accessible course server-side.
+export const resolveAccessibleCourseId = (task, preferredCourseId, enrolledCourseIds = []) => {
+  const taskIds = (task?.courseIds || []).map(String);
+  const preferred = preferredCourseId ? String(preferredCourseId) : '';
+  const enrolled = new Set((enrolledCourseIds || []).map(String));
+  const accessible = taskIds.filter((id) => enrolled.has(id));
+
+  if (accessible.length > 0) {
+    return preferred && accessible.includes(preferred) ? preferred : accessible[0];
+  }
+  return preferred && taskIds.includes(preferred) ? preferred : '';
 };
 
 const stripComments = (value) =>

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import Button from '../../components/common/Button.jsx';
 import Card from '../../components/common/Card.jsx';
 import EmptyState from '../../components/common/EmptyState.jsx';
@@ -50,6 +50,10 @@ const bulletList = {
 export default function StudentCodingTaskPage() {
   const { taskId } = useParams();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  // Accessible course context preserved from the topic list; the backend still
+  // validates it on every submission/history call.
+  const courseId = searchParams.get('courseId') || '';
 
   const [task, setTask] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -131,7 +135,7 @@ export default function StudentCodingTaskPage() {
 
   return (
     <>
-      <Link to={topicSearchUrl(task)} className="back-link">
+      <Link to={topicSearchUrl(task, courseId)} className="back-link">
         Back to {task.topic}
       </Link>
 
@@ -282,10 +286,19 @@ export default function StudentCodingTaskPage() {
         </Card>
 
         <div style={{ display: 'flex', gap: 'var(--space-3)', flexWrap: 'wrap' }}>
-          <Button type="button" onClick={() => navigate(`/coding-practice/tasks/${task.id}/solve`)}>
+          <Button
+            type="button"
+            onClick={() =>
+              navigate(
+                `/coding-practice/tasks/${task.id}/solve${
+                  courseId ? `?courseId=${encodeURIComponent(courseId)}` : ''
+                }`
+              )
+            }
+          >
             Start Task
           </Button>
-          <Button type="button" variant="outline" onClick={() => navigate(topicSearchUrl(task))}>
+          <Button type="button" variant="outline" onClick={() => navigate(topicSearchUrl(task, courseId))}>
             Back to Topic
           </Button>
         </div>

@@ -22,8 +22,14 @@ export const createCodingTasksForCourses = (courseIds, payload) =>
 export const updateCodingTask = (taskId, payload) =>
   apiClient.patch(`/coding-tasks/${taskId}`, payload);
 
-export const listCodingSubmissions = (taskId) =>
-  apiClient.get(`/coding-tasks/${taskId}/submissions`);
+// Submission history is always scoped by (taskId, courseId) so attempts from
+// one course never mix with another course's history.
+export const listCodingSubmissions = (taskId, courseId) => {
+  const query = new URLSearchParams();
+  if (courseId) query.set('courseId', courseId);
+  const qs = query.toString();
+  return apiClient.get(`/coding-tasks/${taskId}/submissions${qs ? `?${qs}` : ''}`);
+};
 
 export const createCodingSubmission = (taskId, payload) =>
   apiClient.post(`/coding-tasks/${taskId}/submissions`, payload);

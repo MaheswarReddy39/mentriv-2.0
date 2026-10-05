@@ -229,8 +229,7 @@ const codingTaskSchema = new mongoose.Schema(
 
 codingTaskSchema.index({ createdBy: 1, createdAt: -1 });
 codingTaskSchema.index({ courseIds: 1, status: 1 });
-codingTaskSchema.index({ status: 1, createdAt: -1 });
-codingTaskSchema.index({ courseIds: 1, level: 1, topic: 1 });
+codingTaskSchema.index({ courseIds: 1, status: 1, level: 1, topic: 1, taskOrder: 1, createdAt: 1 });
 codingTaskSchema.index({ createdBy: 1, courseIds: 1, level: 1, topic: 1, taskOrder: 1 });
 
 const CodingTask = mongoose.model('CodingTask', codingTaskSchema);

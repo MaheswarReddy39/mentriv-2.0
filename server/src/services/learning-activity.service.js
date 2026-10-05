@@ -95,8 +95,8 @@ const getLearningActivity = async (requester) => {
     })
       .select('mcqTestId submittedAt')
       .lean(),
-    CodingTask.distinct('_id', { courseId: courseFilter }),
-    CodingSubmission.find({ studentId, createdAt: timeFilter })
+    CodingTask.distinct('_id', { courseIds: courseFilter }),
+    CodingSubmission.find({ studentId, courseId: courseFilter, createdAt: timeFilter })
       .select('taskId createdAt')
       .lean(),
   ]);
