@@ -17,7 +17,7 @@ import {
 } from '../../services/coding-practice.service.js';
 import { DIFFICULTIES, LEVELS, TASK_TYPES, sectionForTaskType } from './codingPractice.js';
 
-const LANGUAGES = ['JavaScript', 'Python', 'Java', 'C++', 'Go'];
+const LANGUAGES = ['HTML', 'CSS','JavaScript', 'Python', 'Java', 'C++', 'Go'];
 
 const HTTP_METHODS = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'];
 

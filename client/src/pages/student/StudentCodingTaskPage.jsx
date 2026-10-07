@@ -137,7 +137,7 @@ export default function StudentCodingTaskPage() {
   return (
     <>
       <Link to={topicSearchUrl(task, courseId)} className="back-link">
-        Back to {task.topic}
+        Back to {task.title}
       </Link>
 
       <section className="asg-head fade-in" aria-labelledby="coding-task-heading">
@@ -300,7 +300,7 @@ export default function StudentCodingTaskPage() {
             Start Task
           </Button>
           <Button type="button" variant="outline" onClick={() => navigate(topicSearchUrl(task, courseId))}>
-            Back to Topic
+            Back to {task.title}
           </Button>
         </div>
       </div>

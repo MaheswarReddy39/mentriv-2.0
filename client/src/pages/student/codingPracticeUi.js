@@ -201,10 +201,12 @@ export const formatDateTime = (value) => {
     : date.toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' });
 };
 
+// Back-navigation targets the technology card, which is keyed by the
+// teacher-entered title (requirement: title is the top-level category).
 export const topicSearchUrl = (task, courseId) => {
   const params = new URLSearchParams({
     courseId: courseId || task.courseIds?.[0] || '',
-    topic: task.topic,
+    title: task.title,
   });
   return `/coding-practice/topic?${params.toString()}`;
 };

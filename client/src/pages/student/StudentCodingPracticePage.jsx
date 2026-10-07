@@ -6,46 +6,44 @@ import EmptyState from '../../components/common/EmptyState.jsx';
 import ErrorState from '../../components/common/ErrorState.jsx';
 import Loading from '../../components/common/Loading.jsx';
 import ProgressBar from '../../components/common/ProgressBar.jsx';
-import { listCodingTaskGroups } from '../../services/coding-practice.service.js';
+import { listCodingTasks } from '../../services/coding-practice.service.js';
 
-// The backend returns one group per (level, topic) so a technology can appear
-// several times (once per level/course combination). These merge them into
-// exactly ONE card per topic — counts are summed, never double counted,
-// because every task belongs to a single level+topic group.
-const mergeTopics = (groups) => {
-  const byTopic = new Map();
+// ONE card per teacher-entered title — the title IS the technology/category
+// (HTML, CSS, JavaScript, React, ...). The per-task `topic` field is a detail
+// description and never becomes a card. Cards follow the backend task order
+// (first appearance); titles from several courses/levels merge into one card
+// and each task is counted exactly once.
+const mergeTechnologyCards = (tasks) => {
+  const byTitle = new Map();
 
-  groups.forEach((group) => {
-    const topic = String(group?.topic || '').trim();
-    const taskCount = Number(group?.taskCount) || 0;
-    if (!topic || taskCount <= 0) return;
+  tasks.forEach((task) => {
+    const title = String(task?.title || '').trim();
+    if (!title) return;
 
-    const entry = byTopic.get(topic) || {
-      topic,
+    const entry = byTitle.get(title) || {
+      title,
       taskCount: 0,
       solvedCount: 0,
       attemptedCount: 0,
     };
-    entry.taskCount += taskCount;
-    entry.solvedCount += Number(group?.solvedCount) || 0;
-    entry.attemptedCount += Number(group?.attemptedCount) || 0;
-    byTopic.set(topic, entry);
+    entry.taskCount += 1;
+    if (task.studentStatus === 'solved') entry.solvedCount += 1;
+    if (task.studentStatus !== 'not_started') entry.attemptedCount += 1;
+    byTitle.set(title, entry);
   });
 
-  return [...byTopic.values()]
-    .map((entry) => ({
-      ...entry,
-      progress:
-        entry.taskCount > 0
-          ? Math.round((entry.solvedCount / entry.taskCount) * 1000) / 10
-          : 0,
-    }))
-    .sort((a, b) => a.topic.localeCompare(b.topic));
+  return [...byTitle.values()].map((entry) => ({
+    ...entry,
+    progress:
+      entry.taskCount > 0
+        ? Math.round((entry.solvedCount / entry.taskCount) * 1000) / 10
+        : 0,
+  }));
 };
 
 export default function StudentCodingPracticePage() {
   const navigate = useNavigate();
-  const [groups, setGroups] = useState([]);
+  const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -53,8 +51,9 @@ export default function StudentCodingPracticePage() {
     setLoading(true);
     setError(null);
     try {
-      const response = await listCodingTaskGroups();
-      setGroups(response?.data?.groups || []);
+      // Already scoped server-side to published tasks in enrolled courses.
+      const response = await listCodingTasks({});
+      setTasks(response?.data?.tasks || []);
     } catch (err) {
       setError(err.message || 'Failed to load coding practice.');
     } finally {
@@ -66,10 +65,10 @@ export default function StudentCodingPracticePage() {
     load();
   }, [load]);
 
-  const topics = mergeTopics(groups);
+  const cards = mergeTechnologyCards(tasks);
 
-  const openTopic = (topic) => {
-    const params = new URLSearchParams({ topic });
+  const openTechnology = (title) => {
+    const params = new URLSearchParams({ title });
     navigate(`/coding-practice/topic?${params.toString()}`);
   };
 
@@ -88,31 +87,31 @@ export default function StudentCodingPracticePage() {
         <ErrorState title="Failed to load coding practice" message={error} onRetry={load} />
       ) : loading ? (
         <Loading label="Loading coding practice..." />
-      ) : topics.length === 0 ? (
+      ) : cards.length === 0 ? (
         <EmptyState
           title="No Coding Practice Tasks Yet"
           message="Coding challenges will appear here once they are published."
         />
       ) : (
         <div className="student-classes-grid">
-          {topics.map((topic) => (
-            <Card key={topic.topic} variant="student-class-card card-interactive">
+          {cards.map((card) => (
+            <Card key={card.title} variant="student-class-card card-interactive">
               <div style={{ display: 'grid', gap: 'var(--space-3)' }}>
-                <h3>{topic.topic}</h3>
+                <h3>{card.title}</h3>
                 <p className="text-meta" style={{ margin: 0 }}>
-                  Practice {topic.topic} coding tasks
+                  Practice {card.title} coding tasks
                 </p>
                 <p className="text-meta" style={{ margin: 0 }}>
-                  {topic.taskCount} {topic.taskCount === 1 ? 'Task' : 'Tasks'}
+                  {card.taskCount} {card.taskCount === 1 ? 'Task' : 'Tasks'}
                 </p>
                 <p className="text-meta" style={{ margin: 0 }}>
-                  {topic.solvedCount} Solved &middot; {topic.attemptedCount} Attempted
+                  {card.solvedCount} Solved &middot; {card.attemptedCount} Attempted
                 </p>
-                <ProgressBar label="Progress" value={topic.progress} />
+                <ProgressBar label="Progress" value={card.progress} />
               </div>
 
               <div className="student-class-actions">
-                <Button size="sm" onClick={() => openTopic(topic.topic)}>
+                <Button size="sm" onClick={() => openTechnology(card.title)}>
                   Open Practice →
                 </Button>
               </div>

@@ -12,6 +12,7 @@ import {
   STUDENT_STATUS_LABEL,
   TASK_ACTION_LABEL,
   TASK_STATUS_BADGE_CLASS,
+  levelDisplayLabel,
   resolveAccessibleCourseId,
 } from './codingPracticeUi.js';
 
@@ -23,12 +24,16 @@ export default function StudentCodingTopicPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
-  // ONE list per topic across ALL levels and courses. courseId is optional:
-  // it only remembers the course context a task was opened from; the list
-  // itself is server-scoped to the student's enrolled courses.
+  // The URL carries the teacher-entered title / technology (e.g. ?title=HTML)
+  // — the same key the home cards are grouped by. Older ?topic= links are
+  // accepted as a fallback. courseId stays optional: it only remembers the
+  // course context a task was opened from. The list itself is server-scoped
+  // to the student's enrolled courses and contains EVERY level of this title.
   const courseId = searchParams.get('courseId') || '';
-  const topic = searchParams.get('topic') || '';
-  const paramsValid = Boolean(topic);
+  const technology = String(
+    searchParams.get('title') || searchParams.get('topic') || ''
+  ).trim();
+  const paramsValid = Boolean(technology);
 
   const [tasks, setTasks] = useState([]);
   const [enrolledCourseIds, setEnrolledCourseIds] = useState([]);
@@ -43,7 +48,7 @@ export default function StudentCodingTopicPage() {
       // Tasks are already scoped server-side to this student's enrolled courses.
       // Enrollments are only used to pick the right course context per task.
       const [response, enrollmentRes] = await Promise.all([
-        listCodingTasks({ topic }),
+        listCodingTasks({}),
         getMyEnrollments({ limit: 50 }).catch(() => null),
       ]);
       setTasks(response?.data?.tasks || []);
@@ -58,7 +63,7 @@ export default function StudentCodingTopicPage() {
     } finally {
       setLoading(false);
     }
-  }, [paramsValid, topic]);
+  }, [paramsValid, technology]);
 
   useEffect(() => {
     load();
@@ -95,9 +100,41 @@ export default function StudentCodingTopicPage() {
     );
   }
 
-  const taskCount = tasks.length;
-  const solvedCount = tasks.filter((task) => task.studentStatus === 'solved').length;
-  const attemptedCount = tasks.filter((task) => task.studentStatus !== 'not_started').length;
+  // Every accessible task of this title, across all topics, levels and
+  // courses. Filtering never reorders: the backend order is preserved.
+  const technologyTasks = tasks.filter(
+    (task) => String(task?.title || '').trim() === technology
+  );
+
+  // Visual level sections inside the ONE technology page (Basic/Medium/
+  // Advanced). Backend level order first, unknown levels after; tasks inside
+  // a section keep the backend order. Numbers continue across sections.
+  const sections = [];
+  const sectionByLevel = new Map();
+  technologyTasks.forEach((task) => {
+    const level = String(task.level || '').trim() || 'Other';
+    let section = sectionByLevel.get(level);
+    if (!section) {
+      section = { level, tasks: [] };
+      sectionByLevel.set(level, section);
+      sections.push(section);
+    }
+    section.tasks.push(task);
+  });
+  const LEVEL_SECTION_RANK = { Beginner: 0, Intermediate: 1, Advanced: 2 };
+  sections.sort(
+    (a, b) =>
+      (LEVEL_SECTION_RANK[a.level] ?? 99) - (LEVEL_SECTION_RANK[b.level] ?? 99)
+  );
+  let sectionOffset = 0;
+  sections.forEach((section) => {
+    section.startIndex = sectionOffset;
+    sectionOffset += section.tasks.length;
+  });
+
+  const taskCount = technologyTasks.length;
+  const solvedCount = technologyTasks.filter((task) => task.studentStatus === 'solved').length;
+  const attemptedCount = technologyTasks.filter((task) => task.studentStatus !== 'not_started').length;
   const progress =
     taskCount > 0 ? Math.round((solvedCount / taskCount) * 1000) / 10 : 0;
 
@@ -106,9 +143,9 @@ export default function StudentCodingTopicPage() {
       {backLink}
 
       <section className="asg-head fade-in" aria-labelledby="coding-topic-heading">
-        <h1 id="coding-topic-heading">{topic}</h1>
+        <h1 id="coding-topic-heading">{technology}</h1>
         <p className="text-meta" style={{ margin: 'var(--space-2) 0 0' }}>
-          Practice {topic} coding tasks and improve your skills.
+          Practice {technology} coding tasks and improve your skills.
         </p>
 
         {error ? null : loading ? null : (
@@ -124,13 +161,13 @@ export default function StudentCodingTopicPage() {
       <section
         className="student-assignment-list fade-in"
         style={{ marginTop: 'var(--space-5)' }}
-        aria-label={`${topic} tasks`}
+        aria-label={`${technology} tasks`}
       >
         {error ? (
           <ErrorState title="Failed to load this topic" message={error} onRetry={load} />
         ) : loading ? (
           <Loading label="Loading tasks..." />
-        ) : tasks.length === 0 ? (
+        ) : technologyTasks.length === 0 ? (
           <EmptyState
             title="No tasks in this topic yet"
             message="Tasks published for this topic will appear here."
@@ -141,58 +178,70 @@ export default function StudentCodingTopicPage() {
             }
           />
         ) : (
-          <div className="admin-table-wrap">
-            <table className="admin-table">
-              <thead>
-                <tr>
-                  <th scope="col">#</th>
-                  <th scope="col">Task Title</th>
-                  <th scope="col">Difficulty</th>
-                  <th scope="col">Task Type</th>
-                  <th scope="col">Status</th>
-                  <th scope="col">Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                {tasks.map((task, index) => {
-                  const statusLabel =
-                    STUDENT_STATUS_LABEL[task.studentStatus] || 'Not Started';
-                  return (
-                    <tr key={task.id}>
-                      <td data-label="#">{index + 1}</td>
-                      <td data-label="Task Title">{task.title}</td>
-                      <td data-label="Difficulty">
-                        <span
-                          className={`badge ${CODING_DIFFICULTY_BADGE_CLASS[task.difficulty] || 'badge-neutral'}`}
-                        >
-                          {task.difficulty}
-                        </span>
-                      </td>
-                      <td data-label="Task Type">{task.taskType}</td>
-                      <td data-label="Status">
-                        <span
-                          className={`badge ${TASK_STATUS_BADGE_CLASS[statusLabel] || 'badge-neutral'}`}
-                        >
-                          {statusLabel}
-                        </span>
-                      </td>
-                      <td data-label="Action">
-                        <div className="admin-table-actions">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => openTask(task)}
-                          >
-                            {TASK_ACTION_LABEL[statusLabel] || 'Solve'}
-                          </Button>
-                        </div>
-                      </td>
+          sections.map((section) => (
+            <div key={section.level}>
+              <h2
+                className="student-classes-heading"
+                style={{ marginBottom: 'var(--space-3)' }}
+              >
+                {levelDisplayLabel(section.level)}
+              </h2>
+
+              <div className="admin-table-wrap">
+                <table className="admin-table">
+                  <thead>
+                    <tr>
+                      <th scope="col">#</th>
+                      <th scope="col">Task Title</th>
+                      <th scope="col">Difficulty</th>
+                      <th scope="col">Task Type</th>
+                      <th scope="col">Status</th>
+                      <th scope="col">Action</th>
                     </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+                  </thead>
+                  <tbody>
+                    {section.tasks.map((task, index) => {
+                      const statusLabel =
+                        STUDENT_STATUS_LABEL[task.studentStatus] || 'Not Started';
+                      const number = section.startIndex + index + 1;
+                      return (
+                        <tr key={task.id}>
+                          <td data-label="#">{number}</td>
+                          <td data-label="Task Title">{task.title}</td>
+                          <td data-label="Difficulty">
+                            <span
+                              className={`badge ${CODING_DIFFICULTY_BADGE_CLASS[task.difficulty] || 'badge-neutral'}`}
+                            >
+                              {task.difficulty}
+                            </span>
+                          </td>
+                          <td data-label="Task Type">{task.taskType}</td>
+                          <td data-label="Status">
+                            <span
+                              className={`badge ${TASK_STATUS_BADGE_CLASS[statusLabel] || 'badge-neutral'}`}
+                            >
+                              {statusLabel}
+                            </span>
+                          </td>
+                          <td data-label="Action">
+                            <div className="admin-table-actions">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => openTask(task)}
+                              >
+                                {TASK_ACTION_LABEL[statusLabel] || 'Solve'}
+                              </Button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          ))
         )}
       </section>
     </>
