@@ -1,32 +1,48 @@
-const STEPS = [
-  { num: '01', title: 'Classes', body: 'Module-sequenced lessons, always in order.' },
-  { num: '02', title: 'Assignments', body: 'Reviewed — marks plus personal feedback.' },
-  { num: '03', title: 'MCQs', body: 'Evaluated — instant results & explanations.' },
-  { num: '04', title: 'Progress', body: 'Tracked — one percentage per course.' },
+const INPUTS = [
+  {
+    step: '01',
+    title: 'Classes',
+    body: 'Lessons follow a fixed module sequence, so you always know what comes next.',
+  },
+  {
+    step: '02',
+    title: 'Assignments',
+    body: 'Every submission is reviewed and returned with marks and written feedback.',
+  },
+  {
+    step: '03',
+    title: 'MCQs',
+    body: 'Tests are scored the moment you submit, with an explanation for each answer.',
+  },
+  {
+    step: '04',
+    title: 'Progress',
+    body: 'Your activity comes together in one clear course view, so you can pick up where you left off.',
+  },
 ];
 
 export default function LearningExperienceSection() {
   return (
     <section
-      className="homepage-section homepage-steps-section"
+      className="homepage-section experience-section"
       aria-labelledby="experience-heading"
     >
-      <div className="section-head">
-        <div>
-          <h2 id="experience-heading">How learning works</h2>
-          <p>Four steps from enrollment to a completed course.</p>
-        </div>
+      <div className="experience-head">
+        <h2 id="experience-heading">How learning works</h2>
       </div>
 
-      <ol className="homepage-steps-grid">
-        {STEPS.map((step) => (
-          <li key={step.num} className="homepage-step-card">
-            <span className="homepage-step-number">{step.num}</span>
-            <h3>{step.title}</h3>
-            <p>{step.body}</p>
-          </li>
+      <div className="learning-path">
+        {INPUTS.map((part, index) => (
+          <article key={part.title} className="learning-step">
+            <div className="learning-step-top">
+              <span className="learning-step-number">{part.step}</span>
+              {index < INPUTS.length - 1 ? <span className="learning-step-line" aria-hidden="true" /> : null}
+            </div>
+            <h3>{part.title}</h3>
+            <p>{part.body}</p>
+          </article>
         ))}
-      </ol>
+      </div>
     </section>
   );
 }

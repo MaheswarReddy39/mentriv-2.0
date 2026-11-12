@@ -22,6 +22,9 @@
   --teal: #14B8A6;
   --pink: #EC4899;
 
+  /* Theme-aware brand action color — matches the hero accent */
+  --accent-strong: var(--coral);
+
   /* ---------- Gradients ---------- */
   --grad-brand: linear-gradient(120deg, var(--indigo), var(--violet) 50%, var(--coral));
   --grad-thumb-indigo: linear-gradient(135deg, var(--indigo), var(--violet));
@@ -33,6 +36,7 @@
   --radius-sm: 10px;
   --radius-md: 16px;
   --radius-lg: 26px;
+  --radius-btn: 13px;
   --radius-pill: 999px;
 
   /* ---------- Shadows ---------- */

@@ -11,6 +11,9 @@
 html {
   -webkit-text-size-adjust: 100%;
   scroll-behavior: smooth;
+  scroll-padding-top: 76px;
+  scrollbar-color: color-mix(in srgb, var(--accent-strong) 72%, var(--border)) transparent;
+  scrollbar-gutter: stable;
 }
 
 body {
@@ -22,7 +25,17 @@ body {
   font-family: var(--font-body);
   font-size: var(--font-size-body);
   line-height: var(--line-height-body);
+  overscroll-behavior-y: none;
 }
+
+body::-webkit-scrollbar { width: 11px; }
+body::-webkit-scrollbar-track { background: transparent; }
+body::-webkit-scrollbar-thumb {
+  border: 3px solid var(--bg);
+  border-radius: var(--radius-pill);
+  background: color-mix(in srgb, var(--accent-strong) 68%, var(--border));
+}
+body::-webkit-scrollbar-thumb:hover { background: var(--accent-strong); }
 
 /* ---------- Typography ---------- */
 h1, h2, h3, h4 {
