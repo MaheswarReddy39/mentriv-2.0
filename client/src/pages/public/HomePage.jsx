@@ -8,49 +8,68 @@ import HeroSection from '../../components/home/HeroSection.jsx';
 import WhyMentrivSection from '../../components/home/WhyMentrivSection.jsx';
 import LearningExperienceSection from '../../components/home/LearningExperienceSection.jsx';
 import CtaSection from '../../components/home/CtaSection.jsx';
-import { thumbClassFor } from '../../utils/course-visuals.js';
 
-const PILLARS = [
-  { num: '01', color: 'stat-indigo', label: 'Structured courses' },
-  { num: '02', color: 'stat-coral', label: 'Graded assignments' },
-  { num: '03', color: 'stat-teal', label: 'Auto-evaluated MCQs' },
-  { num: '04', color: 'stat-amber', label: 'Visible progress' },
-];
+const LEVEL_LABELS = {
+  basic: 'Beginner',
+  beginner: 'Beginner',
+  intermediate: 'Intermediate',
+  advanced: 'Advanced',
+};
 
 function FeaturedCourseCard({ course }) {
   const title = course.title || 'Course';
+  const level = LEVEL_LABELS[course.level] || course.level;
 
   return (
-    <article className="home-course-card">
-      {course.thumbnail ? (
-        <img
-          className="home-course-image"
-          src={course.thumbnail}
-          alt={`Cover image for ${title}`}
-          loading="lazy"
-        />
-      ) : (
-        <div className={`home-course-image home-course-thumb ${thumbClassFor(course.category, title)}`}>
-          <span>Course</span>
-        </div>
-      )}
+    <article className="featured-course-card">
+      <div className="featured-course-media">
+        <Link to={`/courses/${course.slug}`} className="featured-course-image-link" aria-label={`View ${title}`}>
+          {course.thumbnail ? (
+            <img
+              className="featured-course-image"
+              src={course.thumbnail}
+              alt={`Cover image for ${title}`}
+              loading="lazy"
+            />
+          ) : (
+            <div className="featured-course-image featured-course-fallback" aria-hidden="true">
+              <span className="featured-course-mark">M</span>
+            </div>
+          )}
+        </Link>
+      </div>
 
-      <div className="home-course-body">
-        <h3 className="clamp-2">{title}</h3>
-        <div className="home-course-actions">
+      <div className="featured-course-body">
+        <div className="featured-course-meta">
+          {course.category ? <p className="featured-course-category">{course.category}</p> : null}
+          {level ? <span className="course-level">{level}</span> : null}
+        </div>
+
+        <h3 className="featured-course-title clamp-2">
+          <Link to={`/courses/${course.slug}`} className="featured-course-title-link">{title}</Link>
+        </h3>
+
+        {course.shortDescription ? (
+          <p className="featured-course-desc clamp-2">{course.shortDescription}</p>
+        ) : null}
+
+        <div className="featured-course-actions">
           <Link
             to={`/courses/${course.slug}`}
-            className="btn btn-outline btn-sm"
-            aria-label={`Explore ${title}`}
+            className="featured-course-cta"
+            aria-label={`View ${title}`}
           >
-            Course Explorer
+            Explore course
+            <svg viewBox="0 0 16 16" aria-hidden="true">
+              <path d="M3 8h9M8.5 3.5 13 8l-4.5 4.5" />
+            </svg>
           </Link>
           <Link
             to="/register"
-            className="btn btn-primary btn-sm"
+            className="featured-course-link"
             aria-label={`Get started with ${title}`}
           >
-            Get Started
+            Get started
           </Link>
         </div>
       </div>
@@ -84,32 +103,13 @@ export default function HomePage() {
   }, []);
 
   return (
-    <div className="page-home">
-      {/* Decorative background blobs — behind all content */}
-      <div className="blob blob-b1" aria-hidden="true" />
-      <div className="blob blob-b2" aria-hidden="true" />
-      <div className="blob blob-b3" aria-hidden="true" />
+    <div className="page-home page-marketing">
+      <HeroSection />
 
       <div className="home-content container">
-        <HeroSection />
-
-        <section className="homepage-section" aria-label="What Mentriv covers">
-          <div className="stat-strip">
-            {PILLARS.map((pillar) => (
-              <div key={pillar.num} className="stat-strip-item">
-                <p className={`stat-strip-number ${pillar.color}`}>{pillar.num}</p>
-                <p className="stat-strip-label">{pillar.label}</p>
-              </div>
-            ))}
-          </div>
-        </section>
-
         <section className="homepage-section" aria-labelledby="featured-heading">
           <div className="section-head">
-            <div>
-              <h2 id="featured-heading">Featured courses</h2>
-              <p>Published courses you can enroll in right away.</p>
-            </div>
+            <h2 id="featured-heading">Featured courses</h2>
             <Link to="/courses" className="link-arrow">View all courses</Link>
           </div>
 

@@ -41,6 +41,14 @@ export default function Chatbot() {
     setIsMinimized((prev) => !prev);
   }, []);
 
+  const handleStop = useCallback(() => {
+    if (abortRef.current) {
+      abortRef.current.abort();
+      abortRef.current = null;
+    }
+    setIsStreaming(false);
+  }, []);
+
   const handleSend = useCallback(async (text) => {
     const userMsg = { id: nextId++, sender: 'user', text };
     setMessages((prev) => [...prev, userMsg]);
@@ -60,7 +68,7 @@ export default function Chatbot() {
       if (!response.ok) {
         const data = await response.json().catch(() => null);
         const errorMsg = data?.message || 'Chatbot is temporarily unavailable. Please try again later.';
-        setMessages((prev) => [...prev, { id: nextId++, sender: 'bot', text: errorMsg }]);
+        setMessages((prev) => [...prev, { id: nextId++, sender: 'bot', text: errorMsg, error: true }]);
         setIsStreaming(false);
         return;
       }
@@ -111,11 +119,11 @@ export default function Chatbot() {
             } else if (eventType === 'error') {
               const errorMsg = data.message || 'Chatbot is temporarily unavailable. Please try again later.';
               if (botMsgId === null) {
-                setMessages((prev) => [...prev, { id: nextId++, sender: 'bot', text: errorMsg }]);
+                setMessages((prev) => [...prev, { id: nextId++, sender: 'bot', text: errorMsg, error: true }]);
               } else {
                 setMessages((prev) => [
                   ...prev.filter((m) => m.id !== botMsgId),
-                  { id: botMsgId, sender: 'bot', text: errorMsg },
+                  { id: botMsgId, sender: 'bot', text: errorMsg, error: true },
                 ]);
               }
             }
@@ -126,7 +134,12 @@ export default function Chatbot() {
       if (err.name !== 'AbortError') {
         setMessages((prev) => [
           ...prev,
-          { id: nextId++, sender: 'bot', text: 'Chatbot is temporarily unavailable. Please try again later.' },
+          {
+            id: nextId++,
+            sender: 'bot',
+            text: 'Chatbot is temporarily unavailable. Please try again later.',
+            error: true,
+          },
         ]);
       }
     } finally {
@@ -155,6 +168,7 @@ export default function Chatbot() {
           onClose={handleClose}
           onSend={handleSend}
           onSuggestion={handleSuggestion}
+          onStop={handleStop}
         />
       )}
       <ChatbotButton isOpen={isOpen} onClick={handleToggle} />

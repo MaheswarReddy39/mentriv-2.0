@@ -1,5 +1,5 @@
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { thumbClassFor } from '../../utils/course-visuals.js';
 import { formatCurrency } from '../../utils/format.js';
 
 const LEVEL_LABELS = {
@@ -9,61 +9,77 @@ const LEVEL_LABELS = {
   advanced: 'Advanced',
 };
 
+const capitalize = (value = '') =>
+  String(value).replace(/\b\w/g, (char) => char.toUpperCase());
+
 export default function CourseCard({ course }) {
   const {
     slug,
-    title,
+    title = 'Course',
     shortDescription,
     thumbnail,
     price,
     currency = 'INR',
     duration,
     level,
+    category,
   } = course;
-  const levelLabel = LEVEL_LABELS[level] || level;
+  const [imageFailed, setImageFailed] = useState(false);
+
+  const levelLabel = LEVEL_LABELS[level] || (level ? capitalize(level) : '');
+  const hours = Number(duration);
+  const durationLabel = hours > 0
+    ? `${hours} ${hours === 1 ? 'hour' : 'hours'}`
+    : 'Self-paced';
+  const priceLabel = Number(price) === 0 ? 'Free' : formatCurrency(price, currency);
+  const showImage = Boolean(thumbnail) && !imageFailed;
 
   return (
-    <article className="home-course-card public-course-card">
-      <div className="public-course-media">
-        {thumbnail ? (
+    <article className="catalog-card">
+      <div className="catalog-card-media">
+        {showImage ? (
           <img
-            className="home-course-image"
+            className="catalog-card-image"
             src={thumbnail}
             alt={`Cover image for ${title}`}
             loading="lazy"
+            onError={() => setImageFailed(true)}
           />
         ) : (
-          <div className={`home-course-image home-course-thumb ${thumbClassFor(course.category, title)}`}>
-            <span>{title}</span>
+          <div className="catalog-card-fallback" aria-hidden="true">
+            <span className="catalog-card-mark">M</span>
           </div>
         )}
-
-        {levelLabel ? (
-          <span className="thumb-badge">{levelLabel}</span>
-        ) : null}
       </div>
 
-      <div className="home-course-body public-course-body">
-        <h3 className="clamp-2">{title}</h3>
+      <div className="catalog-card-body">
+        <div className="catalog-card-meta">
+          {category ? (
+            <span className="catalog-card-category">{capitalize(category)}</span>
+          ) : (
+            <span />
+          )}
+          {levelLabel ? <span className="course-level">{levelLabel}</span> : null}
+        </div>
+
+        <h2 className="catalog-card-title clamp-2">
+          <Link to={`/courses/${slug}`} className="catalog-card-link">
+            {title}
+          </Link>
+        </h2>
+
         {shortDescription ? (
-          <p className="text-sm clamp-2" style={{ margin: 0 }}>{shortDescription}</p>
-        ) : null}
-        {duration ? (
-          <p className="text-meta" style={{ margin: 0 }}>≈ {duration} hours of learning</p>
+          <p className="catalog-card-desc clamp-2">{shortDescription}</p>
         ) : null}
 
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          marginTop: 'auto',
-          paddingTop: 'var(--space-3)',
-          borderTop: '1px solid var(--border)',
-        }}>
-          <span className="card-price">{formatCurrency(price, currency)}</span>
-          <Link to={`/courses/${slug}`} className="link-arrow text-sm">
-            View course
-          </Link>
+        <div className="catalog-card-footer">
+          <span className="catalog-card-duration">{durationLabel}</span>
+          {priceLabel ? <span className="catalog-card-price">{priceLabel}</span> : null}
+          <span className="catalog-card-arrow" aria-hidden="true">
+            <svg viewBox="0 0 16 16">
+              <path d="M3 8h9M8.5 3.5 13 8l-4.5 4.5" />
+            </svg>
+          </span>
         </div>
       </div>
     </article>

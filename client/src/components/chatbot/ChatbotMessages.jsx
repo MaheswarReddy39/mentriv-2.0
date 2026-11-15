@@ -3,36 +3,37 @@ import ChatbotMessage from './ChatbotMessage.jsx';
 import TypingIndicator from './TypingIndicator.jsx';
 
 export default function ChatbotMessages({ messages, isStreaming, onSuggestion }) {
-  const endRef = useRef(null);
+  const listRef = useRef(null);
 
   useEffect(() => {
-    endRef.current?.scrollIntoView({ behavior: 'smooth' });
+    const list = listRef.current;
+    if (!list) return;
+
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    list.scrollTo({ top: list.scrollHeight, behavior: reduceMotion ? 'auto' : 'smooth' });
   }, [messages, isStreaming]);
 
   const suggestions = [
-    'What courses does Mentriv offer?',
-    'How do I enroll?',
-    'What is the class schedule?',
+    'What courses are available?',
+    'How does enrollment work?',
+    'Where can I find my schedule?',
   ];
 
+  const lastMessage = messages[messages.length - 1];
+  const showTyping = isStreaming && (!lastMessage || lastMessage.sender === 'user');
+
   return (
-    <div className="chatbot-messages">
+    <div className="chatbot-messages" ref={listRef} role="log" aria-label="Conversation">
       {messages.length === 0 && !isStreaming && (
         <div className="chatbot-welcome">
-          <div className="chatbot-welcome-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-            </svg>
-          </div>
-          <h3>Hi there!</h3>
-          <p>I&apos;m Mentriv AI. How can I help you today?</p>
+          <h3>How can I help?</h3>
+          <p>Ask about courses, enrollment, or your schedule.</p>
           <div className="chatbot-suggestions">
             {suggestions.map((text) => (
               <button
                 key={text}
                 type="button"
                 className="chatbot-suggestion"
-                tabIndex={-1}
                 onClick={() => onSuggestion?.(text)}
               >
                 {text}
@@ -44,10 +45,7 @@ export default function ChatbotMessages({ messages, isStreaming, onSuggestion })
       {messages.map((msg) => (
         <ChatbotMessage key={msg.id} message={msg} />
       ))}
-      {isStreaming && messages.length > 0 && messages[messages.length - 1].sender === 'user' && (
-        <TypingIndicator />
-      )}
-      <div ref={endRef} />
+      {showTyping && <TypingIndicator />}
     </div>
   );
 }

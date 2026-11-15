@@ -4,13 +4,14 @@ export default function Button({
   loading = false,
   disabled = false,
   type = 'button',
+  className = '',
   children,
   ...rest
 }) {
   return (
     <button
       type={type}
-      className={`btn btn-${variant} btn-${size}`}
+      className={`btn btn-${variant} btn-${size}${className ? ` ${className}` : ''}`}
       disabled={disabled || loading}
       {...rest}
     >
