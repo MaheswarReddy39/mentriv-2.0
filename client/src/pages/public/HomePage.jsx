@@ -37,13 +37,17 @@ function FeaturedCourseCard({ course }) {
             </div>
           )}
         </Link>
+        {level ? (
+          <span className="course-level course-level--overlay">{level}</span>
+        ) : null}
       </div>
 
       <div className="featured-course-body">
-        <div className="featured-course-meta">
-          {course.category ? <p className="featured-course-category">{course.category}</p> : null}
-          {level ? <span className="course-level">{level}</span> : null}
-        </div>
+        {course.category ? (
+          <div className="featured-course-meta">
+            <p className="featured-course-category">{course.category}</p>
+          </div>
+        ) : null}
 
         <h3 className="featured-course-title clamp-2">
           <Link to={`/courses/${course.slug}`} className="featured-course-title-link">{title}</Link>

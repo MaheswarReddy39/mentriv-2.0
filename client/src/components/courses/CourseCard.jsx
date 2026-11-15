@@ -50,17 +50,17 @@ export default function CourseCard({ course }) {
             <span className="catalog-card-mark">M</span>
           </div>
         )}
+        {levelLabel ? (
+          <span className="course-level course-level--overlay">{levelLabel}</span>
+        ) : null}
       </div>
 
       <div className="catalog-card-body">
-        <div className="catalog-card-meta">
-          {category ? (
+        {category ? (
+          <div className="catalog-card-meta">
             <span className="catalog-card-category">{capitalize(category)}</span>
-          ) : (
-            <span />
-          )}
-          {levelLabel ? <span className="course-level">{levelLabel}</span> : null}
-        </div>
+          </div>
+        ) : null}
 
         <h2 className="catalog-card-title clamp-2">
           <Link to={`/courses/${slug}`} className="catalog-card-link">
