@@ -52,6 +52,7 @@
 }
 .btn-primary:hover:not(:disabled) {
   background: var(--coral-dark);
+  color: #fff;
   transform: none;
   box-shadow: var(--shadow-action-hover);
 }
