@@ -1,14 +1,10 @@
 export default function TypingIndicator() {
   return (
-    <div className="chatbot-msg chatbot-msg--bot">
-      <div className="chatbot-msg-avatar">M</div>
-      <div className="chatbot-msg-bubble">
-        <div className="chatbot-typing">
-          <span className="chatbot-typing-dot" />
-          <span className="chatbot-typing-dot" />
-          <span className="chatbot-typing-dot" />
-        </div>
-      </div>
+    <div className="chatbot-typing" role="status">
+      <span className="chatbot-typing-dot" aria-hidden="true" />
+      <span className="chatbot-typing-dot" aria-hidden="true" />
+      <span className="chatbot-typing-dot" aria-hidden="true" />
+      <span className="sr-only">Mentriv AI is typing</span>
     </div>
   );
 }

@@ -36,19 +36,28 @@
   --radius-sm: 10px;
   --radius-md: 16px;
   --radius-lg: 26px;
+  --radius-card: 18px;
+  --radius-panel: 22px;
+  --radius-control: 14px;
   --radius-btn: 13px;
   --radius-pill: 999px;
 
   /* ---------- Shadows ---------- */
+  --shadow-xs: 0 1px 2px rgba(79, 70, 229, 0.04);
   --shadow-sm: 0 2px 8px rgba(79, 70, 229, 0.06);
   --shadow-md: 0 12px 32px rgba(79, 70, 229, 0.14);
   --shadow-glow: 0 8px 24px rgba(255, 107, 91, 0.28);
+  --shadow-action: 0 8px 20px -8px rgba(255, 107, 91, 0.6);
+  --shadow-action-hover: 0 12px 24px -10px rgba(255, 107, 91, 0.68);
+  --shadow-elevated: 0 24px 50px -34px rgba(20, 20, 43, 0.5);
+  --shadow-overlay: 0 40px 80px -50px rgba(20, 20, 43, 0.5);
 
   --focus-ring: 0 0 0 3px rgba(79, 70, 229, 0.25);
 
   /* ---------- Typography ---------- */
   --font-heading: 'Manrope', sans-serif;
   --font-body: 'Inter', sans-serif;
+  --font-marketing: 'Plus Jakarta Sans', 'Inter', sans-serif;
 
   --font-size-display: 3.25rem;   /* 52px — hero */
   --font-size-h1: 2.5rem;         /* 40px */
@@ -62,9 +71,22 @@
   --font-size-meta: 0.78125rem;   /* 12.5px */
   --font-size-button: 0.9375rem;  /* 15px */
 
+  /* Marketing type scale — HireRaft-aligned */
+  --type-display: clamp(2.375rem, 5.4vw, 3.875rem);  /* 38 → 62px */
+  --type-h1: clamp(1.75rem, 3.6vw, 2.375rem);        /* 28 → 38px */
+  --type-h2: clamp(1.5rem, 2.8vw, 2.125rem);         /* 24 → 34px */
+  --type-h3: 1.1875rem;                              /* 19px */
+  --type-body-lg: 1.125rem;                          /* 18px */
+  --type-body: 0.9375rem;                            /* 15px */
+  --type-sm: 0.8125rem;                              /* 13px */
+  --type-xs: 0.6875rem;                              /* 11px */
+
   --line-height-tight: 1.1;
   --line-height-snug: 1.3;
   --line-height-body: 1.65;
+  --leading-display: 1.05;
+  --leading-heading: 1.2;
+  --leading-copy: 1.65;
 
   /* ---------- Spacing scale ---------- */
   --space-1: 0.25rem;
@@ -80,6 +102,27 @@
 
   --section-pad-desktop: 96px;
   --section-pad-mobile: 60px;
+
+  /* Homepage rhythm — HireRaft-aligned 4px scale */
+  --home-content-max: 1200px;
+  --home-hero-pad-top: 76px;
+  --home-hero-pad-bottom: 88px;
+  --home-section-pad: 92px;
+  --home-section-pad-mobile: 64px;
+  --home-grid-gap: 24px;
+  --home-stack-lg: 56px;
+
+  --ease-standard: cubic-bezier(0.2, 0, 0.2, 1);
+  --dur-state: 160ms;
+  --dur-lift: 240ms;
+  --transition-state: background-color var(--dur-state) var(--ease-standard),
+    border-color var(--dur-state) var(--ease-standard),
+    color var(--dur-state) var(--ease-standard),
+    box-shadow var(--dur-state) var(--ease-standard),
+    transform 100ms var(--ease-standard);
+  --transition-lift: transform var(--dur-lift) var(--ease-standard),
+    box-shadow var(--dur-lift) var(--ease-standard),
+    border-color var(--dur-state) var(--ease-standard);
 
   --transition-fast: 180ms ease;
   --transition-normal: 250ms ease;
@@ -117,8 +160,6 @@
   --color-info: var(--indigo);
   --color-info-soft: rgba(79, 70, 229, 0.1);
 
-  --shadow-xs: 0 1px 2px rgba(79, 70, 229, 0.04);
-
   /* ---------- Breakpoint constants (docs; media queries hardcode) ----------
      mobile ≤ 640 · tablet 768 · desktop 1024 · wide 1280                    */
 }
@@ -140,6 +181,8 @@
   --shadow-md: 0 12px 32px rgba(0, 0, 0, 0.4);
   --shadow-glow: 0 8px 24px rgba(255, 107, 91, 0.35);
   --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-elevated: 0 24px 50px -34px rgba(0, 0, 0, 0.7);
+  --shadow-overlay: 0 40px 80px -50px rgba(0, 0, 0, 0.75);
 
   --focus-ring: 0 0 0 3px rgba(79, 70, 229, 0.35);
 }

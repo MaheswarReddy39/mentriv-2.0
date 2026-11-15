@@ -1,6 +1,6 @@
 const PROMISES = [
   {
-    icon: 'route',
+    icon: 'sequence',
     label: 'Structured courses',
     copy: 'Every course follows a sequence you can see.',
   },
@@ -10,30 +10,82 @@ const PROMISES = [
     copy: 'Every assignment comes back with marks and personal feedback.',
   },
   {
-    icon: 'bolt',
+    icon: 'instant',
     label: 'Auto-evaluated tests',
     copy: 'Every test is scored instantly, with explanations.',
   },
   {
-    icon: 'chart',
+    icon: 'progress',
     label: 'Visible progress',
     copy: 'Every course ends in one clear percentage.',
   },
 ];
 
 function PromiseIcon({ name }) {
-  const common = { fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, strokeLinecap: 'round', strokeLinejoin: 'round' };
+  if (name === 'sequence') {
+    return (
+      <svg viewBox="0 0 32 32" aria-hidden="true">
+        <rect x="4" y="4" width="7.5" height="7.5" rx="2.4" fill="none" stroke="var(--text)" strokeWidth="1.8" />
+        <rect x="12.25" y="12.25" width="7.5" height="7.5" rx="2.4" fill="none" stroke="var(--text)" strokeWidth="1.8" />
+        <rect x="20.5" y="20.5" width="7.5" height="7.5" rx="2.4" fill="currentColor" />
+      </svg>
+    );
+  }
 
-  if (name === 'route') {
-    return <svg viewBox="0 0 24 24" aria-hidden="true"><path {...common} d="M5 18V6m0 0 3 3m-3-3L2 9M19 6v12m0 0 3-3m-3 3-3-3M5 9h7a3 3 0 0 1 3 3v3" /></svg>;
-  }
   if (name === 'feedback') {
-    return <svg viewBox="0 0 24 24" aria-hidden="true"><path {...common} d="M20 11.5a7.5 7.5 0 0 1-8 7.48A7.5 7.5 0 1 1 19.5 11v3.5Z" /><path {...common} d="M8 11h8M8 14h5" /></svg>;
+    return (
+      <svg viewBox="0 0 32 32" aria-hidden="true">
+        <path
+          d="M8.5 5.25h7.75l4.25 4.25V24a2.25 2.25 0 0 1-2.25 2.25H8.5A2.25 2.25 0 0 1 6.25 24V7.5A2.25 2.25 0 0 1 8.5 5.25Z"
+          fill="none"
+          stroke="var(--text)"
+          strokeWidth="1.8"
+          strokeLinejoin="round"
+        />
+        <path d="M16.25 5.25v4.25h4.25" fill="none" stroke="var(--text)" strokeWidth="1.8" strokeLinejoin="round" />
+        <path d="M9.75 13h5" fill="none" stroke="var(--text)" strokeWidth="1.7" strokeLinecap="round" opacity="0.4" />
+        <path d="M9.75 17h3.25" fill="none" stroke="var(--text)" strokeWidth="1.7" strokeLinecap="round" opacity="0.4" />
+        <path
+          d="m11.6 20.3 3.1 3.1 5.5-6.7"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </svg>
+    );
   }
-  if (name === 'bolt') {
-    return <svg viewBox="0 0 24 24" aria-hidden="true"><path {...common} d="m13 2-8 12h6l-1 8 9-13h-6l0-7Z" /></svg>;
+
+  if (name === 'instant') {
+    return (
+      <svg viewBox="0 0 32 32" aria-hidden="true">
+        <path
+          d="M5.5 12.5V7.7a2.2 2.2 0 0 1 2.2-2.2h4.8M19.5 5.5h4.8a2.2 2.2 0 0 1 2.2 2.2v4.8M26.5 19.5v4.8a2.2 2.2 0 0 1-2.2 2.2h-4.8M12.5 26.5H7.7a2.2 2.2 0 0 1-2.2-2.2v-4.8"
+          fill="none"
+          stroke="var(--text)"
+          strokeWidth="1.9"
+          strokeLinecap="round"
+        />
+        <path
+          d="m10.5 16.2 3.2 3.2 7.7-8.2"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </svg>
+    );
   }
-  return <svg viewBox="0 0 24 24" aria-hidden="true"><path {...common} d="M4 19V5m0 14h16M8 15v-4m4 4V7m4 8v-2" /><path {...common} d="m7 7 4-3 4 2 4-3" /></svg>;
+
+  return (
+    <svg viewBox="0 0 32 32" aria-hidden="true">
+      <circle cx="10.35" cy="10.85" r="3.4" fill="none" stroke="var(--text)" strokeWidth="2" />
+      <circle cx="21.65" cy="21.15" r="3.4" fill="currentColor" />
+      <path d="M23.4 6.6 8.6 25.4" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" opacity="0.85" />
+    </svg>
+  );
 }
 
 export default function WhyMentrivSection() {

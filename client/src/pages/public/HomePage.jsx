@@ -42,7 +42,7 @@ function FeaturedCourseCard({ course }) {
       <div className="featured-course-body">
         <div className="featured-course-meta">
           {course.category ? <p className="featured-course-category">{course.category}</p> : null}
-          {level ? <span className="featured-course-level">{level}</span> : null}
+          {level ? <span className="course-level">{level}</span> : null}
         </div>
 
         <h3 className="featured-course-title clamp-2">
@@ -103,7 +103,7 @@ export default function HomePage() {
   }, []);
 
   return (
-    <div className="page-home">
+    <div className="page-home page-marketing">
       <HeroSection />
 
       <div className="home-content container">
