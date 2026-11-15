@@ -564,8 +564,8 @@ export default function CourseDetailPage() {
                 <div className="course-showcase-project-grid">
                   {projects.map((project, index) => (
                     <article className="course-showcase-project" key={`${project.title}-${index}`}>
-                      <span className="course-showcase-project-index">
-                        {String(index + 1).padStart(2, '0')}
+                      <span className="course-showcase-project-label">
+                        {`PROJECT ${String(index + 1).padStart(2, '0')}`}
                       </span>
                       <h3 className="course-showcase-project-title">{project.title}</h3>
                       {project.description ? (
