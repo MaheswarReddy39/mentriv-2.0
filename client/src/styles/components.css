@@ -3761,6 +3761,11 @@ body:has(.page-marketing) :is(.navbar, .site-footer) {
   padding-inline: var(--space-6);
 }
 
+.course-showcase-topbar {
+  display: flex;
+  justify-content: flex-end;
+}
+
 .course-showcase-back {
   display: inline-flex;
   align-items: center;
@@ -4530,9 +4535,11 @@ body:has(.page-marketing) :is(.navbar, .site-footer) {
   white-space: nowrap;
 }
 
-.course-showcase-back-bottom {
-  justify-self: start;
-  margin-top: calc(var(--space-8) * -1);
+/* On desktop the sticky enrollment card is always in view, so the closing
+   CTA would duplicate the same primary action. Keep it for tablet/mobile,
+   where the card scrolls away with the page. */
+@media (min-width: 981px) {
+  .course-showcase-final { display: none; }
 }
 
 /* Tablet: flatten the layout so the enrollment card follows the intro */
@@ -4551,7 +4558,6 @@ body:has(.page-marketing) :is(.navbar, .site-footer) {
   .course-showcase-curriculum { order: 5; }
   .course-showcase-projects { order: 6; }
   .course-showcase-final { order: 7; }
-  .course-showcase-back-bottom { order: 8; margin-top: 0; }
 
   .course-showcase-title { font-size: clamp(2.125rem, 4.4vw, 3rem); }
 }

@@ -383,10 +383,12 @@ export default function CourseDetailPage() {
   return (
     <article className="course-showcase page-marketing" aria-labelledby="course-showcase-title">
       <div className="course-showcase-shell">
-        <Link to="/courses" className="course-showcase-back">
-          <ArrowLeftIcon />
-          All courses
-        </Link>
+        <div className="course-showcase-topbar">
+          <Link to="/courses" className="course-showcase-back">
+            <ArrowLeftIcon />
+            Back to all courses
+          </Link>
+        </div>
 
         <div className="course-showcase-layout">
           <div className="course-showcase-main">
@@ -597,11 +599,6 @@ export default function CourseDetailPage() {
                 ) : null}
               </div>
             </section>
-
-            <Link to="/courses" className="course-showcase-back course-showcase-back-bottom">
-              <ArrowLeftIcon />
-              Back to all courses
-            </Link>
           </div>
 
           <aside className="course-showcase-aside" aria-label="Course enrollment">
