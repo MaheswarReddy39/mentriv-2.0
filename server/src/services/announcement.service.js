@@ -49,11 +49,8 @@ const buildVisibilityFilter = (requester, requestedStatus) => {
   const admin = requester ? isAdminRole(requester.role) : false;
 
   if (requestedStatus && admin) {
-    // Published remains scoped to admin-appropriate audiences; other statuses
-    // are pure management queries.
-    if (requestedStatus === 'published') {
-      return { status: 'published', audience: { $in: ['all', 'admins'] } };
-    }
+    // Explicit status queries are management lookups: admins see every
+    // announcement for that status, including student-only notices.
     return { status: requestedStatus };
   }
 
