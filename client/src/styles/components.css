@@ -6061,20 +6061,20 @@ body:has(.page-marketing) :is(.navbar, .site-footer) {
   display: block;
   height: 100%;
   border-radius: inherit;
-  background: var(--indigo);
+  background: var(--coral-dark);
   transition: width var(--dur-state) var(--ease-standard);
 }
 
 .admin-submissions-progress-fill.is-complete {
-  background: var(--teal);
+  background: #2f7d5b;
 }
 
 [data-theme='dark'] .admin-submissions-progress-fill {
-  background: #818cf8;
+  background: #ff8a7a;
 }
 
 [data-theme='dark'] .admin-submissions-progress-fill.is-complete {
-  background: #2dd4bf;
+  background: #5ac79b;
 }
 
 .admin-submissions-status {
@@ -6090,19 +6090,19 @@ body:has(.page-marketing) :is(.navbar, .site-footer) {
 }
 
 .admin-submissions-tone--submitted {
-  --submission-tone: #0f766e;
+  --submission-tone: #237a54;
 }
 
 .admin-submissions-tone--pending {
-  --submission-tone: #a16207;
+  --submission-tone: #b42318;
 }
 
 [data-theme='dark'] .admin-submissions-tone--submitted {
-  --submission-tone: #5eead4;
+  --submission-tone: #6ee7b7;
 }
 
 [data-theme='dark'] .admin-submissions-tone--pending {
-  --submission-tone: #fbbf24;
+  --submission-tone: #fca5a5;
 }
 
 .admin-submissions-pagination {
