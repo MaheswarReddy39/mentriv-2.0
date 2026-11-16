@@ -5619,6 +5619,814 @@ body:has(.page-marketing) :is(.navbar, .site-footer) {
   }
 }
 
+/* ================= ADMIN SUBMISSIONS ================= */
+.admin-submissions-view {
+  display: grid;
+  gap: var(--space-6);
+}
+
+.admin-submissions-view > * {
+  min-width: 0;
+}
+
+.admin-submissions-masthead {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--space-5);
+  padding-bottom: var(--space-5);
+  border-bottom: 1px solid var(--border);
+}
+
+.admin-submissions-title {
+  margin: 0;
+  color: var(--text);
+  font-family: var(--font-heading);
+  font-size: clamp(2.05rem, 3.6vw, 2.75rem);
+  font-weight: 800;
+  line-height: 1.02;
+  letter-spacing: -0.04em;
+}
+
+.admin-submissions-metrics {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: flex-end;
+  gap: 28px;
+}
+
+.admin-submissions-metric {
+  display: grid;
+  gap: 7px;
+  min-width: 76px;
+  text-align: right;
+}
+
+.admin-submissions-metric + .admin-submissions-metric {
+  padding-left: 28px;
+  border-left: 1px solid var(--border);
+}
+
+.admin-submissions-metric-label {
+  color: var(--text-tertiary);
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.13em;
+  line-height: 1.4;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.admin-submissions-metric-value {
+  color: var(--text);
+  font-family: var(--font-heading);
+  font-size: clamp(1.45rem, 2.1vw, 1.9rem);
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.035em;
+  font-variant-numeric: tabular-nums;
+}
+
+.admin-submissions-metric-skeleton {
+  width: 58px;
+  height: 26px;
+  margin-left: auto;
+  border-radius: 8px;
+}
+
+.admin-submissions-directory {
+  container-type: inline-size;
+  overflow: visible;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-panel);
+  background: var(--surface);
+  box-shadow: var(--shadow-xs);
+}
+
+.admin-submissions-controls {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 230px 170px;
+  gap: var(--space-3);
+  padding: 18px 20px;
+  border-bottom: 1px solid var(--border);
+}
+
+.admin-submissions-filter {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.admin-submissions-filter-label {
+  display: block;
+  margin-bottom: 8px;
+  color: var(--text-tertiary);
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.13em;
+  line-height: 1.4;
+  text-transform: uppercase;
+}
+
+.admin-submissions-input-wrap,
+.admin-submissions-select-wrap {
+  position: relative;
+  min-width: 0;
+}
+
+.admin-submissions-search-icon {
+  position: absolute;
+  top: 50%;
+  left: 14px;
+  width: 15px;
+  height: 15px;
+  color: var(--text-tertiary);
+  pointer-events: none;
+  transform: translateY(-50%);
+}
+
+.admin-submissions-input,
+.admin-submissions-select {
+  width: 100%;
+  min-height: 46px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+  background: var(--surface);
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.3;
+  transition:
+    border-color var(--transition-fast),
+    box-shadow var(--transition-fast);
+}
+
+.admin-submissions-input {
+  padding: 11px 14px 11px 38px;
+}
+
+.admin-submissions-select {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0 14px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.admin-submissions-input::placeholder {
+  color: var(--text-tertiary);
+  opacity: 1;
+}
+
+.admin-submissions-input:hover,
+.admin-submissions-select:hover {
+  border-color: var(--color-border-strong);
+}
+
+.admin-submissions-input:focus-visible,
+.admin-submissions-select:focus-visible,
+.admin-submissions-select.is-open {
+  outline: none;
+  border-color: var(--indigo);
+  box-shadow: var(--focus-ring);
+}
+
+.admin-submissions-select-value {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-submissions-chevron {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 auto;
+  color: var(--text-tertiary);
+  transition:
+    transform var(--transition-fast),
+    color var(--transition-fast);
+}
+
+.admin-submissions-select.is-open .admin-submissions-chevron {
+  transform: rotate(180deg);
+  color: var(--text);
+}
+
+.admin-submissions-select-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  right: 0;
+  z-index: 40;
+  max-height: 296px;
+  margin: 0;
+  padding: 6px;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  background: var(--surface);
+  box-shadow: var(--shadow-elevated);
+  list-style: none;
+}
+
+.admin-submissions-select-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 11px;
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+  cursor: pointer;
+}
+
+.admin-submissions-select-option.is-active {
+  background: var(--color-surface-muted);
+  color: var(--text);
+}
+
+.admin-submissions-select-option.is-selected {
+  color: var(--text);
+  font-weight: 700;
+}
+
+.admin-submissions-select-check {
+  width: 15px;
+  height: 15px;
+  flex: 0 0 auto;
+  color: var(--indigo);
+}
+
+[data-theme='dark'] .admin-submissions-input:focus-visible,
+[data-theme='dark'] .admin-submissions-select:focus-visible,
+[data-theme='dark'] .admin-submissions-select.is-open {
+  border-color: #818cf8;
+}
+
+[data-theme='dark'] .admin-submissions-select-check {
+  color: #a5b4fc;
+}
+
+.admin-submissions-table-wrap {
+  overflow-x: auto;
+}
+
+.admin-submissions-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  font-size: var(--font-size-sm);
+}
+
+.admin-submissions-table th {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text-tertiary);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  line-height: 1.4;
+  text-align: left;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.admin-submissions-table th:first-child,
+.admin-submissions-table td:first-child {
+  padding-left: 20px;
+}
+
+.admin-submissions-table th:last-child,
+.admin-submissions-table td:last-child {
+  padding-right: 20px;
+}
+
+.admin-submissions-table th:nth-child(1) {
+  width: 32%;
+}
+
+.admin-submissions-table th:nth-child(2) {
+  width: 28%;
+}
+
+.admin-submissions-table th:nth-child(3) {
+  width: 24%;
+}
+
+.admin-submissions-table th:nth-child(4) {
+  width: 16%;
+}
+
+.admin-submissions-table td {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text);
+  font-size: 13px;
+  line-height: 1.45;
+  vertical-align: middle;
+}
+
+.admin-submissions-table tbody tr {
+  transition: background-color var(--transition-fast);
+}
+
+.admin-submissions-table tbody tr:hover {
+  background: var(--color-surface-muted);
+}
+
+.admin-submissions-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.admin-submissions-table.is-refreshing tbody {
+  opacity: 0.55;
+  transition: opacity var(--dur-state) var(--ease-standard);
+}
+
+.admin-submissions-identity {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  min-width: 0;
+}
+
+.admin-submissions-avatar {
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background: var(--color-surface-muted);
+  color: var(--text-secondary);
+  font-family: var(--font-heading);
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  line-height: 1;
+}
+
+.admin-submissions-identity-text {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.admin-submissions-name {
+  overflow: hidden;
+  color: var(--text);
+  font-size: 13.5px;
+  font-weight: 600;
+  line-height: 1.35;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-submissions-email {
+  overflow: hidden;
+  color: var(--text-tertiary);
+  font-size: 12px;
+  line-height: 1.4;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-submissions-cell--course {
+  display: table-cell;
+}
+
+.admin-submissions-course-title {
+  display: block;
+  color: var(--text-secondary);
+  font-size: 12.5px;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.admin-submissions-course-level {
+  display: block;
+  margin-top: 4px;
+  color: var(--text-tertiary);
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  line-height: 1.4;
+  text-transform: uppercase;
+}
+
+.admin-submissions-progress {
+  display: grid;
+  gap: 8px;
+  max-width: 240px;
+}
+
+.admin-submissions-progress-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.admin-submissions-progress-value {
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.4;
+}
+
+.admin-submissions-progress-meta {
+  color: var(--text-tertiary);
+  font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.4;
+  white-space: nowrap;
+}
+
+.admin-submissions-progress-track {
+  height: 5px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--color-surface-muted);
+}
+
+.admin-submissions-progress-fill {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--indigo);
+  transition: width var(--dur-state) var(--ease-standard);
+}
+
+.admin-submissions-progress-fill.is-complete {
+  background: var(--teal);
+}
+
+[data-theme='dark'] .admin-submissions-progress-fill {
+  background: #818cf8;
+}
+
+[data-theme='dark'] .admin-submissions-progress-fill.is-complete {
+  background: #2dd4bf;
+}
+
+.admin-submissions-status {
+  display: inline-flex;
+  align-items: center;
+  color: var(--submission-tone, var(--text-secondary));
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.11em;
+  line-height: 1.4;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.admin-submissions-tone--submitted {
+  --submission-tone: #0f766e;
+}
+
+.admin-submissions-tone--pending {
+  --submission-tone: #a16207;
+}
+
+[data-theme='dark'] .admin-submissions-tone--submitted {
+  --submission-tone: #5eead4;
+}
+
+[data-theme='dark'] .admin-submissions-tone--pending {
+  --submission-tone: #fbbf24;
+}
+
+.admin-submissions-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding: 13px 20px;
+  border-top: 1px solid var(--border);
+}
+
+.admin-submissions-range {
+  margin: 0;
+  color: var(--text-tertiary);
+  font-size: var(--font-size-meta);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.4;
+}
+
+.admin-submissions-pager {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.admin-submissions-pager .btn {
+  padding: 7px 14px;
+  border-radius: 9px;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.admin-submissions-pager .btn:hover:not(:disabled) {
+  border-color: var(--color-border-strong);
+  transform: none;
+  box-shadow: none;
+}
+
+.admin-submissions-state {
+  padding: var(--space-4) var(--space-5);
+}
+
+.admin-submissions-state .state-block {
+  padding: var(--space-10) var(--space-4);
+}
+
+.admin-submissions-clear.btn {
+  margin-top: var(--space-2);
+}
+
+.admin-submissions-skeleton {
+  display: grid;
+}
+
+.admin-submissions-skeleton-row {
+  display: grid;
+  grid-template-columns:
+    minmax(0, 32fr) minmax(0, 28fr) minmax(0, 24fr)
+    minmax(0, 16fr);
+  align-items: center;
+  gap: 12px;
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--border);
+}
+
+.admin-submissions-skeleton-row:last-child {
+  border-bottom: 0;
+}
+
+.admin-submissions-skeleton-identity {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  min-width: 0;
+}
+
+.admin-submissions-skeleton-avatar {
+  width: 34px;
+  height: 34px;
+  flex: 0 0 auto;
+  border-radius: 10px;
+}
+
+.admin-submissions-skeleton-lines,
+.admin-submissions-skeleton-course,
+.admin-submissions-skeleton-progress {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.admin-submissions-skeleton-lines {
+  flex: 1 1 auto;
+  width: 100%;
+}
+
+.admin-submissions-skeleton-name {
+  width: 64%;
+  height: 10px;
+}
+
+.admin-submissions-skeleton-email {
+  width: 82%;
+  height: 9px;
+}
+
+.admin-submissions-skeleton-course-title {
+  width: 76%;
+  height: 9px;
+}
+
+.admin-submissions-skeleton-course-level {
+  width: 38%;
+  height: 7px;
+}
+
+.admin-submissions-skeleton-progress-label {
+  width: 58%;
+  height: 9px;
+}
+
+.admin-submissions-skeleton-progress-bar {
+  width: 100%;
+  height: 5px;
+  border-radius: 999px;
+}
+
+.admin-submissions-skeleton-status {
+  width: 54px;
+  height: 8px;
+}
+
+@media (max-width: 900px) {
+  .admin-submissions-controls {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .admin-submissions-search {
+    grid-column: 1 / -1;
+  }
+}
+
+@container (max-width: 880px) {
+  .admin-submissions-table {
+    display: block;
+  }
+
+  .admin-submissions-table thead {
+    display: none;
+  }
+
+  .admin-submissions-table tbody {
+    display: block;
+  }
+
+  .admin-submissions-table tbody tr {
+    display: grid;
+    grid-template-areas:
+      'student'
+      'course'
+      'progress'
+      'status';
+    grid-template-columns: minmax(0, 1fr);
+    gap: 10px;
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .admin-submissions-table tbody tr:last-child {
+    border-bottom: 0;
+  }
+
+  .admin-submissions-table td {
+    display: block;
+    padding: 0;
+    border: 0;
+    font-size: 13px;
+  }
+
+  .admin-submissions-cell--student {
+    grid-area: student;
+  }
+
+  .admin-submissions-cell--course {
+    grid-area: course;
+  }
+
+  .admin-submissions-cell--progress {
+    grid-area: progress;
+  }
+
+  .admin-submissions-cell--status {
+    grid-area: status;
+  }
+
+  .admin-submissions-name {
+    overflow: visible;
+    font-size: 14px;
+    text-overflow: clip;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
+  .admin-submissions-email {
+    overflow: visible;
+    text-overflow: clip;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
+  .admin-submissions-avatar {
+    width: 38px;
+    height: 38px;
+    border-radius: 11px;
+    font-size: 11px;
+  }
+
+  .admin-submissions-progress {
+    max-width: none;
+  }
+
+  .admin-submissions-skeleton-row {
+    grid-template-columns: minmax(0, 1fr);
+    padding: 18px 20px;
+  }
+
+  .admin-submissions-skeleton-course,
+  .admin-submissions-skeleton-progress,
+  .admin-submissions-skeleton-status {
+    display: none;
+  }
+}
+
+@media (max-width: 640px) {
+  .admin-submissions-view {
+    gap: var(--space-5);
+  }
+
+  .admin-submissions-masthead {
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--space-4);
+  }
+
+  .admin-submissions-title {
+    font-size: clamp(1.9rem, 8.5vw, 2.35rem);
+  }
+
+  .admin-submissions-metrics {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0;
+    width: 100%;
+  }
+
+  .admin-submissions-metric {
+    min-width: 0;
+    text-align: left;
+  }
+
+  .admin-submissions-metric + .admin-submissions-metric {
+    padding-left: 16px;
+  }
+
+  .admin-submissions-metric-value {
+    font-size: 1.35rem;
+  }
+
+  .admin-submissions-metric-label {
+    font-size: 9.5px;
+  }
+
+  .admin-submissions-metric-skeleton {
+    width: 46px;
+    height: 22px;
+    margin-left: 0;
+  }
+
+  .admin-submissions-controls {
+    grid-template-columns: 1fr;
+    padding: 16px;
+  }
+
+  .admin-submissions-search {
+    grid-column: auto;
+  }
+
+  .admin-submissions-table tbody tr {
+    padding: 16px;
+  }
+
+  .admin-submissions-skeleton-row {
+    padding: 18px 16px;
+  }
+
+  .admin-submissions-pagination {
+    padding: 12px 16px;
+  }
+}
+
+@media (max-width: 480px) {
+  .admin-submissions-pagination {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .admin-submissions-pager {
+    width: 100%;
+  }
+
+  .admin-submissions-pager .btn {
+    flex: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .admin-submissions-table tbody tr,
+  .admin-submissions-table.is-refreshing tbody,
+  .admin-submissions-progress-fill {
+    transition: none;
+  }
+}
+
 /* ================= ADMIN COURSES ================= */
 .admin-courses-page {
   display: grid;
