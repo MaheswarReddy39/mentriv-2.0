@@ -43,11 +43,18 @@ const ICONS = {
       <line x1="5" y1="12" x2="19" y2="12" />
     </svg>
   ),
+  logout: (
+    <svg className="sidebar-link-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+      <polyline points="16 17 21 12 16 7" />
+      <line x1="21" y1="12" x2="9" y2="12" />
+    </svg>
+  ),
 };
 
-export default function AdminSidebar({ links, collapsed = false, mobileOpen = false, onNavigate, onMouseEnter, onMouseLeave }) {
+export default function AdminSidebar({ links, collapsed = false, mobileOpen = false, onNavigate, onLogout, onMouseEnter, onMouseLeave }) {
   return (
-    <aside className={`sidebar${collapsed ? ' collapsed' : ''}${mobileOpen ? ' open' : ''}`} aria-label="Admin navigation" onMouseEnter={onMouseEnter} onMouseLeave={onMouseLeave}>
+    <aside className={`sidebar admin-sidebar${collapsed ? ' collapsed' : ''}${mobileOpen ? ' open' : ''}`} aria-label="Admin navigation" onMouseEnter={onMouseEnter} onMouseLeave={onMouseLeave}>
       <Link to="/admin" className="sidebar-brand" onClick={onNavigate}>
         <span className="sidebar-brand-icon">A</span>
         <span className="sidebar-brand-text">Mentriv Admin</span>
@@ -68,7 +75,22 @@ export default function AdminSidebar({ links, collapsed = false, mobileOpen = fa
           );
         })}
       </nav>
-      <ThemeToggle collapsed={collapsed} />
+      <div className="sidebar-footer">
+        {onLogout ? (
+          <button
+            type="button"
+            className="sidebar-link sidebar-logout"
+            onClick={() => {
+              if (onNavigate) onNavigate();
+              onLogout();
+            }}
+          >
+            {ICONS.logout}
+            <span className="sidebar-link-label">Log out</span>
+          </button>
+        ) : null}
+        <ThemeToggle key={collapsed ? 'rail' : 'expanded'} collapsed={collapsed} />
+      </div>
     </aside>
   );
 }
