@@ -1,19 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
-import Button from '../../components/common/Button.jsx';
-import Input from '../../components/common/Input.jsx';
-import Select from '../../components/common/Select.jsx';
-import Textarea from '../../components/common/Textarea.jsx';
+import { useNavigate, useParams } from 'react-router-dom';
+import CourseEditorForm from '../../components/admin/CourseEditorForm.jsx';
 import ErrorState from '../../components/common/ErrorState.jsx';
 import Loading from '../../components/common/Loading.jsx';
 import { getAdminCourseById, updateCourse } from '../../services/course.service.js';
 
 const MAX_IMAGE_BYTES = 1_200_000;
-const LEVEL_OPTIONS = [
-  { value: 'basic', label: 'Basic' },
-  { value: 'intermediate', label: 'Intermediate' },
-  { value: 'advanced', label: 'Advanced' },
-];
 
 const initialForm = {
   title: '',
@@ -38,20 +30,31 @@ const isHttpUrl = (value) => {
 const readImageFile = (file) =>
   new Promise((resolve, reject) => {
     if (!file.type.startsWith('image/')) {
-      reject(new Error('Please choose an image file.'));
+      reject(new Error('Choose an image file.'));
       return;
     }
 
     if (file.size > MAX_IMAGE_BYTES) {
-      reject(new Error('Please choose an image smaller than 1.2 MB.'));
+      reject(new Error('Choose an image under 1.2 MB.'));
       return;
     }
 
     const reader = new FileReader();
     reader.onload = () => resolve(String(reader.result || ''));
-    reader.onerror = () => reject(new Error('Image could not be read. Please try again.'));
+    reader.onerror = () =>
+      reject(new Error('That image could not be read. Try another file.'));
     reader.readAsDataURL(file);
   });
+
+const focusFirstInvalidField = () => {
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      document
+        .querySelector('.admin-course-editor [aria-invalid="true"]')
+        ?.focus();
+    });
+  });
+};
 
 export default function CourseFormPage() {
   const { courseId } = useParams();
@@ -97,11 +100,14 @@ export default function CourseFormPage() {
     };
   }, [courseId]);
 
-  const updateField = (field) => (event) => {
-    setForm((current) => ({ ...current, [field]: event.target.value }));
+  const setFieldValue = (field, value) => {
+    setForm((current) => ({ ...current, [field]: value }));
     setFieldErrors((current) => ({ ...current, [field]: undefined }));
     setApiError(null);
   };
+
+  const updateField = (field) => (event) =>
+    setFieldValue(field, event.target.value);
 
   const updateImageField = (field) => async (event) => {
     const file = event.target.files?.[0];
@@ -126,29 +132,36 @@ export default function CourseFormPage() {
     const duration = Number(form.duration);
     const price = Number(form.price);
 
-    if (!title) errors.title = 'Course title is required.';
-    else if (title.length > 150) errors.title = 'Course title cannot exceed 150 characters.';
-
-    if (!description) errors.description = 'Description is required.';
-    else if (description.length > 5000) errors.description = 'Description cannot exceed 5000 characters.';
-
-    if (!form.level) errors.level = 'Course level is required.';
-    if (!form.courseImage) errors.courseImage = 'Course image is required.';
-    if (!form.demoVideoThumbnail) errors.demoVideoThumbnail = 'Demo video thumbnail is required.';
-
-    if (!form.demoVideoUrl.trim()) errors.demoVideoUrl = 'Demo video URL is required.';
-    else if (!isHttpUrl(form.demoVideoUrl.trim())) {
-      errors.demoVideoUrl = 'Enter a valid YouTube, Google Drive, or video URL.';
+    if (!title) errors.title = 'Enter a course title.';
+    else if (title.length > 150) {
+      errors.title = 'Keep the title under 150 characters.';
     }
 
-    if (form.duration === '') errors.duration = 'Duration is required.';
+    if (!description) errors.description = 'Add a description.';
+    else if (description.length > 5000) {
+      errors.description = 'Keep the description under 5,000 characters.';
+    }
+
+    if (!form.level) errors.level = 'Choose a level.';
+    if (!form.courseImage) errors.courseImage = 'Add a cover image.';
+    if (!form.demoVideoThumbnail) {
+      errors.demoVideoThumbnail = 'Add a video thumbnail.';
+    }
+
+    if (!form.demoVideoUrl.trim()) {
+      errors.demoVideoUrl = 'Add a video URL.';
+    } else if (!isHttpUrl(form.demoVideoUrl.trim())) {
+      errors.demoVideoUrl = 'Enter a valid http or https link.';
+    }
+
+    if (form.duration === '') errors.duration = 'Enter the duration.';
     else if (!Number.isInteger(duration) || duration < 0) {
-      errors.duration = 'Duration must be a non-negative whole number.';
+      errors.duration = 'Use a whole number of hours.';
     }
 
-    if (form.price === '') errors.price = 'Price is required.';
+    if (form.price === '') errors.price = 'Enter a price.';
     else if (!Number.isFinite(price) || price < 0) {
-      errors.price = 'Price must be a non-negative number.';
+      errors.price = 'Use a non-negative amount.';
     }
 
     return errors;
@@ -160,6 +173,7 @@ export default function CourseFormPage() {
 
     if (Object.keys(validationErrors).length > 0) {
       setFieldErrors(validationErrors);
+      focusFirstInvalidField();
       return;
     }
 
@@ -180,7 +194,7 @@ export default function CourseFormPage() {
         status: 'published',
       });
 
-      navigate(`/courses/${response.data.course.slug}`, {
+      navigate('/admin/courses', {
         replace: true,
         state: { updatedCourseTitle: response.data.course.title },
       });
@@ -191,21 +205,11 @@ export default function CourseFormPage() {
           title: 'A course with this title already exists.',
         }));
       }
-      setApiError(err.message || 'Failed to update course. Please try again.');
+      setApiError(err.message || 'Try again.');
+      focusFirstInvalidField();
     } finally {
       setSaving(false);
     }
-  };
-
-  const openDemoVideo = () => {
-    if (!isHttpUrl(form.demoVideoUrl.trim())) {
-      setFieldErrors((current) => ({
-        ...current,
-        demoVideoUrl: 'Enter a valid URL before previewing.',
-      }));
-      return;
-    }
-    window.open(form.demoVideoUrl.trim(), '_blank', 'noopener,noreferrer');
   };
 
   if (loading) return <Loading label="Loading course..." />;
@@ -214,136 +218,26 @@ export default function CourseFormPage() {
     return <ErrorState message={apiError} onRetry={() => window.location.reload()} />;
   }
 
+  const backTo = courseSlug ? `/courses/${courseSlug}` : '/admin/courses';
+
   return (
-    <div className="admin-course-flow">
-      <header className="admin-course-flow-head">
-        <Link to={courseSlug ? `/courses/${courseSlug}` : '/admin/courses'} className="back-link">
-          Back to Course
-        </Link>
-        <h1>Edit Course</h1>
-      </header>
-
-      {apiError ? (
-        <ErrorState message={apiError} />
-      ) : null}
-
-      <form className="admin-course-create-card" onSubmit={handleSubmit} noValidate>
-        <section className="admin-course-section" aria-labelledby="course-info-title">
-          <h2 id="course-info-title">Course Information</h2>
-          <Input
-            label="Course Title"
-            value={form.title}
-            onChange={updateField('title')}
-            placeholder="Enter course title"
-            error={fieldErrors.title}
-            required
-          />
-          <Textarea
-            label="Description"
-            rows={5}
-            value={form.description}
-            onChange={updateField('description')}
-            placeholder="Write a clear course description"
-            error={fieldErrors.description}
-            required
-          />
-          <Select
-            label="Course Level"
-            value={form.level}
-            onChange={updateField('level')}
-            error={fieldErrors.level}
-            required
-          >
-            <option value="">Select level</option>
-            {LEVEL_OPTIONS.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </Select>
-          <label className={`thumbnail-upload-control${fieldErrors.courseImage ? ' upload-error' : ''}`}>
-            <span>Course Image</span>
-            {form.courseImage ? (
-              <img src={form.courseImage} alt="Selected course preview" />
-            ) : null}
-            <input type="file" accept="image/*" onChange={updateImageField('courseImage')} />
-            {fieldErrors.courseImage ? (
-              <span className="field-error-text">{fieldErrors.courseImage}</span>
-            ) : null}
-          </label>
-        </section>
-
-        <section className="admin-course-section demo-video-section" aria-labelledby="demo-video-title">
-          <h2 id="demo-video-title">Watch the Demo Video</h2>
-
-          <div className="demo-video-card">
-            <div className="demo-video-preview" aria-label="Demo video thumbnail preview">
-              {form.demoVideoThumbnail ? (
-                <img src={form.demoVideoThumbnail} alt="Selected demo video thumbnail preview" />
-              ) : (
-                <div className="demo-video-empty">
-                  <span className="demo-play-indicator" aria-hidden="true" />
-                  <span>Demo video thumbnail</span>
-                </div>
-              )}
-            </div>
-            <button type="button" className="btn btn-primary btn-sm demo-watch-button" onClick={openDemoVideo}>
-              Watch Now
-            </button>
-          </div>
-
-          <label className={`thumbnail-upload-control${fieldErrors.demoVideoThumbnail ? ' upload-error' : ''}`}>
-            <span>Upload Thumbnail</span>
-            <input type="file" accept="image/*" onChange={updateImageField('demoVideoThumbnail')} />
-            {fieldErrors.demoVideoThumbnail ? (
-              <span className="field-error-text">{fieldErrors.demoVideoThumbnail}</span>
-            ) : null}
-          </label>
-
-          <Input
-            label="Demo Video URL"
-            value={form.demoVideoUrl}
-            onChange={updateField('demoVideoUrl')}
-            placeholder="Paste YouTube / Google Drive / Video URL"
-            error={fieldErrors.demoVideoUrl}
-            required
-          />
-        </section>
-
-        <div className="admin-course-form-grid">
-          <Input
-            label="Duration"
-            type="number"
-            min="0"
-            step="1"
-            value={form.duration}
-            onChange={updateField('duration')}
-            placeholder="Hours"
-            error={fieldErrors.duration}
-            required
-          />
-          <Input
-            label="Price"
-            type="number"
-            min="0"
-            step="0.01"
-            value={form.price}
-            onChange={updateField('price')}
-            placeholder="INR"
-            error={fieldErrors.price}
-            required
-          />
-        </div>
-
-        <div className="admin-course-actions">
-          <Link to={courseSlug ? `/courses/${courseSlug}` : '/admin/courses'} className="btn btn-outline">
-            Cancel
-          </Link>
-          <Button type="submit" loading={saving} disabled={saving}>
-            {saving ? 'Updating...' : 'Update Course'}
-          </Button>
-        </div>
-      </form>
-    </div>
+    <CourseEditorForm
+      title="Edit course"
+      backTo={backTo}
+      backLabel={courseSlug ? 'Course' : 'Courses'}
+      cancelTo={backTo}
+      submitLabel="Publish changes"
+      savingLabel="Saving..."
+      publishNote="Goes live in the catalog immediately."
+      errorTitle="Could not save course"
+      form={form}
+      fieldErrors={fieldErrors}
+      apiError={apiError}
+      saving={saving}
+      onChange={updateField}
+      onChangeValue={setFieldValue}
+      onImageChange={updateImageField}
+      onSubmit={handleSubmit}
+    />
   );
 }
