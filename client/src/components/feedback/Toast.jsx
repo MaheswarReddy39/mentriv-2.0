@@ -4,6 +4,19 @@ const ToastContext = createContext(null);
 
 let nextToastId = 1;
 
+const CLOSE_ICON = (
+  <svg
+    viewBox="0 0 16 16"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.7"
+    strokeLinecap="round"
+    aria-hidden="true"
+  >
+    <path d="m4.6 4.6 6.8 6.8M11.4 4.6l-6.8 6.8" />
+  </svg>
+);
+
 export function ToastProvider({ children }) {
   const [toasts, setToasts] = useState([]);
   const timersRef = useRef(new Map());
@@ -21,14 +34,14 @@ export function ToastProvider({ children }) {
     }
     setTimeout(() => {
       setToasts((current) => current.filter((toast) => toast.id !== id));
-    }, 200);
+    }, 180);
   }, []);
 
   const showToast = useCallback(
-    (type, message, { duration = 4000 } = {}) => {
+    (type, message, { duration = 4000, description } = {}) => {
       const id = nextToastId;
       nextToastId += 1;
-      setToasts((current) => [...current, { id, type, message }]);
+      setToasts((current) => [...current, { id, type, message, description }]);
       timersRef.current.set(
         id,
         setTimeout(() => dismiss(id), duration)
@@ -58,14 +71,19 @@ export function ToastProvider({ children }) {
             className={`toast toast-${toast.type}${toast.exiting ? ' toast-exit' : ''}`}
             role={toast.type === 'error' ? 'alert' : 'status'}
           >
-            <p className="toast-message">{toast.message}</p>
+            <div className="toast-content">
+              <p className="toast-title">{toast.message}</p>
+              {toast.description ? (
+                <p className="toast-description">{toast.description}</p>
+              ) : null}
+            </div>
             <button
               type="button"
               className="toast-close"
               aria-label="Dismiss notification"
               onClick={() => dismiss(toast.id)}
             >
-              ×
+              {CLOSE_ICON}
             </button>
           </div>
         ))}

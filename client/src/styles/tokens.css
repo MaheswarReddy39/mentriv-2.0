@@ -127,6 +127,10 @@
   --transition-fast: 180ms ease;
   --transition-normal: 250ms ease;
 
+  /* Emphasized motion for large layout changes (sidebar expansion). */
+  --ease-expand: cubic-bezier(0.4, 0, 0.2, 1);
+  --dur-expand: 460ms;
+
   /* =====================================================
      LEGACY ALIASES — existing components consume these names.
      Values now resolve into the locked palette above.
