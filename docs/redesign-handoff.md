@@ -264,9 +264,9 @@ showing published of total across assignments + practice tests, forest bar,
 `N drafts` caption), an `Assignments` panel and a `Practice tests` panel. Each
 panel head carries a text action (`New assignment` / `New practice test`) plus
 the row count; rows are static (not links, so no arrow) with title, meta
-(`duration · due date` / `level · topic · N questions` plus `N courses` when
-scoped to All courses), right-aligned `Published` forest / `Draft` coral status
-and relative time. Both panel actions open the same in-page create view: back
+(`course · N min · Due …` / `course · level · topic · N questions · N min`, where
+the course becomes `N courses` when a set spans several), right-aligned
+`Published` forest / `Draft` coral status and relative time. Both panel actions open the same in-page create view: back
 button, h1 `New assignment`, a `Details` panel (multi-course checkbox list with
 coral checkboxes and removable coral chips, Title, Duration, Type text-toggle
 `Assignment` / `Practice test`, and for practice tests Level + Topic) and, for
