@@ -20254,3 +20254,524 @@ body:has(.page-marketing) :is(.navbar, .site-footer) {
     text-align: left;
   }
 }
+
+/* ================= TEACHER SUBMISSIONS ================= */
+.teacher-submissions {
+  display: grid;
+  gap: var(--space-6);
+}
+
+.teacher-submissions > * {
+  min-width: 0;
+}
+
+/* Masthead */
+.teacher-submissions-masthead {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+  padding-bottom: var(--space-6);
+  border-bottom: 1px solid var(--border);
+}
+
+.teacher-submissions-head {
+  min-width: 0;
+}
+
+.teacher-submissions-title {
+  margin: 0;
+  color: var(--text);
+  font-family: var(--font-heading);
+  font-size: clamp(2.05rem, 3.6vw, 2.75rem);
+  font-weight: 800;
+  line-height: 1.02;
+  letter-spacing: -0.04em;
+  text-wrap: balance;
+}
+
+/* Scope: course + level + search */
+.teacher-submissions-scope {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 18px;
+  margin-top: 10px;
+}
+
+.teacher-submissions-switch {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+  border-radius: 4px;
+}
+
+.teacher-submissions-switch-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  max-width: 100%;
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  line-height: 1.5;
+}
+
+.teacher-submissions-switch-label > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.teacher-submissions-switch:hover .teacher-submissions-switch-label {
+  color: var(--text);
+}
+
+.teacher-submissions-switch-select {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  appearance: none;
+  background: transparent;
+  opacity: 0;
+  font-family: var(--font-body);
+  font-size: var(--font-size-sm);
+  cursor: pointer;
+}
+
+.teacher-submissions-switch-select option {
+  background: var(--surface);
+  color: var(--text);
+}
+
+.teacher-submissions-switch:focus-within {
+  outline: 2px solid var(--coral-dark);
+  outline-offset: 3px;
+}
+
+[data-theme='dark'] .teacher-submissions-switch:focus-within {
+  outline-color: var(--coral);
+}
+
+.teacher-submissions-caret {
+  flex: 0 0 auto;
+  width: 12px;
+  height: 12px;
+  color: var(--text-tertiary);
+  transition: color var(--dur-state) var(--ease-standard);
+}
+
+.teacher-submissions-switch:hover .teacher-submissions-caret {
+  color: var(--text-secondary);
+}
+
+.teacher-submissions-switch-skeleton {
+  display: block;
+  width: 168px;
+  height: 11px;
+  margin-top: 14px;
+  border-radius: var(--radius-pill);
+}
+
+.teacher-submissions-course-title {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.teacher-submissions-search {
+  display: inline-flex;
+  min-width: 0;
+}
+
+.teacher-submissions-search-input {
+  width: 220px;
+  min-height: 38px;
+  height: 38px;
+  padding: 0 12px;
+  border-radius: 10px;
+  font-size: var(--font-size-sm);
+}
+
+.teacher-submissions-search-input::placeholder {
+  color: var(--text-tertiary);
+}
+
+/* Stat */
+.teacher-submissions-stat {
+  flex: 0 0 auto;
+  width: min(240px, 100%);
+}
+
+.teacher-submissions-stat-label {
+  display: block;
+  color: var(--text-tertiary);
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.13em;
+  line-height: 1.4;
+  text-transform: uppercase;
+}
+
+.teacher-submissions-stat-value {
+  display: block;
+  margin-top: 6px;
+  color: var(--text);
+  font-family: var(--font-heading);
+  font-size: 1.5rem;
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+}
+
+.teacher-submissions-stat-total {
+  color: var(--text-tertiary);
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.teacher-submissions-stat-skeleton {
+  display: block;
+  width: 96px;
+  height: 1.5rem;
+  margin-top: 6px;
+}
+
+.teacher-submissions-bar {
+  display: block;
+  height: 3px;
+  margin-top: 10px;
+  border-radius: var(--radius-pill);
+  background: var(--student-track);
+  overflow: hidden;
+}
+
+.teacher-submissions-bar > span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--student-forest);
+  transition: width var(--dur-state) var(--ease-standard);
+}
+
+.teacher-submissions-stat-caption {
+  display: block;
+  margin-top: 8px;
+  color: var(--text-secondary);
+  font-size: var(--font-size-meta);
+  line-height: 1.4;
+}
+
+/* Panels */
+.teacher-submissions-panel {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  padding: clamp(20px, 2.2vw, 26px);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-panel);
+  background: var(--surface);
+  box-shadow: var(--shadow-xs);
+}
+
+.teacher-submissions-panel-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 6px var(--space-3);
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--border);
+}
+
+.teacher-submissions-panel-head h2 {
+  margin: 0;
+  color: var(--text);
+  font-family: var(--font-heading);
+  font-size: 1.1875rem;
+  font-weight: 800;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+  overflow-wrap: anywhere;
+}
+
+.teacher-submissions-panel-count {
+  flex: 0 0 auto;
+  color: var(--text-tertiary);
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.13em;
+  line-height: 1.4;
+  text-transform: uppercase;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.teacher-submissions-note {
+  margin: 16px 0 0;
+  color: var(--text-tertiary);
+  font-size: 11.5px;
+  line-height: 1.45;
+}
+
+/* Rows */
+.teacher-submissions-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.teacher-submissions-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 16px;
+  margin: 0 calc(clamp(20px, 2.2vw, 26px) * -1);
+  padding: 13px clamp(20px, 2.2vw, 26px);
+  border-bottom: 1px solid var(--border);
+  transition: background-color var(--dur-state) var(--ease-standard);
+}
+
+.teacher-submissions-list li:last-child .teacher-submissions-row {
+  padding-bottom: 0;
+  border-bottom: 0;
+}
+
+.teacher-submissions-row:hover {
+  background: color-mix(in srgb, var(--text) 3.5%, transparent);
+}
+
+.teacher-submissions-row-main {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.teacher-submissions-row-title {
+  color: var(--text);
+  font-size: 13.5px;
+  font-weight: 600;
+  line-height: 1.4;
+  letter-spacing: -0.005em;
+  overflow-wrap: anywhere;
+}
+
+.teacher-submissions-row-meta {
+  color: var(--text-tertiary);
+  font-size: 11.5px;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.teacher-submissions-row-sub {
+  color: var(--text-tertiary);
+  font-size: 11px;
+  line-height: 1.45;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+.teacher-submissions-row-side {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 3px;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.teacher-submissions-row-value {
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.4;
+  font-variant-numeric: tabular-nums;
+}
+
+.teacher-submissions-status {
+  color: var(--text-tertiary);
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.11em;
+  line-height: 1.4;
+  text-transform: uppercase;
+}
+
+.teacher-submissions-status.is-done {
+  color: var(--student-forest);
+}
+
+.teacher-submissions-status.is-pending {
+  color: var(--student-accent-text);
+}
+
+.teacher-submissions-status.is-idle {
+  color: var(--text-tertiary);
+  font-weight: 500;
+  letter-spacing: 0.09em;
+}
+
+/* States and loading */
+.teacher-submissions-state {
+  padding: var(--space-6);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-panel);
+  background: var(--surface);
+}
+
+.teacher-submissions-state .state-block {
+  padding: var(--space-8) var(--space-4);
+}
+
+.teacher-submissions-skeleton {
+  display: grid;
+  gap: var(--space-5);
+}
+
+.teacher-submissions-skeleton-panel {
+  padding: clamp(20px, 2.2vw, 26px);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-panel);
+  background: var(--surface);
+}
+
+.teacher-submissions-skeleton-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--border);
+}
+
+.teacher-submissions-skeleton-title {
+  width: 132px;
+  height: 0.8rem;
+}
+
+.teacher-submissions-skeleton-count {
+  width: 56px;
+  height: 0.55rem;
+}
+
+.teacher-submissions-skeleton-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 64px;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.teacher-submissions-skeleton-row:last-child {
+  padding-bottom: 0;
+  border-bottom: 0;
+}
+
+.teacher-submissions-skeleton-row-main {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.teacher-submissions-skeleton-line {
+  width: min(230px, 70%);
+  height: 0.7rem;
+}
+
+.teacher-submissions-skeleton-meta {
+  width: min(150px, 48%);
+  height: 0.55rem;
+}
+
+.teacher-submissions-skeleton-pill {
+  width: 64px;
+  height: 0.55rem;
+  justify-self: end;
+}
+
+@media (max-width: 900px) {
+  .teacher-submissions-masthead {
+    align-items: flex-start;
+  }
+
+  .teacher-submissions-stat {
+    width: min(320px, 100%);
+  }
+}
+
+@media (max-width: 700px) {
+  .teacher-submissions-row {
+    gap: 10px 14px;
+    padding: 14px clamp(18px, 4vw, 22px);
+    margin: 0 calc(clamp(18px, 4vw, 22px) * -1);
+  }
+
+  .teacher-submissions-search-input {
+    width: 180px;
+  }
+}
+
+@media (max-width: 640px) {
+  .teacher-submissions {
+    gap: var(--space-5);
+  }
+
+  .teacher-submissions-masthead {
+    gap: var(--space-3);
+    padding-bottom: var(--space-5);
+  }
+
+  .teacher-submissions-title {
+    font-size: clamp(1.9rem, 8.5vw, 2.35rem);
+  }
+
+  .teacher-submissions-stat {
+    width: 100%;
+  }
+
+  .teacher-submissions-panel,
+  .teacher-submissions-skeleton-panel,
+  .teacher-submissions-state {
+    padding: 20px;
+  }
+
+  .teacher-submissions-row {
+    margin: 0 -20px;
+    padding: 14px 20px;
+  }
+
+  .teacher-submissions-search {
+    flex: 1 1 100%;
+  }
+
+  .teacher-submissions-search-input {
+    width: 100%;
+  }
+}
+
+@media (max-width: 420px) {
+  .teacher-submissions-row {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 6px;
+  }
+
+  .teacher-submissions-row-side {
+    flex-direction: row;
+    align-items: baseline;
+    gap: 10px;
+  }
+}

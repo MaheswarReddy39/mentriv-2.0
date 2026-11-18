@@ -23,8 +23,8 @@ per-page sessions. Keep it updated at the end of each page.
 - Request budget is ~200/day. Avoid exploratory chatter, avoid re-reading files
   that are already summarised here, and never re-QA a page that this file marks
   done.
-- Prior redesigns are committed as `70a9b86`. Do not commit new page work
-  without explicit approval from the user.
+- Prior redesigns are committed as `70a9b86` and `e098b88`. Do not commit new page
+  work without explicit approval from the user.
 - **Never commit `client/src/constants/api.js`** (unrelated local proxy change).
 
 ## 2. Design language
@@ -104,7 +104,8 @@ Rules that were applied on every finished page:
 - Shared student token block: `.student-home, .student-classes, .student-assignments,
   .student-practice, .student-coding, .student-progress, .student-achievements,
   .student-leaderboard, .student-notifications, .student-profile, .teacher-dashboard,
-  .teacher-classes` (plus the `[data-theme='dark']` twin).
+  .teacher-classes, .teacher-coding, .teacher-submissions` (plus the
+  `[data-theme='dark']` twin).
 - Shared course-dropdown block: classes / assignments / practice / progress.
 - Per-page sections (each self-contained, appended at the end of the file):
   `/* STUDENT HOME */`, `/* STUDENT CLASSES */`, `/* STUDENT ASSIGNMENTS */`,
@@ -118,9 +119,13 @@ Rules that were applied on every finished page:
   inline row editing, in-page password view).
 - Teacher shell lives on the same shared chrome: `.teacher-sidebar` is in the
   `.admin-sidebar, .student-sidebar` desktop flex/label rules and the teacher
-  layout uses `.student-topbar` + `.app-main`. `/* TEACHER DASHBOARD */` and
-  `/* TEACHER CLASSES */` are self-contained blocks at the end of the file.
+  layout uses `.student-topbar` + `.app-main`. `/* TEACHER DASHBOARD */`,
+  `/* TEACHER CLASSES */`, `/* TEACHER CODING PRACTICE */` and
+  `/* TEACHER SUBMISSIONS */` are self-contained blocks at the end of the file.
   Teacher pages follow the page recipe with `teacher-<page>` class names.
+  Teacher submissions uses the dashboard/classes switch idiom twice (course +
+  level) plus a `.teacher-submissions-search-input` (38px tall, 220px wide,
+  full width under 640px) in the same scope row.
 - Duplication per page is intentional and matches the existing convention. Reuse
   only cross-cutting atoms (`.btn`, `.badge`, `.state-block`, `.skeleton`) and
   comma-group rules when two pages need the exact same selector set.
@@ -131,19 +136,11 @@ Rules that were applied on every finished page:
 | --- | --- |
 | Admin | all pages, merged (PR #13 `97c0e19`), plus level-dropdown fix `467189c`, course-details fix `670862a` |
 | Student | Dashboard (`DashboardPage`), Classes (`StudentClassesPage`), Assignments (`CourseAssignmentsPage`), MCQs / Practice (`McqPracticePage`), Coding Practice: list (`StudentCodingPracticePage`), topic (`StudentCodingTopicPage`), instructions (`StudentCodingTaskPage`), workspace (`StudentCodingWorkspacePage`), Progress (`ProgressPage`), Achievements (`AchievementsPage`), Leaderboard (`LeaderboardPage`), Notifications (`NotificationsPage`), Profile (`ProfilePage`) |
-| Teacher | Dashboard (`TeacherDashboardPage`), Classes (`TeacherClassesPage`) |
+| Teacher | Dashboard (`TeacherDashboardPage`), Classes (`TeacherClassesPage`), Coding Practice (`TeacherCodingPracticePage`), Submissions (`TeacherSubmissionsPage`) |
 
-Uncommitted working tree: `StudentSidebar.jsx`, `StudentLayout.jsx`,
-`DashboardPage.jsx`, `StudentClassesPage.jsx`, `CourseAssignmentsPage.jsx`,
-`McqPracticePage.jsx`, `StudentCoding*.jsx`, `ProgressPage.jsx`,
-`AchievementsPage.jsx`, `LeaderboardPage.jsx`, `NotificationsPage.jsx`,
-`ProfilePage.jsx`, `codingPracticeUi.js` (unchanged but used), `components.css`,
-`streak.css`, `admin.css` (old `STUDENT PROFILE` block removed — profile CSS now
-lives in `components.css`), `TeacherSidebar.jsx`, `TeacherLayout.jsx`,
-`TeacherDashboardPage.jsx`, `TeacherClassesPage.jsx`, `teacher.service.js`,
-`server/src/services/teacher-dashboard.service.js`,
-`server/src/controllers/teacher-dashboard.controller.js`,
-`server/src/routes/teacher-dashboard.routes.js`.
+Committed: `70a9b86` (student pages, teacher dashboard + classes) and `e098b88`
+(teacher coding practice). New page work stays uncommitted until the user
+approves a commit.
 
 Coding pages shipped with: row-per-technology list (Solved X / Y stat), level
 panels with numbered rows (`topic` as the row label — `title` is the technology),
@@ -239,6 +236,30 @@ classes route. The old single-card form, separate course select, `page-head`
 caption and `teacher-class-card` chrome were removed. Loading is a two-panel
 skeleton; `empty` shows `No courses yet` with a `—` stat.
 
+Teacher coding practice shipped with: masthead (`Coding Practice` plus a
+`Published tasks` stat showing published of total with a forest bar and a drafts
+caption), course text dropdown under the h1, and one panel per level (`Beginner`,
+`Basic`, `Intermediate`, `Advanced`) whose rows carry the task title, a
+`topic · difficulty · N min` meta line and a right-aligned Published forest /
+Draft coral state.
+
+Teacher submissions shipped with: masthead (`Submissions` plus a `Submitted`
+stat showing submitted of total student-course rows with a forest bar and an
+`N not submitted` caption), a course text dropdown and a level text dropdown
+under the h1, and a `Search students` input in the same scope row that filters
+both panels client-side (the stat keeps the course/level totals while typing).
+One `Practice progress` panel lists each enrolled student once per course
+(`course · level · N of M correct`, right-aligned `NN%` plus Submitted forest /
+Not submitted coral) and one `Submission timing` panel lists assignment and
+practice submissions (`assignment`, `student · course · Attempt N`,
+`Started … · Submitted … · N min limit`, right-aligned time taken plus
+Submitted/Reviewed forest or Late/Pending coral). Rows are static, not
+clickable, so they carry no arrow; hover is a 3.5% tint. Loading is a two-panel
+skeleton; `empty` shows `No courses yet` with a `—` stat; a scope with no rows
+shows `Nothing in this scope`, and a search with no rows shows `No matches`.
+The old stat cards, `Badge`/`ProgressBar` pills and both `admin-table` tables
+were removed.
+
 Teacher shell: `TeacherLayout` now matches the student shell — `.student-topbar`
 hamburger, `.app-main`, sidebar `Log out` opening `ConfirmDialog`
 (`Log out of Mentriv?` / `Stay signed in` / `Log out`), and a `Dashboard` link at
@@ -260,9 +281,8 @@ Student: `MyCoursesPage`, `CourseLearnPage`, `CourseMcqsPage`,
 already-redesigned page — redesign them together with their parent page if they
 are entered from it).
 
-Teacher (9): `TeacherAssignmentsPage`,
-`TeacherSubmissionsPage`, `TeacherMcqsPage`,
-`TeacherCodingPracticePage`, `TeacherCodingTopicPage`,
+Teacher (7): `TeacherAssignmentsPage`,
+`TeacherMcqsPage`, `TeacherCodingTopicPage`,
 `TeacherCodingPracticeFormPage`, `TeacherPracticeFormPage`,
 `TeacherLeaderboardPage`, `TeacherProfilePage`. The teacher shell is done, so
 these pages only need their own content redesign.
@@ -300,6 +320,13 @@ McqAttemptResultPage → then the teacher set starting with TeacherAssignments.
   `POST /courses/:courseId/classes` mutates the in-memory catalog so the
   create → toast → refetch flow works; new rows append to their module and the
   stat moves.
+- `GET /teacher/submissions` is mocked from `teacherSubmissionPlans` (16
+  student-course rows across the same four courses with mixed progress and
+  `submitted`/`pending` states) and `teacherTimingPlans` (8 assignment/MCQ
+  timing rows: submitted, late, reviewed, one pending without a submitted time
+  and one with no limit). It honours `?courseId=` and `?level=`; the `courses`
+  array is not level-filtered (matching the real service), so a course + level
+  combination with no rows still leaves the switchers usable.
 - The mock also serves `GET/PATCH /api/v1/auth/me` and
   `PATCH /api/v1/auth/change-password` for Profile. The password change returns a
   real-shaped JWT (`AuthContext.buildAuthValue` rejects any token without a

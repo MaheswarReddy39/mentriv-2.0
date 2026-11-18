@@ -1,217 +1,405 @@
-import { useEffect, useState } from 'react';
-import Badge from '../../components/common/Badge.jsx';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import EmptyState from '../../components/common/EmptyState.jsx';
 import ErrorState from '../../components/common/ErrorState.jsx';
-import Input from '../../components/common/Input.jsx';
-import Loading from '../../components/common/Loading.jsx';
-import ProgressBar from '../../components/common/ProgressBar.jsx';
-import Select from '../../components/common/Select.jsx';
 import { getTeacherSubmissions } from '../../services/teacher.service.js';
 
 const LEVELS = [
-  { value: 'all', label: 'All Levels' },
+  { value: 'all', label: 'All levels' },
   { value: 'beginner', label: 'Beginner' },
   { value: 'basic', label: 'Basic' },
   { value: 'intermediate', label: 'Intermediate' },
   { value: 'advanced', label: 'Advanced' },
 ];
 
-export default function TeacherSubmissionsPage() {
-  const [courses, setCourses] = useState([]);
-  const [rows, setRows] = useState([]);
-  const [timing, setTiming] = useState([]);
-  const [totalStudents, setTotalStudents] = useState(0);
-  const [totalSubmissions, setTotalSubmissions] = useState(0);
-  const [pendingSubmissions, setPendingSubmissions] = useState(0);
-  const [filters, setFilters] = useState({
-    search: '',
-    courseId: 'all',
-    level: 'all',
-  });
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+const TIMING_TONES = {
+  submitted: 'is-done',
+  reviewed: 'is-done',
+  evaluated: 'is-done',
+  pending: 'is-pending',
+  late: 'is-pending',
+};
 
-  const loadOverview = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const response = await getTeacherSubmissions(filters);
-      setCourses(response.data.courses || []);
-      setTotalStudents(response.data.totalStudents || 0);
-      setTotalSubmissions(response.data.totalSubmissions || 0);
-      setPendingSubmissions(response.data.pendingSubmissions || 0);
-      setRows(response.data.submissions || []);
-      setTiming(response.data.timing || []);
-    } catch (err) {
-      setError(err.message || 'Failed to load submissions overview.');
-    } finally {
-      setLoading(false);
-    }
-  };
+const formatNumber = (value) => Number(value ?? 0).toLocaleString('en-IN');
 
-  useEffect(() => {
-    loadOverview();
-  }, [filters]);
+const formatPercent = (value) => `${Math.round(Number(value) || 0)}%`;
 
-  const handleFilterChange = (field) => (event) => {
-    setFilters((current) => ({ ...current, [field]: event.target.value }));
-  };
+const levelLabel = (value) =>
+  LEVELS.find((level) => level.value === String(value || '').toLowerCase())?.label || '';
 
-  if (loading) return <Loading label="Loading submissions..." />;
-
-  if (error) {
-    return <ErrorState message={error} onRetry={loadOverview} />;
-  }
-
-  return (
-    <div className="teacher-submissions-page fade-in">
-      <header className="teacher-submissions-header">
-        <div>
-          <p className="text-caption">Teacher</p>
-          <h1>Submissions</h1>
-          <p>Total Students: {totalStudents}</p>
-        </div>
-      </header>
-
-      <section className="teacher-submission-stats" aria-label="Submission statistics">
-        <article className="teacher-submission-stat-card">
-          <span>Total Submissions</span>
-          <strong>{totalSubmissions}</strong>
-        </article>
-        <article className="teacher-submission-stat-card">
-          <span>Pending Submissions</span>
-          <strong>{pendingSubmissions}</strong>
-        </article>
-      </section>
-
-      <section className="teacher-submissions-filters" aria-label="Submission filters">
-        <Input
-          label="Search Students"
-          type="search"
-          placeholder="Search by student or course"
-          value={filters.search}
-          onChange={handleFilterChange('search')}
-        />
-        <Select label="Select Course" value={filters.courseId} onChange={handleFilterChange('courseId')}>
-          <option value="all">All Courses</option>
-          {courses.map((course) => (
-            <option key={course.id} value={course.id}>
-              {course.title}
-            </option>
-          ))}
-        </Select>
-        <Select label="Select Level" value={filters.level} onChange={handleFilterChange('level')}>
-          {LEVELS.map((level) => (
-            <option key={level.value} value={level.value}>
-              {level.label}
-            </option>
-          ))}
-        </Select>
-      </section>
-
-      {rows.length === 0 ? (
-        <EmptyState title="No submissions found" message="Try adjusting the search or filters." />
-      ) : (
-        <section className="admin-table-wrap teacher-submissions-table-wrap" aria-label="Student Submissions">
-          <table className="admin-table teacher-submissions-table">
-            <thead>
-              <tr>
-                <th scope="col">S.No</th>
-                <th scope="col">Student Name</th>
-                <th scope="col">Course</th>
-                <th scope="col">Progress</th>
-                <th scope="col">Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((row, index) => (
-                <tr key={row.id}>
-                  <td data-label="S.No">{index + 1}</td>
-                  <td data-label="Student Name">{row.studentName}</td>
-                  <td data-label="Course">{row.courseTitle}</td>
-                  <td data-label="Progress">
-                    <div className="teacher-submission-progress">
-                      <span>{row.progress}%</span>
-                      <ProgressBar value={row.progress} />
-                    </div>
-                  </td>
-                  <td data-label="Status">
-                    <Badge status={row.status}>
-                      {row.status === 'submitted' ? 'Submitted' : 'Pending'}
-                    </Badge>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </section>
-      )}
-
-      <section aria-labelledby="submission-timing-heading" style={{ marginTop: 'var(--space-6)' }}>
-        <h2 id="submission-timing-heading" className="text-h4" style={{ marginBottom: 'var(--space-3)' }}>
-          Submission Timing
-        </h2>
-
-        {timing.length === 0 ? (
-          <EmptyState title="No submissions yet" message="Timing details will appear after students submit." />
-        ) : (
-          <div className="admin-table-wrap teacher-submissions-table-wrap">
-            <table className="admin-table teacher-submissions-table">
-              <thead>
-                <tr>
-                  <th scope="col">S.No</th>
-                  <th scope="col">Student Name</th>
-                  <th scope="col">Assignment</th>
-                  <th scope="col">Started At</th>
-                  <th scope="col">Submitted At</th>
-                  <th scope="col">Time Taken</th>
-                  <th scope="col">Duration</th>
-                  <th scope="col">Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {timing.map((row, index) => (
-                  <tr key={row.id}>
-                    <td data-label="S.No">{index + 1}</td>
-                    <td data-label="Student Name">{row.studentName}</td>
-                    <td data-label="Assignment">
-                      {row.assignmentTitle}
-                      <span className="text-meta" style={{ display: 'block' }}>{row.courseTitle}</span>
-                    </td>
-                    <td data-label="Started At">{formatStamp(row.startedAt)}</td>
-                    <td data-label="Submitted At">{formatStamp(row.submittedAt)}</td>
-                    <td data-label="Time Taken">
-                      {row.timeTakenMinutes !== null && row.timeTakenMinutes !== undefined
-                        ? `${row.timeTakenMinutes} min`
-                        : '—'}
-                    </td>
-                    <td data-label="Duration">
-                      {row.duration ? `${row.duration} min` : 'No limit'}
-                    </td>
-                    <td data-label="Status">
-                      <Badge status={row.status}>
-                        {row.status === 'late' ? 'Late' : row.status === 'submitted' ? 'Submitted' : row.status}
-                      </Badge>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </section>
-    </div>
-  );
-}
-
-function formatStamp(value) {
-  if (!value) return '—';
+const formatStamp = (value) => {
+  if (!value) return '';
   const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return '—';
+  if (Number.isNaN(date.getTime())) return '';
   return date.toLocaleString('en-IN', {
     day: 'numeric',
     month: 'short',
     hour: 'numeric',
     minute: '2-digit',
   });
+};
+
+const timingStatus = (row) => {
+  if (row.isLate) return { label: 'Late', tone: 'is-pending' };
+  const key = String(row.status || 'pending').toLowerCase();
+  const label = key.charAt(0).toUpperCase() + key.slice(1);
+  return { label, tone: TIMING_TONES[key] || 'is-idle' };
+};
+
+function CaretIcon() {
+  return (
+    <svg
+      className="teacher-submissions-caret"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <polyline points="6 9 12 15 18 9" />
+    </svg>
+  );
+}
+
+function SubmissionsSkeleton() {
+  return (
+    <div className="teacher-submissions-skeleton" role="status">
+      <span className="sr-only">Loading submissions…</span>
+      {[0, 1].map((panel) => (
+        <div className="teacher-submissions-skeleton-panel" aria-hidden="true" key={panel}>
+          <div className="teacher-submissions-skeleton-head">
+            <span className="skeleton teacher-submissions-skeleton-title" />
+            <span className="skeleton teacher-submissions-skeleton-count" />
+          </div>
+          {[0, 1, 2, 3].map((row) => (
+            <div className="teacher-submissions-skeleton-row" key={row}>
+              <div className="teacher-submissions-skeleton-row-main">
+                <span className="skeleton teacher-submissions-skeleton-line" />
+                <span className="skeleton teacher-submissions-skeleton-meta" />
+              </div>
+              <span className="skeleton teacher-submissions-skeleton-pill" />
+            </div>
+          ))}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+export default function TeacherSubmissionsPage() {
+  const [courseId, setCourseId] = useState('all');
+  const [level, setLevel] = useState('all');
+  const [search, setSearch] = useState('');
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  const loadOverview = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await getTeacherSubmissions({ courseId, level });
+      setData(response.data || {});
+    } catch (err) {
+      setError(err.message || 'Failed to load submissions.');
+    } finally {
+      setLoading(false);
+    }
+  }, [courseId, level]);
+
+  useEffect(() => {
+    loadOverview();
+  }, [loadOverview]);
+
+  const courses = useMemo(() => data?.courses || [], [data]);
+  const allRows = useMemo(() => data?.submissions || [], [data]);
+  const allTiming = useMemo(() => data?.timing || [], [data]);
+
+  const query = search.trim().toLowerCase();
+
+  const rows = useMemo(() => {
+    if (!query) return allRows;
+    return allRows.filter((row) =>
+      [row.studentName, row.courseTitle, levelLabel(row.level)]
+        .join(' ')
+        .toLowerCase()
+        .includes(query)
+    );
+  }, [allRows, query]);
+
+  const timing = useMemo(() => {
+    if (!query) return allTiming;
+    return allTiming.filter((row) =>
+      [row.studentName, row.assignmentTitle, row.courseTitle]
+        .join(' ')
+        .toLowerCase()
+        .includes(query)
+    );
+  }, [allTiming, query]);
+
+  const submittedCount = allRows.filter((row) => row.status === 'submitted').length;
+  const notSubmittedCount = allRows.length - submittedCount;
+  const submittedPct = allRows.length > 0 ? (submittedCount / allRows.length) * 100 : 0;
+
+  const showSkeleton = loading && !data;
+  const selectedLevel = LEVELS.find((item) => item.value === level) || LEVELS[0];
+
+  return (
+    <div className="teacher-submissions fade-in">
+      <header className="teacher-submissions-masthead">
+        <div className="teacher-submissions-head">
+          <h1 className="teacher-submissions-title">Submissions</h1>
+
+          {showSkeleton ? (
+            <span className="skeleton teacher-submissions-switch-skeleton" aria-hidden="true" />
+          ) : error || courses.length === 0 ? null : (
+            <div className="teacher-submissions-scope">
+              {courses.length > 1 ? (
+                <label className="teacher-submissions-switch">
+                  <span className="teacher-submissions-switch-label" aria-hidden="true">
+                    <span>
+                      {courseId === 'all'
+                        ? 'All courses'
+                        : courses.find((course) => course.id === courseId)?.title ||
+                          'All courses'}
+                    </span>
+                    <CaretIcon />
+                  </span>
+                  <select
+                    className="teacher-submissions-switch-select"
+                    aria-label="Course"
+                    value={courseId}
+                    onChange={(event) => setCourseId(event.target.value)}
+                  >
+                    <option value="all">All courses</option>
+                    {courses.map((course) => (
+                      <option key={course.id} value={course.id}>
+                        {course.title}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              ) : (
+                <p className="teacher-submissions-course-title">{courses[0].title}</p>
+              )}
+
+              <label className="teacher-submissions-switch">
+                <span className="teacher-submissions-switch-label" aria-hidden="true">
+                  <span>{selectedLevel.label}</span>
+                  <CaretIcon />
+                </span>
+                <select
+                  className="teacher-submissions-switch-select"
+                  aria-label="Level"
+                  value={level}
+                  onChange={(event) => setLevel(event.target.value)}
+                >
+                  {LEVELS.map((item) => (
+                    <option key={item.value} value={item.value}>
+                      {item.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <label className="teacher-submissions-search">
+                <span className="sr-only">Search students, courses or assignments</span>
+                <input
+                  className="input teacher-submissions-search-input"
+                  type="search"
+                  placeholder="Search students"
+                  value={search}
+                  onChange={(event) => setSearch(event.target.value)}
+                />
+              </label>
+            </div>
+          )}
+        </div>
+
+        <div className="teacher-submissions-stat">
+          <span className="teacher-submissions-stat-label">Submitted</span>
+          {showSkeleton ? (
+            <span className="skeleton teacher-submissions-stat-skeleton" aria-hidden="true" />
+          ) : error ? (
+            <span className="teacher-submissions-stat-value">—</span>
+          ) : courses.length === 0 ? (
+            <>
+              <span className="teacher-submissions-stat-value">—</span>
+              <span className="teacher-submissions-stat-caption">No courses yet</span>
+            </>
+          ) : (
+            <>
+              <span className="teacher-submissions-stat-value">
+                {formatNumber(submittedCount)}
+                <span className="teacher-submissions-stat-total">
+                  {' '}
+                  of {formatNumber(allRows.length)}
+                </span>
+              </span>
+              {allRows.length > 0 ? (
+                <>
+                  <span className="teacher-submissions-bar" aria-hidden="true">
+                    <span style={{ width: `${submittedPct}%` }} />
+                  </span>
+                  <span className="teacher-submissions-stat-caption">
+                    {notSubmittedCount > 0
+                      ? `${formatNumber(notSubmittedCount)} not submitted`
+                      : 'All students submitted'}
+                  </span>
+                </>
+              ) : (
+                <span className="teacher-submissions-stat-caption">No students yet</span>
+              )}
+            </>
+          )}
+        </div>
+      </header>
+
+      {error ? (
+        <div className="teacher-submissions-state">
+          <ErrorState message={error} onRetry={loadOverview} />
+        </div>
+      ) : showSkeleton ? (
+        <SubmissionsSkeleton />
+      ) : courses.length === 0 ? (
+        <div className="teacher-submissions-state">
+          <EmptyState
+            title="No courses yet"
+            message="Submissions appear once a course has enrolled students."
+          />
+        </div>
+      ) : rows.length === 0 && timing.length === 0 ? (
+        <div className="teacher-submissions-state">
+          <EmptyState
+            title={
+              query
+                ? 'No matches'
+                : courseId !== 'all' || level !== 'all'
+                  ? 'Nothing in this scope'
+                  : 'No submissions yet'
+            }
+            message={
+              query || courseId !== 'all' || level !== 'all'
+                ? 'Try a different search or filter.'
+                : 'Student work appears here as it is handed in.'
+            }
+          />
+        </div>
+      ) : (
+        <>
+          <section
+            className="teacher-submissions-panel"
+            aria-labelledby="teacher-progress-heading"
+          >
+            <header className="teacher-submissions-panel-head">
+              <h2 id="teacher-progress-heading">Practice progress</h2>
+              <span className="teacher-submissions-panel-count">
+                {formatNumber(rows.length)} {rows.length === 1 ? 'student' : 'students'}
+              </span>
+            </header>
+
+            {rows.length === 0 ? (
+              <p className="teacher-submissions-note">No enrolled students in this scope.</p>
+            ) : (
+              <ol className="teacher-submissions-list">
+                {rows.map((row) => {
+                  const meta = [
+                    row.courseTitle,
+                    levelLabel(row.level),
+                    Number(row.totalQuestions) > 0
+                      ? `${formatNumber(row.correctAnswers)} of ${formatNumber(
+                          row.totalQuestions
+                        )} correct`
+                      : 'No practice sets',
+                  ]
+                    .filter(Boolean)
+                    .join(' · ');
+
+                  return (
+                    <li className="teacher-submissions-row" key={row.id}>
+                      <span className="teacher-submissions-row-main">
+                        <span className="teacher-submissions-row-title">{row.studentName}</span>
+                        <span className="teacher-submissions-row-meta">{meta}</span>
+                      </span>
+                      <span className="teacher-submissions-row-side">
+                        <span className="teacher-submissions-row-value">
+                          {formatPercent(row.progress)}
+                        </span>
+                        <span
+                          className={`teacher-submissions-status ${
+                            row.status === 'submitted' ? 'is-done' : 'is-pending'
+                          }`}
+                        >
+                          {row.status === 'submitted' ? 'Submitted' : 'Not submitted'}
+                        </span>
+                      </span>
+                    </li>
+                  );
+                })}
+              </ol>
+            )}
+          </section>
+
+          <section
+            className="teacher-submissions-panel"
+            aria-labelledby="teacher-timing-heading"
+          >
+            <header className="teacher-submissions-panel-head">
+              <h2 id="teacher-timing-heading">Submission timing</h2>
+              <span className="teacher-submissions-panel-count">
+                {formatNumber(timing.length)} {timing.length === 1 ? 'submission' : 'submissions'}
+              </span>
+            </header>
+
+            {timing.length === 0 ? (
+              <p className="teacher-submissions-note">No submissions in this scope.</p>
+            ) : (
+              <ol className="teacher-submissions-list">
+                {timing.map((row) => {
+                  const status = timingStatus(row);
+                  const meta = [
+                    row.studentName,
+                    row.courseTitle,
+                    row.attemptNumber > 1 ? `Attempt ${row.attemptNumber}` : null,
+                  ]
+                    .filter(Boolean)
+                    .join(' · ');
+                  const span = [
+                    row.startedAt ? `Started ${formatStamp(row.startedAt)}` : null,
+                    row.submittedAt ? `Submitted ${formatStamp(row.submittedAt)}` : null,
+                    row.duration > 0 ? `${row.duration} min limit` : 'No limit',
+                  ]
+                    .filter(Boolean)
+                    .join(' · ');
+
+                  return (
+                    <li className="teacher-submissions-row" key={row.id}>
+                      <span className="teacher-submissions-row-main">
+                        <span className="teacher-submissions-row-title">
+                          {row.assignmentTitle}
+                        </span>
+                        <span className="teacher-submissions-row-meta">{meta}</span>
+                        <span className="teacher-submissions-row-sub">{span}</span>
+                      </span>
+                      <span className="teacher-submissions-row-side">
+                        <span className="teacher-submissions-row-value">
+                          {row.timeTakenMinutes !== null && row.timeTakenMinutes !== undefined
+                            ? `${formatNumber(row.timeTakenMinutes)} min`
+                            : '—'}
+                        </span>
+                        <span className={`teacher-submissions-status ${status.tone}`}>
+                          {status.label}
+                        </span>
+                      </span>
+                    </li>
+                  );
+                })}
+              </ol>
+            )}
+          </section>
+        </>
+      )}
+    </div>
+  );
 }
