@@ -1,17 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import Badge from '../../components/common/Badge.jsx';
+import { useNavigate } from 'react-router-dom';
 import Button from '../../components/common/Button.jsx';
-import Card from '../../components/common/Card.jsx';
 import EmptyState from '../../components/common/EmptyState.jsx';
 import ErrorState from '../../components/common/ErrorState.jsx';
-import Loading from '../../components/common/Loading.jsx';
-import ProgressBar from '../../components/common/ProgressBar.jsx';
-import Select from '../../components/common/Select.jsx';
 import { getMyEnrollments } from '../../services/enrollment.service.js';
 import { getProgressOverview } from '../../services/progress.service.js';
 import { getAttemptById, getMcqTestById } from '../../services/mcq.service.js';
-import { LEVEL_BADGE_CLASS, decodeDescription } from '../../utils/practiceLevels.js';
+import { decodeDescription } from '../../utils/practiceLevels.js';
 
 const ACTIVE_STATUSES = ['approved', 'completed'];
 
@@ -24,6 +19,19 @@ const EMPTY_OVERALL = {
   mcq: { attempted: 0, total: 0, pct: 0 },
 };
 
+const ASSIGNMENT_STATUS = {
+  completed: { label: 'Completed', tone: 'is-positive' },
+  overdue: { label: 'Overdue', tone: 'is-negative' },
+  pending: { label: 'Pending', tone: 'is-negative' },
+};
+
+const ACTIVITY_STATUS = {
+  completed: { label: 'Completed', tone: 'is-positive' },
+  submitted: { label: 'Submitted', tone: 'is-positive' },
+  passed: { label: 'Passed', tone: 'is-positive' },
+  failed: { label: 'Needs practice', tone: 'is-negative' },
+};
+
 const getCourseId = (enrollment) => enrollment?.course?.id || enrollment?.course?._id || null;
 
 const formatDate = (value) => (value ? new Date(value).toLocaleDateString('en-IN') : '');
@@ -31,6 +39,70 @@ const formatDate = (value) => (value ? new Date(value).toLocaleDateString('en-IN
 const formatDateTime = (value) => (value ? new Date(value).toLocaleString('en-IN') : 'Not submitted');
 
 const optionLetter = (index) => String.fromCharCode(65 + index);
+
+const clampPct = (value) => Math.min(100, Math.max(0, Number(value) || 0));
+
+const displayPct = (value) => Math.round(Number(value) || 0);
+
+function CaretIcon() {
+  return (
+    <svg
+      className="student-progress-course-caret"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <polyline points="6 9 12 15 18 9" />
+    </svg>
+  );
+}
+
+function ArrowIcon() {
+  return (
+    <svg
+      className="student-progress-arrow"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <line x1="5" y1="12" x2="19" y2="12" />
+      <polyline points="12 5 19 12 12 19" />
+    </svg>
+  );
+}
+
+function ProgressSkeleton({ panels = 3 }) {
+  return (
+    <div className="student-progress-skeleton" role="status">
+      <span className="sr-only">Loading progress.</span>
+      {Array.from({ length: panels }, (_, panel) => (
+        <div className="student-progress-skeleton-panel" key={panel} aria-hidden="true">
+          <div className="student-progress-skeleton-head">
+            <span className="skeleton student-progress-skeleton-title" />
+            <span className="skeleton student-progress-skeleton-count" />
+          </div>
+          {[0, 1, 2].map((row) => (
+            <div className="student-progress-skeleton-row" key={row}>
+              <div className="student-progress-skeleton-copy">
+                <span className="skeleton student-progress-skeleton-line" />
+                <span className="skeleton student-progress-skeleton-meta" />
+              </div>
+              <span className="skeleton student-progress-skeleton-pill" />
+            </div>
+          ))}
+        </div>
+      ))}
+    </div>
+  );
+}
 
 export default function ProgressPage() {
   const navigate = useNavigate();
@@ -44,7 +116,6 @@ export default function ProgressPage() {
   const [selectedCourseId, setSelectedCourseId] = useState('');
 
   const [view, setView] = useState('home');
-  const [openHistory, setOpenHistory] = useState(null);
 
   const [resultSource, setResultSource] = useState(null);
   const [selectedResult, setSelectedResult] = useState(null);
@@ -118,7 +189,7 @@ export default function ProgressPage() {
   const classItems = useMemo(
     () =>
       courses.flatMap((course) =>
-        course.classes.items.map((item) => ({
+        (course.classes?.items || []).map((item) => ({
           ...item,
           courseId: course.id,
           courseTitle: course.title,
@@ -130,7 +201,7 @@ export default function ProgressPage() {
   const assignmentItems = useMemo(
     () =>
       courses.flatMap((course) =>
-        course.assignments.items.map((item) => ({
+        (course.assignments?.items || []).map((item) => ({
           ...item,
           courseId: course.id,
           courseTitle: course.title,
@@ -142,7 +213,7 @@ export default function ProgressPage() {
   const mcqItems = useMemo(
     () =>
       courses.flatMap((course) =>
-        course.mcq.items.map((item) => ({
+        (course.mcq?.items || []).map((item) => ({
           ...item,
           courseId: course.id,
           courseTitle: course.title,
@@ -151,21 +222,7 @@ export default function ProgressPage() {
     [courses]
   );
 
-  const assignmentsPending = assignmentItems.filter((item) => item.status === 'pending').length;
-  const assignmentsOverdue = assignmentItems.filter((item) => item.status === 'overdue').length;
-  const classesPending = overall.classes.total - overall.classes.completed;
-
-  const mcqBestScore = mcqItems.reduce(
-    (max, item) => (item.bestScore !== null && item.bestScore !== undefined ? Math.max(max, item.bestScore) : max),
-    0
-  );
-  const mcqHasScores = mcqItems.some((item) => item.bestScore !== null && item.bestScore !== undefined);
-  const mcqTotalAttempts = mcqItems.reduce((sum, item) => sum + (item.attemptsCount || 0), 0);
-
-  const go = (nextView) => {
-    setView(nextView);
-    setOpenHistory(null);
-  };
+  const go = (nextView) => setView(nextView);
 
   const startPractice = (item) => {
     navigate('/mcqs', { state: { retryTestId: item.id } });
@@ -177,6 +234,12 @@ export default function ProgressPage() {
     if (type === 'class') navigate(`/classes/${id}`);
     else if (type === 'assignment') navigate(`/assignments/${id}`);
     else navigate('/mcqs', { state: { retryTestId: id } });
+  };
+
+  const selectCourse = (courseId) => {
+    if (courseId === selectedCourseId) return;
+    setSelectedCourseId(courseId);
+    setView('home');
   };
 
   const openResult = useCallback(async (item) => {
@@ -204,69 +267,108 @@ export default function ProgressPage() {
     }
   }, []);
 
-  const scrollToReview = () => {
-    document.getElementById('review-answers')?.scrollIntoView({ behavior: 'smooth' });
-  };
-
-  const backLink = (
-    <Link to="/progress" className="back-link" onClick={() => go('home')}>
-      Back to Progress
-    </Link>
+  const backButton = (label, nextView) => (
+    <button type="button" className="student-progress-back" onClick={() => go(nextView)}>
+      <span aria-hidden="true">&larr;</span> Back to {label}
+    </button>
   );
 
-  const pageHeader = (title, subtitle) => (
-    <header className="admin-dashboard-header">
-      <div>
-        <h1>{title}</h1>
-        <p className="admin-welcome">{subtitle}</p>
+  const selectedCourse = enrollments.find(
+    (enrollment) => getCourseId(enrollment) === selectedCourseId
+  );
+  const courseLabel = selectedCourse?.course?.title || 'All courses';
+
+  const courseScope =
+    enrollments.length > 1 ? (
+      <label className="student-progress-course">
+        <span className="student-progress-course-value" aria-hidden="true">
+          <span>{courseLabel}</span>
+          <CaretIcon />
+        </span>
+        <select
+          className="student-progress-course-select"
+          aria-label="Course"
+          value={selectedCourseId}
+          onChange={(event) => selectCourse(event.target.value)}
+        >
+          <option value="">All courses</option>
+          {enrollments.map((enrollment) => {
+            const id = getCourseId(enrollment);
+            return (
+              <option key={id} value={id}>
+                {enrollment.course?.title || 'Untitled course'}
+              </option>
+            );
+          })}
+        </select>
+      </label>
+    ) : enrollments.length === 1 ? (
+      <p className="student-progress-course-title">{courseLabel}</p>
+    ) : null;
+
+  const masthead = ({ title, label, value, pct, loadingStat = false }) => (
+    <header className="student-progress-masthead">
+      <div className="student-progress-head">
+        <h1 className="student-progress-title">{title}</h1>
+        {enrollmentsReady || loadError ? (
+          courseScope
+        ) : (
+          <span className="skeleton student-progress-course-skeleton" aria-hidden="true" />
+        )}
+      </div>
+
+      <div className="student-progress-stat">
+        <span className="student-progress-stat-label">{label}</span>
+        {loadingStat ? (
+          <span className="skeleton student-progress-stat-skeleton" aria-hidden="true" />
+        ) : (
+          <span className="student-progress-stat-value">{value}</span>
+        )}
+        {!loadingStat && pct !== null && pct !== undefined ? (
+          <span className="student-progress-bar" aria-hidden="true">
+            <span style={{ width: `${clampPct(pct)}%` }} />
+          </span>
+        ) : null}
       </div>
     </header>
   );
 
-  const coursePicker =
-    enrollments.length > 1 ? (
-      <div style={{ maxWidth: '360px', marginBottom: 'var(--space-5)' }}>
-        <Select
-          label="Course"
-          value={selectedCourseId}
-          onChange={(event) => setSelectedCourseId(event.target.value)}
-        >
-          <option value="">All courses</option>
-          {enrollments.map((enrollment) => (
-            <option key={getCourseId(enrollment)} value={getCourseId(enrollment)}>
-              {enrollment.course?.title || 'Course'}
-            </option>
-          ))}
-        </Select>
-      </div>
-    ) : null;
+  const stat = (done, total) => (
+    <>
+      {done} <span className="student-progress-stat-total"> / {total}</span>
+    </>
+  );
 
   if (loadError) {
     return (
-      <div className="admin-dashboard fade-in">
-        {pageHeader('My Progress', 'Track your classes, assignments, and practice in one place.')}
-        <ErrorState message={loadError} onRetry={retryLoad} />
+      <div className="student-progress fade-in">
+        {masthead({ title: 'Progress', label: 'Overall', value: '—', pct: null })}
+        <div className="student-progress-state">
+          <ErrorState message={loadError} onRetry={retryLoad} />
+        </div>
       </div>
     );
   }
 
   if (!enrollmentsReady || (!overview && overviewLoading)) {
     return (
-      <div className="admin-dashboard fade-in">
-        {pageHeader('My Progress', 'Track your classes, assignments, and practice in one place.')}
-        <Loading label="Loading your progress..." />
+      <div className="student-progress fade-in">
+        {masthead({ title: 'Progress', label: 'Overall', value: '', pct: null, loadingStat: true })}
+        <ProgressSkeleton />
       </div>
     );
   }
 
   if (!overview || enrollments.length === 0) {
     return (
-      <div className="admin-dashboard fade-in">
-        {pageHeader('My Progress', 'Track your classes, assignments, and practice in one place.')}
-        <EmptyState
-          title="No courses yet"
-          message="Enroll in a course to start tracking your progress."
-        />
+      <div className="student-progress fade-in">
+        {masthead({ title: 'Progress', label: 'Overall', value: '—', pct: null })}
+        <div className="student-progress-state">
+          <EmptyState
+            title="No courses yet"
+            message="Progress appears here once you are enrolled in a course."
+          />
+        </div>
       </div>
     );
   }
@@ -274,21 +376,23 @@ export default function ProgressPage() {
   if (view === 'result') {
     if (resultLoading) {
       return (
-        <div className="admin-dashboard fade-in">
-          {backLink}
-          <Loading label="Loading result..." />
+        <div className="student-progress fade-in">
+          {backButton('practice', 'mcq')}
+          <ProgressSkeleton panels={2} />
         </div>
       );
     }
 
     if (resultError) {
       return (
-        <div className="admin-dashboard fade-in">
-          {backLink}
-          <ErrorState
-            message={resultError}
-            onRetry={() => (resultSource ? openResult(resultSource) : go('mcq'))}
-          />
+        <div className="student-progress fade-in">
+          {backButton('practice', 'mcq')}
+          <div className="student-progress-state">
+            <ErrorState
+              message={resultError}
+              onRetry={() => (resultSource ? openResult(resultSource) : go('mcq'))}
+            />
+          </div>
         </div>
       );
     }
@@ -340,30 +444,26 @@ export default function ProgressPage() {
     const passed = evaluated && Boolean(attempt?.passed ?? percentage >= passingScore);
 
     return (
-      <div className="admin-dashboard fade-in">
-        {backLink}
+      <div className="student-progress fade-in">
+        {backButton('practice', 'mcq')}
 
-        <section className="asg-head fade-in" aria-labelledby="result-heading">
-          <p className="text-meta uppercase">{passed ? 'Passed' : 'Not passed'}</p>
-          <h1 id="result-heading">{test?.title || 'Practice result'}</h1>
-          <div className="student-assignment-meta" style={{ marginTop: 'var(--space-3)' }}>
-            {levelInfo.level ? (
-              <span className={`badge ${LEVEL_BADGE_CLASS[levelInfo.level] || 'badge-neutral'}`}>
-                {levelInfo.level}
-              </span>
-            ) : null}
-            {levelInfo.topic ? <span>{levelInfo.topic}</span> : null}
-            <span>{courseTitle}</span>
-          </div>
+        <section
+          className="student-progress-detail"
+          aria-labelledby="student-progress-result-title"
+        >
+          <p className="student-progress-eyebrow">
+            {[levelInfo.level, levelInfo.topic, courseTitle].filter(Boolean).join(' · ')}
+          </p>
+          <h1 id="student-progress-result-title">{test?.title || 'Practice result'}</h1>
 
-          <dl className="meta-grid" style={{ marginTop: 'var(--space-5)' }}>
+          <dl className="student-progress-facts">
             <div>
-              <dt>Attempt number</dt>
-              <dd>#{attempt?.attemptNumber ?? '-'}</dd>
+              <dt>Attempt</dt>
+              <dd>#{attempt?.attemptNumber ?? '—'}</dd>
             </div>
             <div>
               <dt>Completed</dt>
-              <dd>{evaluated ? formatDateTime(attempt?.submittedAt) : 'Not submitted yet'}</dd>
+              <dd>{evaluated ? formatDateTime(attempt?.submittedAt) : 'Not submitted'}</dd>
             </div>
             <div>
               <dt>Score</dt>
@@ -380,54 +480,64 @@ export default function ProgressPage() {
 
         {evaluated ? (
           <>
-            <section
-              className={`result-hero ${passed ? 'result-pass' : 'result-fail'} fade-in`}
-              aria-label="Result summary"
-            >
-              <p className="text-meta uppercase">{passed ? 'Passed' : 'Not passed'}</p>
-              <p className="result-percentage">{percentage}%</p>
-              <p className="result-score">
-                {passed ? 'PASSED' : 'NOT PASSED'} {' · '}You scored {attempt?.score ?? 0} out of{' '}
-                {totalMarks} {' · '}Passing score {passingScore}%
-              </p>
+            <section className="student-progress-panel" aria-label="Result summary">
+              <div className="student-progress-panel-body is-flush">
+                <div className="student-progress-score">
+                  <div className="student-progress-score-main">
+                    <p
+                      className={`student-progress-score-eyebrow ${
+                        passed ? 'is-positive' : 'is-negative'
+                      }`}
+                    >
+                      {passed ? 'Passed' : 'Not passed'}
+                    </p>
+                    <p className="student-progress-score-value">{displayPct(percentage)}%</p>
+                    <p className="student-progress-score-line">
+                      {attempt?.score ?? 0} of {totalMarks} marks · Passing score {passingScore}%
+                    </p>
+                    <span className="student-progress-bar" aria-hidden="true">
+                      <span style={{ width: `${clampPct(percentage)}%` }} />
+                    </span>
+                  </div>
 
-              <div style={{ maxWidth: '420px', margin: 'var(--space-5) auto 0' }}>
-                <ProgressBar
-                  value={percentage}
-                  label={`Score ${attempt?.score ?? 0}/${totalMarks}`}
-                />
-              </div>
-
-              <div className="student-mcq-result-summary" style={{ marginTop: 'var(--space-5)' }}>
-                <div>
-                  <p className="admin-stat-value stat-teal">{correctCount}</p>
-                  <p className="admin-stat-label">Correct</p>
-                </div>
-                <div>
-                  <p className="admin-stat-value stat-coral">{wrongCount}</p>
-                  <p className="admin-stat-label">Wrong</p>
-                </div>
-                <div>
-                  <p className="admin-stat-value stat-indigo">{unansweredCount}</p>
-                  <p className="admin-stat-label">Unanswered</p>
+                  <dl className="student-progress-score-stats">
+                    <div>
+                      <dt>Correct</dt>
+                      <dd>{correctCount}</dd>
+                    </div>
+                    <div>
+                      <dt>Wrong</dt>
+                      <dd>{wrongCount}</dd>
+                    </div>
+                    <div>
+                      <dt>Unanswered</dt>
+                      <dd>{unansweredCount}</dd>
+                    </div>
+                  </dl>
                 </div>
               </div>
             </section>
 
             <section
-              id="review-answers"
-              aria-labelledby="review-heading"
-              style={{ marginTop: 'var(--space-8)' }}
+              className="student-progress-panel"
+              aria-labelledby="student-progress-review-heading"
             >
-              <h2 id="review-heading" className="text-h3">
-                Review Answers
-              </h2>
+              <header className="student-progress-panel-head">
+                <h2 id="student-progress-review-heading">Review answers</h2>
+                <span className="student-progress-panel-count">
+                  {questions.length} {questions.length === 1 ? 'question' : 'questions'}
+                </span>
+              </header>
 
-              <div style={{ display: 'grid', gap: 'var(--space-4)', marginTop: 'var(--space-4)' }}>
-                {questions.length === 0 ? (
-                  <EmptyState title="No questions available" message="Review is unavailable for this attempt." />
-                ) : (
-                  questions.map((question, index) => {
+              {questions.length === 0 ? (
+                <div className="student-progress-panel-body is-flush">
+                  <p className="student-progress-row-meta">
+                    Review is unavailable for this attempt.
+                  </p>
+                </div>
+              ) : (
+                <ol className="student-progress-list">
+                  {questions.map((question, index) => {
                     const answer = answerByOrder.get(Number(question.order));
                     const selectedIndex =
                       answer && answer.selectedOption !== null && answer.selectedOption !== undefined
@@ -445,122 +555,82 @@ export default function ProgressPage() {
                     const notAnswered = selectedIndex === null;
 
                     return (
-                      <Card key={question.order}>
-                        <div
-                          style={{
-                            display: 'flex',
-                            justifyContent: 'space-between',
-                            gap: 'var(--space-3)',
-                            flexWrap: 'wrap',
-                          }}
-                        >
-                          <p className="text-meta uppercase" style={{ margin: 0 }}>
-                            Question {index + 1} &middot; {question.marks} mark
-                            {question.marks === 1 ? '' : 's'}
-                          </p>
-                          <Badge status={isCorrect ? 'passed' : notAnswered ? 'pending' : 'rejected'}>
-                            {isCorrect ? 'Correct' : notAnswered ? 'Not answered' : 'Wrong'}
-                          </Badge>
-                        </div>
-
-                        <h3 className="text-h4" style={{ margin: 'var(--space-2) 0 var(--space-3)' }}>
-                          {question.question}
-                        </h3>
-
-                        <p className="text-sm" style={{ margin: 0 }}>
-                          <strong>Your answer:</strong>{' '}
-                          <span
-                            style={{
-                              color: isCorrect
-                                ? 'var(--teal-dark, #0f766e)'
-                                : notAnswered
-                                  ? 'var(--text-tertiary)'
-                                  : 'var(--coral-dark, #dc2626)',
-                            }}
-                          >
-                            {selectedIndex === null
-                              ? 'Not answered'
-                              : question.options[selectedIndex] || optionLetter(selectedIndex)}
+                      <li key={question.order}>
+                        <div className="student-progress-row is-static student-progress-review-row">
+                          <span className="student-progress-row-index" aria-hidden="true">
+                            {index + 1}
                           </span>
-                        </p>
-
-                        <p className="text-sm" style={{ margin: 'var(--space-2) 0 0' }}>
-                          <strong>Correct answer:</strong>{' '}
-                          {correctIndex === null
-                            ? 'Unavailable'
-                            : question.options[correctIndex] || optionLetter(correctIndex)}
-                        </p>
-
-                        {answer?.explanation ? (
-                          <div className="feedback-block" style={{ marginTop: 'var(--space-3)' }}>
-                            <p className="text-meta" style={{ margin: 0 }}>
-                              Explanation
-                            </p>
-                            <p className="text-sm" style={{ margin: 0 }}>
-                              {answer.explanation}
-                            </p>
-                          </div>
-                        ) : null}
-                      </Card>
+                          <span className="student-progress-row-main">
+                            <span className="student-progress-row-title">{question.question}</span>
+                            <span className="student-progress-row-meta">
+                              Your answer: {selectedIndex === null
+                                ? 'Not answered'
+                                : question.options?.[selectedIndex] || optionLetter(selectedIndex)}
+                              {' · '}Correct answer:{' '}
+                              {correctIndex === null
+                                ? 'Unavailable'
+                                : question.options?.[correctIndex] || optionLetter(correctIndex)}
+                            </span>
+                            {answer?.explanation ? (
+                              <span className="student-progress-row-note">{answer.explanation}</span>
+                            ) : null}
+                          </span>
+                          <span className="student-progress-row-side">
+                            <span
+                              className={`student-progress-status ${
+                                isCorrect
+                                  ? 'is-positive'
+                                  : notAnswered
+                                    ? 'is-idle'
+                                    : 'is-negative'
+                              }`}
+                            >
+                              {isCorrect ? 'Correct' : notAnswered ? 'Not answered' : 'Wrong'}
+                            </span>
+                          </span>
+                        </div>
+                      </li>
                     );
-                  })
-                )}
-              </div>
+                  })}
+                </ol>
+              )}
             </section>
 
-            <div
-              className="student-assignment-submit"
-              style={{
-                marginTop: 'var(--space-6)',
-                gap: 'var(--space-3)',
-                flexWrap: 'wrap',
-                justifyContent: 'flex-end',
-              }}
-            >
-              <Button type="button" variant="outline" onClick={scrollToReview}>
-                Review Answers
-              </Button>
+            <div className="student-progress-actions">
               <Button
                 type="button"
-                variant="outline"
                 onClick={() => navigate('/mcqs', { state: { retryTestId: test?.id } })}
               >
-                Retry Practice
+                Retry practice
               </Button>
-              <Button type="button" onClick={() => go('home')}>
-                Back to Progress
+              <Button type="button" variant="outline" onClick={() => go('mcq')}>
+                Back to practice
               </Button>
             </div>
           </>
         ) : (
-          <div style={{ marginTop: 'var(--space-6)' }}>
-            <Card>
-              <h3>Attempt submitted</h3>
-              <p className="text-meta" style={{ margin: 'var(--space-2) 0 0' }}>
-                This attempt is waiting for evaluation. Check back soon for your score.
-              </p>
-            </Card>
-            <div
-              className="student-assignment-submit"
-              style={{
-                marginTop: 'var(--space-6)',
-                gap: 'var(--space-3)',
-                flexWrap: 'wrap',
-                justifyContent: 'flex-end',
-              }}
-            >
+          <>
+            <div className="student-progress-panel">
+              <div className="student-progress-panel-body is-flush">
+                <p className="student-progress-row-title">Attempt submitted</p>
+                <p className="student-progress-row-meta">
+                  This attempt is waiting for evaluation. Check back soon for your score.
+                </p>
+              </div>
+            </div>
+
+            <div className="student-progress-actions">
               <Button
                 type="button"
-                variant="outline"
                 onClick={() => navigate('/mcqs', { state: { retryTestId: test?.id } })}
               >
-                Retry Practice
+                Retry practice
               </Button>
-              <Button type="button" onClick={() => go('home')}>
-                Back to Progress
+              <Button type="button" variant="outline" onClick={() => go('mcq')}>
+                Back to practice
               </Button>
             </div>
-          </div>
+          </>
         )}
       </div>
     );
@@ -570,87 +640,82 @@ export default function ProgressPage() {
     const completedClasses = classItems.filter((item) => item.completed);
     const incompleteClasses = classItems.filter((item) => !item.completed);
 
-    const renderClassCard = (item) => (
-      <Card key={item.id} variant="student-class-card">
-        <div>
-          <div className="student-assignment-meta">
-            <span>{item.courseTitle}</span>
-            <span>
-              {item.completed
-                ? `Watched ${formatDate(item.completedAt)}`
-                : item.module
-                  ? `Module: ${item.module}`
-                  : 'Not watched'}
+    const renderClassRow = (item) => {
+      const meta = [
+        item.courseTitle,
+        item.module ? `Module: ${item.module}` : null,
+        item.completed ? `Watched ${formatDate(item.completedAt)}` : null,
+      ]
+        .filter(Boolean)
+        .join(' · ');
+
+      return (
+        <li key={item.id}>
+          <button
+            type="button"
+            className="student-progress-row"
+            onClick={() => navigate(`/classes/${item.id}`)}
+          >
+            <span className="student-progress-row-main">
+              <span className="student-progress-row-title">{item.title}</span>
+              <span className="student-progress-row-meta">{meta}</span>
             </span>
-          </div>
-          <h3>{item.title}</h3>
-          <div style={{ marginTop: 'var(--space-3)' }}>
-            <ProgressBar value={item.completed ? 100 : 0} label="Progress" />
-          </div>
-        </div>
-        <div className="student-class-actions">
-          <Badge status={item.completed ? 'completed' : 'pending'}>
-            {item.completed ? 'Completed' : 'Not started'}
-          </Badge>
-          <Button size="sm" variant="outline" onClick={() => navigate(`/classes/${item.id}`)}>
-            {item.completed ? 'View' : 'Continue'}
-          </Button>
-        </div>
-      </Card>
-    );
+            <span className="student-progress-row-side">
+              <span
+                className={`student-progress-status ${
+                  item.completed ? 'is-positive' : 'is-idle'
+                }`}
+              >
+                {item.completed ? 'Completed' : 'Not started'}
+              </span>
+            </span>
+            <ArrowIcon />
+          </button>
+        </li>
+      );
+    };
 
     return (
-      <div className="admin-dashboard fade-in">
-        {backLink}
-        {pageHeader('Classes Progress', 'Watch published classes to build your class progress.')}
-        {coursePicker}
+      <div className="student-progress fade-in">
+        {backButton('progress', 'home')}
+        {masthead({
+          title: 'Classes',
+          label: 'Watched',
+          value: stat(overall.classes.completed, overall.classes.total),
+          pct: overall.classes.pct,
+        })}
 
-        <section className="admin-stat-grid" aria-label="Classes summary">
-          <Card>
-            <p className="admin-stat-value stat-teal">
-              {overall.classes.completed} / {overall.classes.total}
-            </p>
-            <p className="admin-stat-label">Completed</p>
-            <div style={{ marginTop: 'var(--space-3)' }}>
-              <ProgressBar value={overall.classes.pct} />
-            </div>
-          </Card>
-          <Card>
-            <p className="admin-stat-value stat-amber">{classesPending}</p>
-            <p className="admin-stat-label">Pending</p>
-          </Card>
-          <Card>
-            <p className="admin-stat-value stat-indigo">{courses.length}</p>
-            <p className="admin-stat-label">Courses</p>
-          </Card>
-        </section>
-
-        <section className="admin-quick-actions" aria-labelledby="completed-classes-heading">
-          <div className="section-head">
-            <div>
-              <h2 id="completed-classes-heading">Completed Classes</h2>
-            </div>
-          </div>
+        <section className="student-progress-panel" aria-labelledby="student-progress-completed">
+          <header className="student-progress-panel-head">
+            <h2 id="student-progress-completed">Completed</h2>
+            <span className="student-progress-panel-count">
+              {completedClasses.length} {completedClasses.length === 1 ? 'class' : 'classes'}
+            </span>
+          </header>
           {completedClasses.length === 0 ? (
-            <EmptyState
-              title="No completed classes"
-              message="Classes you watch will appear here."
-            />
+            <div className="student-progress-panel-body is-flush">
+              <p className="student-progress-row-meta">Classes you watch appear here.</p>
+            </div>
           ) : (
-            <div className="student-classes-grid">{completedClasses.map(renderClassCard)}</div>
+            <ol className="student-progress-list">{completedClasses.map(renderClassRow)}</ol>
           )}
         </section>
 
-        <section className="admin-quick-actions" aria-labelledby="incomplete-classes-heading">
-          <div className="section-head">
-            <div>
-              <h2 id="incomplete-classes-heading">Incomplete Classes</h2>
-            </div>
-          </div>
+        <section className="student-progress-panel" aria-labelledby="student-progress-pending">
+          <header className="student-progress-panel-head">
+            <h2 id="student-progress-pending">Not started</h2>
+            <span className="student-progress-panel-count">
+              {incompleteClasses.length} {incompleteClasses.length === 1 ? 'class' : 'classes'}
+            </span>
+          </header>
           {incompleteClasses.length === 0 ? (
-            <EmptyState title="All classes completed" message="Every published class is watched." />
+            <div className="student-progress-panel-body is-flush">
+              <p className="student-progress-row-meta">
+                Every published class in this selection is watched.
+              </p>
+            </div>
           ) : (
-            <div className="student-classes-grid">{incompleteClasses.map(renderClassCard)}</div>
+            <ol className="student-progress-list">{incompleteClasses.map(renderClassRow)}</ol>
           )}
         </section>
       </div>
@@ -659,80 +724,70 @@ export default function ProgressPage() {
 
   if (view === 'assignments') {
     return (
-      <div className="admin-dashboard fade-in">
-        {backLink}
-        {pageHeader(
-          'Assignments Progress',
-          'Assignments count as completed once your submission succeeds.'
-        )}
-        {coursePicker}
+      <div className="student-progress fade-in">
+        {backButton('progress', 'home')}
+        {masthead({
+          title: 'Assignments',
+          label: 'Completed',
+          value: stat(overall.assignments.completed, overall.assignments.total),
+          pct: overall.assignments.pct,
+        })}
 
-        <section className="admin-stat-grid" aria-label="Assignments summary">
-          <Card>
-            <p className="admin-stat-value stat-indigo">{overall.assignments.pct}%</p>
-            <p className="admin-stat-label">Completion</p>
-            <div style={{ marginTop: 'var(--space-3)' }}>
-              <ProgressBar value={overall.assignments.pct} />
-            </div>
-          </Card>
-          <Card>
-            <p className="admin-stat-value stat-teal">{overall.assignments.completed}</p>
-            <p className="admin-stat-label">Completed</p>
-          </Card>
-          <Card>
-            <p className="admin-stat-value stat-amber">{assignmentsPending}</p>
-            <p className="admin-stat-label">Pending</p>
-          </Card>
-          <Card>
-            <p className="admin-stat-value stat-coral">{assignmentsOverdue}</p>
-            <p className="admin-stat-label">Overdue</p>
-          </Card>
-        </section>
+        <section className="student-progress-panel" aria-labelledby="student-progress-assignment-list">
+          <header className="student-progress-panel-head">
+            <h2 id="student-progress-assignment-list">All assignments</h2>
+            <span className="student-progress-panel-count">
+              {assignmentItems.length}{' '}
+              {assignmentItems.length === 1 ? 'assignment' : 'assignments'}
+            </span>
+          </header>
 
-        <section className="admin-quick-actions" aria-labelledby="assignment-list-heading">
-          <div className="section-head">
-            <div>
-              <h2 id="assignment-list-heading">All Assignments</h2>
-            </div>
-          </div>
           {assignmentItems.length === 0 ? (
-            <EmptyState
-              title="No assignments yet"
-              message="Published assignments for your courses will appear here."
-            />
-          ) : (
-            <div className="student-mcq-result-list">
-              {assignmentItems.map((assignment) => (
-                <div key={assignment.id} className="student-mcq-result-row">
-                  <div className="student-mcq-result-row-head">
-                    <div>
-                      <h3>{assignment.title}</h3>
-                      <div className="student-assignment-meta">
-                        <span>{assignment.courseTitle}</span>
-                        <span>
-                          {assignment.dueDate ? `Due ${formatDate(assignment.dueDate)}` : 'No due date'}
-                        </span>
-                        {assignment.submittedAt ? (
-                          <span>Submitted {formatDate(assignment.submittedAt)}</span>
-                        ) : null}
-                        {assignment.marks !== null && assignment.marks !== undefined ? (
-                          <span>
-                            Score {assignment.marks} / {assignment.maxMarks}
-                          </span>
-                        ) : null}
-                      </div>
-                    </div>
-                    <Badge status={assignment.status === 'overdue' ? 'late' : assignment.status}>
-                      {assignment.status === 'completed'
-                        ? 'Completed'
-                        : assignment.status === 'overdue'
-                          ? 'Overdue'
-                          : 'Pending'}
-                    </Badge>
-                  </div>
-                </div>
-              ))}
+            <div className="student-progress-panel-body is-flush">
+              <p className="student-progress-row-meta">
+                Published assignments for your courses appear here.
+              </p>
             </div>
+          ) : (
+            <ol className="student-progress-list">
+              {assignmentItems.map((assignment) => {
+                const status = ASSIGNMENT_STATUS[assignment.status] || {
+                  label: 'Pending',
+                  tone: 'is-negative',
+                };
+                const meta = [
+                  assignment.courseTitle,
+                  assignment.dueDate ? `Due ${formatDate(assignment.dueDate)}` : 'No due date',
+                  assignment.submittedAt ? `Submitted ${formatDate(assignment.submittedAt)}` : null,
+                  assignment.marks !== null && assignment.marks !== undefined
+                    ? `Score ${assignment.marks} / ${assignment.maxMarks}`
+                    : null,
+                ]
+                  .filter(Boolean)
+                  .join(' · ');
+
+                return (
+                  <li key={assignment.id}>
+                    <button
+                      type="button"
+                      className="student-progress-row"
+                      onClick={() => navigate(`/assignments/${assignment.id}`)}
+                    >
+                      <span className="student-progress-row-main">
+                        <span className="student-progress-row-title">{assignment.title}</span>
+                        <span className="student-progress-row-meta">{meta}</span>
+                      </span>
+                      <span className="student-progress-row-side">
+                        <span className={`student-progress-status ${status.tone}`}>
+                          {status.label}
+                        </span>
+                      </span>
+                      <ArrowIcon />
+                    </button>
+                  </li>
+                );
+              })}
+            </ol>
           )}
         </section>
       </div>
@@ -741,141 +796,81 @@ export default function ProgressPage() {
 
   if (view === 'mcq') {
     return (
-      <div className="admin-dashboard fade-in">
-        {backLink}
-        {pageHeader('MCQ / Practice Progress', 'Your latest attempt score drives your current performance.')}
-        {coursePicker}
+      <div className="student-progress fade-in">
+        {backButton('progress', 'home')}
+        {masthead({
+          title: 'Practice',
+          label: 'Practiced',
+          value: stat(overall.mcq.attempted, overall.mcq.total),
+          pct: overall.mcq.pct,
+        })}
 
-        <section className="admin-stat-grid" aria-label="Practice summary">
-          <Card>
-            <p className="admin-stat-value stat-teal">
-              {overall.mcq.attempted} / {overall.mcq.total}
-            </p>
-            <p className="admin-stat-label">Sets Practiced</p>
-            <div style={{ marginTop: 'var(--space-3)' }}>
-              <ProgressBar value={overall.mcq.pct} />
-            </div>
-          </Card>
-          <Card>
-            <p className="admin-stat-value stat-indigo">
-              {mcqHasScores ? `${mcqBestScore}%` : '-'}
-            </p>
-            <p className="admin-stat-label">Best Score</p>
-          </Card>
-          <Card>
-            <p className="admin-stat-value stat-amber">{mcqTotalAttempts}</p>
-            <p className="admin-stat-label">Total Attempts</p>
-          </Card>
-        </section>
+        <section className="student-progress-panel" aria-labelledby="student-progress-practice-list">
+          <header className="student-progress-panel-head">
+            <h2 id="student-progress-practice-list">Practice sets</h2>
+            <span className="student-progress-panel-count">
+              {mcqItems.length} {mcqItems.length === 1 ? 'set' : 'sets'}
+            </span>
+          </header>
 
-        <section className="admin-quick-actions" aria-labelledby="practice-list-heading">
-          <div className="section-head">
-            <div>
-              <h2 id="practice-list-heading">Practice Sets</h2>
-            </div>
-          </div>
           {mcqItems.length === 0 ? (
-            <EmptyState
-              title="No practice sets yet"
-              message="Practice sets published for your courses will appear here."
-            />
+            <div className="student-progress-panel-body is-flush">
+              <p className="student-progress-row-meta">
+                Practice sets published for your courses appear here.
+              </p>
+            </div>
           ) : (
-            <div className="student-classes-grid">
+            <ol className="student-progress-list">
               {mcqItems.map((item) => {
                 const { level, topic } = decodeDescription(item.description);
-                const badge = !item.attempted
-                  ? { status: 'pending', label: 'Not attempted' }
-                  : item.latestPassed
-                    ? { status: 'passed', label: 'Passed' }
-                    : { status: 'failed', label: 'Needs practice' };
-                const historyOpen = openHistory === item.id;
+                const attempted = item.attemptsCount > 0;
+                const meta = [
+                  level,
+                  topic,
+                  selectedCourseId ? null : item.courseTitle,
+                  attempted
+                    ? `${item.attemptsCount} ${item.attemptsCount === 1 ? 'attempt' : 'attempts'}`
+                    : null,
+                  item.bestScore !== null && item.bestScore !== undefined
+                    ? `Best ${item.bestScore}%`
+                    : null,
+                ]
+                  .filter(Boolean)
+                  .join(' · ');
+
+                const openSet = () =>
+                  item.latestAttemptId ? openResult(item) : startPractice(item);
 
                 return (
-                  <Card key={item.id} variant="student-class-card">
-                    <div>
-                      <div className="student-assignment-meta">
-                        {level ? (
-                          <span className={`badge ${LEVEL_BADGE_CLASS[level] || 'badge-neutral'}`}>
-                            {level}
-                          </span>
-                        ) : null}
-                        {topic ? <span>{topic}</span> : null}
-                        <span>{item.courseTitle}</span>
-                      </div>
-                      <h3>{item.title}</h3>
-                      <p className="text-meta" style={{ margin: 'var(--space-2) 0 0' }}>
-                        {item.attemptsCount > 0
-                          ? `Latest ${item.latestScore}% · Best ${item.bestScore}% · ${item.attemptsCount} attempt${
-                              item.attemptsCount > 1 ? 's' : ''
-                            }`
-                          : 'Not attempted yet'}
-                      </p>
-                      <div style={{ marginTop: 'var(--space-2)' }}>
-                        <Badge status={badge.status}>{badge.label}</Badge>
-                      </div>
-
-                      {historyOpen ? (
-                        <div
-                          style={{ display: 'grid', gap: 'var(--space-2)', marginTop: 'var(--space-3)' }}
+                  <li key={item.id}>
+                    <button type="button" className="student-progress-row" onClick={openSet}>
+                      <span className="student-progress-row-main">
+                        <span className="student-progress-row-title">{item.title}</span>
+                        <span className="student-progress-row-meta">{meta}</span>
+                      </span>
+                      <span className="student-progress-row-side">
+                        <span
+                          className={`student-progress-status ${
+                            !attempted
+                              ? 'is-idle'
+                              : item.latestPassed
+                                ? 'is-positive'
+                                : 'is-negative'
+                          }`}
                         >
-                          <p className="text-meta uppercase" style={{ margin: 0 }}>
-                            Attempt History
-                          </p>
-                          {item.history.length === 0 ? (
-                            <p className="text-meta" style={{ margin: 0 }}>
-                              No attempts yet.
-                            </p>
-                          ) : (
-                            item.history.map((attempt) => (
-                              <div
-                                key={attempt.id}
-                                style={{
-                                  display: 'flex',
-                                  justifyContent: 'space-between',
-                                  gap: 'var(--space-2)',
-                                  alignItems: 'center',
-                                }}
-                              >
-                                <span className="text-sm">
-                                  #{attempt.attemptNumber} · {formatDate(attempt.submittedAt)}
-                                </span>
-                                <Badge status={attempt.passed ? 'passed' : 'failed'}>
-                                  {attempt.percentage}%
-                                </Badge>
-                              </div>
-                            ))
-                          )}
-                        </div>
-                      ) : null}
-                    </div>
-
-                    <div className="student-class-actions">
-                      {item.attemptsCount > 0 ? (
-                        <>
-                          <Button size="sm" variant="outline" onClick={() => openResult(item)}>
-                            View Result
-                          </Button>
-                          <Button size="sm" variant="outline" onClick={() => startPractice(item)}>
-                            Reattempt
-                          </Button>
-                        </>
-                      ) : (
-                        <Button size="sm" onClick={() => startPractice(item)}>
-                          Start Practice
-                        </Button>
-                      )}
-                      <Button
-                        size="sm"
-                        variant="secondary"
-                        onClick={() => setOpenHistory(historyOpen ? null : item.id)}
-                      >
-                        {historyOpen ? 'Hide History' : 'Attempt History'}
-                      </Button>
-                    </div>
-                  </Card>
+                          {!attempted
+                            ? 'Not started'
+                            : item.latestScore !== null && item.latestScore !== undefined
+                              ? `${displayPct(item.latestScore)}%`
+                              : 'In progress'}
+                        </span>
+                      </span>
+                      <ArrowIcon />
+                    </button>
+                  </li>
                 );
               })}
-            </div>
+            </ol>
           )}
         </section>
       </div>
@@ -893,184 +888,176 @@ export default function ProgressPage() {
   const continueKind = (type) =>
     type === 'class' ? 'Class' : type === 'assignment' ? 'Assignment' : 'Practice';
 
-  const courseStatus = (course) => {
-    if (course.overallPct >= 100) return { status: 'completed', label: 'Completed' };
-    if (course.overallPct > 0) return { status: 'in_progress', label: 'In progress' };
-    return { status: 'pending', label: 'Not started' };
-  };
-
   return (
-    <div className="admin-dashboard fade-in">
-      {pageHeader('My Progress', 'Track your classes, assignments, and practice in one place.')}
-      {coursePicker}
+    <div className="student-progress fade-in" aria-busy={overviewLoading}>
+      {masthead({
+        title: 'Progress',
+        label: 'Overall',
+        value: `${displayPct(overall.pct)}%`,
+        pct: overall.pct,
+      })}
 
-      <section className="admin-stat-grid" aria-label="Progress summary">
-        <Card>
-          <p className="admin-stat-value stat-indigo">{overall.pct}%</p>
-          <p className="admin-stat-label">Overall Progress</p>
-          <div style={{ marginTop: 'var(--space-3)' }}>
-            <ProgressBar value={overall.pct} />
-          </div>
-          <p className="text-meta" style={{ margin: 'var(--space-2) 0 0' }}>
-            {overall.completedActivities} of {overall.totalActivities} activities complete
-          </p>
-        </Card>
-        <Card>
-          <p className="admin-stat-value stat-teal">
-            {overall.classes.completed} / {overall.classes.total}
-          </p>
-          <p className="admin-stat-label">Classes</p>
-          <div style={{ marginTop: 'var(--space-3)', display: 'flex', justifyContent: 'flex-end' }}>
-            <Button size="sm" variant="outline" onClick={() => go('classes')}>
-              View
-            </Button>
-          </div>
-        </Card>
-        <Card>
-          <p className="admin-stat-value stat-amber">
-            {overall.assignments.completed} / {overall.assignments.total}
-          </p>
-          <p className="admin-stat-label">Assignments</p>
-          <div style={{ marginTop: 'var(--space-3)', display: 'flex', justifyContent: 'flex-end' }}>
-            <Button size="sm" variant="outline" onClick={() => go('assignments')}>
-              View
-            </Button>
-          </div>
-        </Card>
-        <Card>
-          <p className="admin-stat-value stat-coral">
-            {overall.mcq.attempted} / {overall.mcq.total}
-          </p>
-          <p className="admin-stat-label">MCQ Practice</p>
-          <div style={{ marginTop: 'var(--space-3)', display: 'flex', justifyContent: 'flex-end' }}>
-            <Button size="sm" variant="outline" onClick={() => go('mcq')}>
-              View
-            </Button>
-          </div>
-        </Card>
+      {continueLearning ? (
+        <section className="student-progress-panel" aria-labelledby="student-progress-continue">
+          <header className="student-progress-panel-head">
+            <h2 id="student-progress-continue">Continue learning</h2>
+          </header>
+          <ol className="student-progress-list">
+            <li>
+              <button type="button" className="student-progress-row" onClick={handleContinue}>
+                <span className="student-progress-row-main">
+                  <span className="student-progress-row-title">{continueLearning.title}</span>
+                  <span className="student-progress-row-meta">
+                    {continueKind(continueLearning.type)} · {continueLearning.courseTitle} ·{' '}
+                    {continueDetail(continueLearning)}
+                  </span>
+                </span>
+                <span className="student-progress-row-side">
+                  <span className="student-progress-status">Resume</span>
+                </span>
+                <ArrowIcon />
+              </button>
+            </li>
+          </ol>
+        </section>
+      ) : null}
+
+      <section className="student-progress-panel" aria-labelledby="student-progress-overview">
+        <header className="student-progress-panel-head">
+          <h2 id="student-progress-overview">Overview</h2>
+          <span className="student-progress-panel-count">
+            {overall.completedActivities} of {overall.totalActivities} done
+          </span>
+        </header>
+        <ol className="student-progress-list">
+          <li>
+            <button type="button" className="student-progress-row" onClick={() => go('classes')}>
+              <span className="student-progress-row-main">
+                <span className="student-progress-row-title">Classes</span>
+                <span className="student-progress-row-meta">
+                  {overall.classes.completed} of {overall.classes.total} watched
+                </span>
+              </span>
+              <span className="student-progress-row-side">
+                <span className="student-progress-row-score">{displayPct(overall.classes.pct)}%</span>
+              </span>
+              <ArrowIcon />
+            </button>
+          </li>
+          <li>
+            <button type="button" className="student-progress-row" onClick={() => go('assignments')}>
+              <span className="student-progress-row-main">
+                <span className="student-progress-row-title">Assignments</span>
+                <span className="student-progress-row-meta">
+                  {overall.assignments.completed} of {overall.assignments.total} submitted
+                </span>
+              </span>
+              <span className="student-progress-row-side">
+                <span className="student-progress-row-score">{displayPct(overall.assignments.pct)}%</span>
+              </span>
+              <ArrowIcon />
+            </button>
+          </li>
+          <li>
+            <button type="button" className="student-progress-row" onClick={() => go('mcq')}>
+              <span className="student-progress-row-main">
+                <span className="student-progress-row-title">Practice</span>
+                <span className="student-progress-row-meta">
+                  {overall.mcq.attempted} of {overall.mcq.total} sets practiced
+                </span>
+              </span>
+              <span className="student-progress-row-side">
+                <span className="student-progress-row-score">{displayPct(overall.mcq.pct)}%</span>
+              </span>
+              <ArrowIcon />
+            </button>
+          </li>
+        </ol>
       </section>
 
-      <section className="admin-quick-actions" aria-labelledby="continue-heading">
-        <div className="section-head">
-          <div>
-            <h2 id="continue-heading">Continue Learning</h2>
-          </div>
-        </div>
-
-        {!continueLearning ? (
-          <Card>
-            <p className="text-meta" style={{ margin: 0 }}>
-              You are all caught up — nothing incomplete left in this selection.
-            </p>
-          </Card>
-        ) : (
-          <Card variant="student-class-card">
-            <div>
-              <div className="student-assignment-meta">
-                <span>{continueKind(continueLearning.type)}</span>
-                <span>{continueLearning.courseTitle}</span>
-              </div>
-              <h3>{continueLearning.title}</h3>
-              <p className="text-meta" style={{ margin: 'var(--space-2) 0 0' }}>
-                {continueDetail(continueLearning)}
-              </p>
-              <div style={{ marginTop: 'var(--space-3)' }}>
-                <ProgressBar value={continueLearning.pct || 0} label="Course progress" />
-              </div>
-            </div>
-            <div className="student-class-actions">
-              <Button size="sm" onClick={handleContinue}>
-                Continue
-              </Button>
-            </div>
-          </Card>
-        )}
-      </section>
-
-      <section className="admin-quick-actions" aria-labelledby="course-wise-heading">
-        <div className="section-head">
-          <div>
-            <h2 id="course-wise-heading">Course-wise Progress</h2>
-          </div>
-        </div>
-
-        <div style={{ display: 'grid', gap: 'var(--space-4)' }}>
+      <section className="student-progress-panel" aria-labelledby="student-progress-courses">
+        <header className="student-progress-panel-head">
+          <h2 id="student-progress-courses">Courses</h2>
+          <span className="student-progress-panel-count">
+            {courses.length} {courses.length === 1 ? 'course' : 'courses'}
+          </span>
+        </header>
+        <ol className="student-progress-list">
           {courses.map((course) => {
-            const status = courseStatus(course);
+            const scoped = selectedCourseId === course.id;
+            const meta = [
+              `${course.classes?.total || 0} classes`,
+              `${course.assignments?.total || 0} assignments`,
+              `${course.mcq?.total || 0} practice sets`,
+            ].join(' · ');
+
+            const body = (
+              <>
+                <span className="student-progress-row-main">
+                  <span className="student-progress-row-title">{course.title}</span>
+                  <span className="student-progress-row-meta">{meta}</span>
+                </span>
+                <span className="student-progress-row-side">
+                  <span className="student-progress-row-score">{displayPct(course.overallPct)}%</span>
+                </span>
+                {scoped ? null : <ArrowIcon />}
+              </>
+            );
+
             return (
-              <Card key={course.id}>
-                <div className="student-assignment-card-head">
-                  <div>
-                    <h3 style={{ margin: 0, fontSize: 'var(--font-size-h4)' }}>{course.title}</h3>
-                    <p className="text-meta" style={{ margin: 'var(--space-1) 0 0' }}>
-                      {course.classes.total} classes · {course.assignments.total} assignments ·{' '}
-                      {course.mcq.total} practice sets
-                    </p>
-                  </div>
-                  <Badge status={status.status}>{status.label}</Badge>
-                </div>
-
-                <div style={{ marginTop: 'var(--space-4)' }}>
-                  <ProgressBar value={course.overallPct} label="Course progress" />
-                </div>
-
-                <div style={{ display: 'grid', gap: 'var(--space-3)', marginTop: 'var(--space-4)' }}>
-                  {course.classes.topics.length > 0 ? (
-                    course.classes.topics.map((topic) => (
-                      <ProgressBar key={topic.name} value={topic.pct} label={topic.name} />
-                    ))
-                  ) : (
-                    <p className="text-meta" style={{ margin: 0 }}>
-                      No classes published yet.
-                    </p>
-                  )}
-                </div>
-              </Card>
+              <li key={course.id}>
+                {scoped ? (
+                  <div className="student-progress-row is-static">{body}</div>
+                ) : (
+                  <button
+                    type="button"
+                    className="student-progress-row"
+                    onClick={() => selectCourse(course.id)}
+                  >
+                    {body}
+                  </button>
+                )}
+              </li>
             );
           })}
-        </div>
+        </ol>
       </section>
 
-      <section className="admin-quick-actions" aria-labelledby="activity-heading">
-        <div className="section-head">
-          <div>
-            <h2 id="activity-heading">Recent Activity</h2>
-          </div>
-        </div>
+      {recentActivity.length > 0 ? (
+        <section className="student-progress-panel" aria-labelledby="student-progress-activity">
+          <header className="student-progress-panel-head">
+            <h2 id="student-progress-activity">Recent activity</h2>
+            <span className="student-progress-panel-count">
+              {recentActivity.length} {recentActivity.length === 1 ? 'update' : 'updates'}
+            </span>
+          </header>
+          <ol className="student-progress-list">
+            {recentActivity.map((item) => {
+              const status = ACTIVITY_STATUS[item.status] || {
+                label: item.status || 'Update',
+                tone: 'is-idle',
+              };
 
-        {recentActivity.length === 0 ? (
-          <EmptyState
-            title="No activity yet"
-            message="Your class completions, submissions, and attempts will appear here."
-          />
-        ) : (
-          <div style={{ display: 'grid', gap: 'var(--space-3)' }}>
-            {recentActivity.map((item) => (
-              <Card key={item.id} variant="card-notification">
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div
-                    style={{
-                      display: 'flex',
-                      gap: 'var(--space-2)',
-                      alignItems: 'center',
-                      flexWrap: 'wrap',
-                    }}
-                  >
-                    <Badge status={item.status}>{item.kind}</Badge>
-                    <span className="text-meta">{formatDate(item.at)}</span>
+              return (
+                <li key={item.id}>
+                  <div className="student-progress-row is-static">
+                    <span className="student-progress-row-main">
+                      <span className="student-progress-row-title">{item.title}</span>
+                      <span className="student-progress-row-meta">{item.desc}</span>
+                    </span>
+                    <span className="student-progress-row-side">
+                      <span className={`student-progress-status ${status.tone}`}>
+                        {status.label}
+                      </span>
+                      <span className="student-progress-row-date">{formatDate(item.at)}</span>
+                    </span>
                   </div>
-                  <h3 className="text-h4" style={{ margin: 'var(--space-2) 0 var(--space-1)' }}>
-                    {item.title}
-                  </h3>
-                  <p className="text-sm" style={{ color: 'var(--text-secondary)', margin: 0 }}>
-                    {item.desc}
-                  </p>
-                </div>
-              </Card>
-            ))}
-          </div>
-        )}
-      </section>
+                </li>
+              );
+            })}
+          </ol>
+        </section>
+      ) : null}
     </div>
   );
 }

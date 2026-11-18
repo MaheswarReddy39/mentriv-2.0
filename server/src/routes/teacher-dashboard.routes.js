@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { query } from 'express-validator';
 import {
+  getTeacherClasses,
   getTeacherDashboard,
   getTeacherLeaderboard,
   getTeacherSubmissions,
@@ -11,7 +12,7 @@ import requireRole from '../middleware/role.middleware.js';
 
 const router = Router();
 
-const levelRule = query('courseId')
+const courseQueryRule = query('courseId')
   .optional({ values: 'falsy' })
   .trim()
   .custom((value) => value === 'all' || /^[a-f\d]{24}$/i.test(value))
@@ -48,7 +49,14 @@ const leaderboardQueryRules = [
     .withMessage('Invalid course id'),
 ];
 
-router.get('/dashboard', requireAuth, requireRole('teacher'), validate([levelRule]), getTeacherDashboard);
+router.get('/dashboard', requireAuth, requireRole('teacher'), validate([courseQueryRule]), getTeacherDashboard);
+router.get(
+  '/classes',
+  requireAuth,
+  requireRole('teacher'),
+  validate([courseQueryRule]),
+  getTeacherClasses
+);
 router.get(
   '/submissions',
   requireAuth,

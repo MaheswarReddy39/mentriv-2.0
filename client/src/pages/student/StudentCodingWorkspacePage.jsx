@@ -1,11 +1,9 @@
 import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react';
-import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import Badge from '../../components/common/Badge.jsx';
 import Button from '../../components/common/Button.jsx';
-import Card from '../../components/common/Card.jsx';
 import EmptyState from '../../components/common/EmptyState.jsx';
 import ErrorState from '../../components/common/ErrorState.jsx';
-import Loading from '../../components/common/Loading.jsx';
 import Modal from '../../components/common/Modal.jsx';
 import { useToast } from '../../components/feedback/Toast.jsx';
 import {
@@ -14,8 +12,6 @@ import {
   listCodingSubmissions,
 } from '../../services/coding-practice.service.js';
 import {
-  CODING_DIFFICULTY_BADGE_CLASS,
-  CODING_LEVEL_BADGE_CLASS,
   EDITOR_LABEL,
   JUDGED_SUBMISSION_STATUSES,
   OUTPUT_PLACEHOLDER,
@@ -31,73 +27,48 @@ import {
   requirementsBullets,
   resolveEditorLanguage,
   submissionBadgeStatus,
-  submissionBorderColor,
   submissionStatusLabel,
-  topicSearchUrl,
   workspaceVariant,
 } from './codingPracticeUi.js';
 
 const CodeEditor = lazy(() => import('../../components/common/CodeEditor.jsx'));
 
-const splitGrid = {
-  display: 'grid',
-  gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 420px), 1fr))',
-  gap: 'var(--space-4)',
-  alignItems: 'start',
-};
-
-const codeBlock = {
-  fontFamily: 'var(--font-mono, monospace)',
-  fontSize: 'var(--font-size-sm)',
-  background: 'var(--color-surface-muted)',
-  border: '1px solid var(--border)',
-  borderRadius: 'var(--radius-md)',
-  padding: 'var(--space-3) var(--space-4)',
-  margin: 0,
-  overflowX: 'auto',
-  whiteSpace: 'pre-wrap',
-  wordBreak: 'break-word',
-};
-
-const bulletList = {
-  display: 'grid',
-  gap: 'var(--space-2)',
-  margin: 0,
-  paddingLeft: 'var(--space-5)',
-  color: 'var(--text-secondary)',
-  fontSize: 'var(--font-size-sm)',
-};
-
-function ChecksList({ checks, kind, summary }) {
-  if (!checks || checks.length === 0) return null;
-  const title = kind === 'test_cases' ? 'Test Cases' : 'Requirements';
+function ArrowIcon() {
   return (
-    <div style={{ marginTop: 'var(--space-4)' }}>
-      <p className="text-caption" style={{ margin: 0 }}>
-        {title}
-      </p>
-      <p className="text-meta" style={{ margin: '0 0 var(--space-2)' }}>
-        {summary} Passed
-      </p>
-      <ul
-        style={{
-          display: 'grid',
-          gap: 'var(--space-2)',
-          margin: 0,
-          paddingLeft: 0,
-          listStyle: 'none',
-          fontSize: 'var(--font-size-sm)',
-        }}
-      >
+    <svg
+      className="student-coding-arrow"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <line x1="5" y1="12" x2="19" y2="12" />
+      <polyline points="12 5 19 12 12 19" />
+    </svg>
+  );
+}
+
+function ChecksList({ checks, kind }) {
+  if (!checks || checks.length === 0) return null;
+  const title = kind === 'test_cases' ? 'Test cases' : 'Requirements';
+  return (
+    <div className="student-coding-checks">
+      <p className="student-coding-section-title">{title}</p>
+      <ul>
         {checks.map((check, index) => (
-          <li key={`${check.label}-${index}`}>
-            <span style={{ color: check.passed ? 'var(--teal)' : 'var(--coral-dark)' }}>
-              {check.passed ? '✓' : '✗'} {formatCheckLabel(check, kind)}
+          <li
+            key={`${check.label}-${index}`}
+            className={check.passed ? 'is-passed' : 'is-failed'}
+          >
+            <span className="student-coding-check-line">
+              <span aria-hidden="true">{check.passed ? '✓' : '✗'}</span>{' '}
+              {formatCheckLabel(check, kind)}
             </span>
             {!check.passed && check.detail ? (
-              <p className="text-meta" style={{ margin: '2px 0 0 var(--space-4)' }}>
-                {check.detail}
-              </p>
+              <p className="student-coding-check-detail">{check.detail}</p>
             ) : null}
           </li>
         ))}
@@ -230,43 +201,62 @@ export default function StudentCodingWorkspacePage() {
     }
   };
 
-  const backToPractice = (
-    <Link to="/coding-practice" className="back-link">
-      Back to Coding Practice
-    </Link>
+  const backLink = (
+    <button
+      type="button"
+      className="student-coding-back"
+      onClick={() => navigate('/coding-practice')}
+    >
+      <span aria-hidden="true">&larr;</span> Back to coding practice
+    </button>
   );
 
   if (loadingTask) {
     return (
-      <div className="admin-dashboard fade-in">
-        {backToPractice}
-        <Loading label="Loading task..." />
+      <div className="student-coding fade-in">
+        {backLink}
+        <div className="student-coding-skeleton" role="status">
+          <span className="sr-only">Loading task…</span>
+          <div className="student-coding-skeleton-panel" aria-hidden="true">
+            <span className="skeleton student-coding-skeleton-title" />
+            <div className="student-coding-skeleton-row">
+              <div className="student-coding-skeleton-copy">
+                <span className="skeleton student-coding-skeleton-line" />
+                <span className="skeleton student-coding-skeleton-meta" />
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     );
   }
 
   if (notFound || !task) {
     return (
-      <div className="admin-dashboard fade-in">
-        {backToPractice}
-        <EmptyState
-          title="Task not found"
-          message="This coding task may have been removed or is not available to you."
-          action={
-            <Button type="button" onClick={() => navigate('/coding-practice')}>
-              Back to Coding Practice
-            </Button>
-          }
-        />
+      <div className="student-coding fade-in">
+        {backLink}
+        <div className="student-coding-state">
+          <EmptyState
+            title="Task not found"
+            message="This coding task may have been removed or is not available to you."
+            action={
+              <Button type="button" onClick={() => navigate('/coding-practice')}>
+                Back to Coding Practice
+              </Button>
+            }
+          />
+        </div>
       </div>
     );
   }
 
   if (taskError) {
     return (
-      <div className="admin-dashboard fade-in">
-        {backToPractice}
-        <ErrorState title="Failed to load this task" message={taskError} onRetry={loadTask} />
+      <div className="student-coding fade-in">
+        {backLink}
+        <div className="student-coding-state">
+          <ErrorState title="Failed to load this task" message={taskError} onRetry={loadTask} />
+        </div>
       </div>
     );
   }
@@ -275,11 +265,12 @@ export default function StudentCodingWorkspacePage() {
   const editorLanguage = resolveEditorLanguage(task);
   const kind = checksKind(task);
   const requirements = requirementsBullets(task);
+  const heading = String(task.topic || '').trim() || task.title;
   const latestJudged =
     submissions.find((submission) => JUDGED_SUBMISSION_STATUSES.includes(submission.status)) ||
     null;
 
-  const resultScore = latestJudged && latestJudged.score !== null ? latestJudged.score : '—';
+  const resultScore = latestJudged && latestJudged.score !== null ? latestJudged.score : null;
   const resultPassed =
     latestJudged && latestJudged.passedTests !== null && latestJudged.totalTests !== null
       ? `${latestJudged.passedTests}/${latestJudged.totalTests}`
@@ -292,304 +283,256 @@ export default function StudentCodingWorkspacePage() {
       : '—';
 
   return (
-    <div className="admin-dashboard fade-in" aria-label={`${task.title} workspace`}>
-      <Link
-        to={`/coding-practice/tasks/${task.id}${courseId ? `?courseId=${encodeURIComponent(courseId)}` : ''}`}
-        className="back-link"
+    <div className="student-coding fade-in" aria-label={`${task.title} workspace`}>
+      <button
+        type="button"
+        className="student-coding-back"
+        onClick={() =>
+          navigate(
+            `/coding-practice/tasks/${task.id}${
+              courseId ? `?courseId=${encodeURIComponent(courseId)}` : ''
+            }`
+          )
+        }
       >
-        Back to instructions
-      </Link>
+        <span aria-hidden="true">&larr;</span> Back to instructions
+      </button>
 
-      <section className="asg-head" aria-labelledby="coding-workspace-heading">
-        <div className="student-assignment-meta" style={{ marginBottom: 'var(--space-3)' }}>
-          <span className={`badge ${CODING_LEVEL_BADGE_CLASS[task.level] || 'badge-neutral'}`}>
-            {levelDisplayLabel(task.level)}
-          </span>
-          <span
-            className={`badge ${CODING_DIFFICULTY_BADGE_CLASS[task.difficulty] || 'badge-neutral'}`}
-          >
-            {task.difficulty}
-          </span>
-          <span>{task.topic}</span>
-          <span>{task.taskType}</span>
+      <header className="student-coding-masthead">
+        <div className="student-coding-head">
+          <p className="student-coding-eyebrow">
+            {[task.title, levelDisplayLabel(task.level)].filter(Boolean).join(' · ')}
+          </p>
+          <h1 className="student-coding-title" id="coding-workspace-heading">
+            {heading}
+          </h1>
         </div>
-        <h1 id="coding-workspace-heading">{task.title}</h1>
-        <p className="text-meta" style={{ margin: 'var(--space-2) 0 0' }}>
-          {task.courseTitle}
-        </p>
-      </section>
 
-      <div style={splitGrid}>
-        <Card>
-          <h3>{variant === 'coding' ? 'Problem description' : 'Requirements'}</h3>
-          <p
-            style={{
-              margin: 'var(--space-2) 0 var(--space-4)',
-              color: 'var(--text-secondary)',
-              fontSize: 'var(--font-size-sm)',
-              lineHeight: 1.7,
-              whiteSpace: 'pre-line',
-            }}
-          >
-            {task.description || 'No description provided.'}
-          </p>
-          {requirements.length > 0 ? (
-            <ul style={bulletList}>
-              {requirements.map((requirement) => (
-                <li key={requirement}>{requirement}</li>
-              ))}
-            </ul>
-          ) : null}
-        </Card>
+        <div className="student-coding-stat">
+          <span className="student-coding-stat-label">Latest score</span>
+          <span className="student-coding-stat-value">
+            {typeof resultScore === 'number' ? `${resultScore}%` : '—'}
+          </span>
+          <span className="student-coding-bar" aria-hidden="true">
+            <span style={{ width: `${typeof resultScore === 'number' ? resultScore : 0}%` }} />
+          </span>
+        </div>
+      </header>
 
-        <Card>
-          <p className="text-caption" style={{ margin: '0 0 var(--space-2)' }}>
-            {EDITOR_LABEL[variant]}
-          </p>
-          <div ref={editorContainerRef} style={{ width: '100%' }}>
-            <Suspense
-              fallback={
-                <div
-                  className="skeleton"
-                  style={{ width: '100%', height: '320px', borderRadius: 'var(--radius-md)' }}
+      <div className="student-coding-split">
+        <section className="student-coding-panel" aria-labelledby="coding-brief-heading">
+          <header className="student-coding-panel-head">
+            <h2 id="coding-brief-heading">
+              {variant === 'coding' ? 'Problem' : 'Requirements'}
+            </h2>
+          </header>
+          <div className="student-coding-panel-body">
+            <p className="student-coding-lead">
+              {task.description || 'No description provided.'}
+            </p>
+            {requirements.length > 0 ? (
+              <ul className="student-coding-bullets">
+                {requirements.map((requirement) => (
+                  <li key={requirement}>{requirement}</li>
+                ))}
+              </ul>
+            ) : null}
+          </div>
+        </section>
+
+        <section className="student-coding-panel" aria-labelledby="coding-editor-heading">
+          <header className="student-coding-panel-head">
+            <h2 id="coding-editor-heading">{EDITOR_LABEL[variant]}</h2>
+          </header>
+          <div className="student-coding-panel-body">
+            <div ref={editorContainerRef} className="student-coding-editor">
+              <Suspense
+                fallback={
+                  <div
+                    className="skeleton"
+                    style={{ width: '100%', height: '320px', borderRadius: 'var(--radius-sm)' }}
+                  />
+                }
+              >
+                <CodeEditor
+                  language={editorLanguage}
+                  value={code}
+                  onChange={setCode}
+                  label={EDITOR_LABEL[variant]}
+                  height="320px"
+                  onMount={(instance) => {
+                    editorRef.current = instance;
+                  }}
                 />
-              }
-            >
-              <CodeEditor
-                language={editorLanguage}
-                value={code}
-                onChange={setCode}
-                label={EDITOR_LABEL[variant]}
-                height="320px"
-                onMount={(instance) => {
-                  editorRef.current = instance;
-                }}
-              />
-            </Suspense>
+              </Suspense>
+            </div>
+            <div className="student-coding-editor-actions">
+              <Button type="button" variant="outline" onClick={handleRun}>
+                {RUN_BUTTON_LABEL[variant]}
+              </Button>
+              <Button type="button" onClick={handleSubmit} loading={submitting} disabled={submitting}>
+                Submit
+              </Button>
+            </div>
           </div>
-          <div
-            style={{
-              display: 'flex',
-              gap: 'var(--space-3)',
-              flexWrap: 'wrap',
-              marginTop: 'var(--space-4)',
-            }}
-          >
-            <Button type="button" variant="outline" onClick={handleRun}>
-              {RUN_BUTTON_LABEL[variant]}
-            </Button>
-            <Button type="button" onClick={handleSubmit} loading={submitting} disabled={submitting}>
-              Submit
-            </Button>
-          </div>
-        </Card>
+        </section>
       </div>
 
       {Array.isArray(task.sampleTestCases) && task.sampleTestCases.length > 0 ? (
-        <Card>
-          <h3>Sample Test Cases</h3>
-          <div
-            style={{
-              display: 'grid',
-              gap: 'var(--space-4)',
-              marginTop: 'var(--space-3)',
-            }}
-          >
-            {task.sampleTestCases.map((testCase, index) => (
-              <div
-                key={`sample-${index}`}
-                style={{
-                  display: 'grid',
-                  gap: 'var(--space-2)',
-                  borderLeft: '3px solid var(--color-border, #e2e8f0)',
-                  paddingLeft: 'var(--space-4)',
-                }}
-              >
-                <p className="text-caption" style={{ margin: 0 }}>
-                  Test Case {index + 1}
-                </p>
-                <div>
-                  <p className="text-meta" style={{ margin: '0 0 var(--space-1)' }}>
-                    Input
-                  </p>
-                  <pre style={codeBlock}>{testCase.input}</pre>
+        <section className="student-coding-panel" aria-labelledby="coding-samples-heading">
+          <header className="student-coding-panel-head">
+            <h2 id="coding-samples-heading">Sample test cases</h2>
+            <span className="student-coding-panel-count">
+              {task.sampleTestCases.length}{' '}
+              {task.sampleTestCases.length === 1 ? 'case' : 'cases'}
+            </span>
+          </header>
+          <div className="student-coding-panel-body">
+            <div className="student-coding-examples">
+              {task.sampleTestCases.map((testCase, index) => (
+                <div className="student-coding-example" key={`sample-${index}`}>
+                  <div>
+                    <p className="student-coding-example-label">Input {index + 1}</p>
+                    <pre className="student-coding-code">{testCase.input}</pre>
+                  </div>
+                  <div>
+                    <p className="student-coding-example-label">Expected {index + 1}</p>
+                    <pre className="student-coding-code">{testCase.expected}</pre>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-meta" style={{ margin: '0 0 var(--space-1)' }}>
-                    Expected Output
-                  </p>
-                  <pre style={codeBlock}>{testCase.expected}</pre>
-                </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
-        </Card>
+        </section>
       ) : null}
 
-      <Card>
-        <h3>{OUTPUT_TITLE[variant]}</h3>
-        {variant === 'frontend' && previewHtml ? (
-          <iframe
-            title="Live preview"
-            sandbox=""
-            srcDoc={previewHtml}
-            style={{
-              display: 'block',
-              width: '100%',
-              minHeight: '320px',
-              marginTop: 'var(--space-3)',
-              border: '1px solid var(--border)',
-              borderRadius: 'var(--radius-md)',
-              background: '#ffffff',
-            }}
-          />
-        ) : (
-          <p className="text-meta" style={{ margin: 'var(--space-3) 0 0' }}>
-            {OUTPUT_PLACEHOLDER[variant]}
-          </p>
-        )}
-      </Card>
+      <section className="student-coding-panel" aria-labelledby="coding-output-heading">
+        <header className="student-coding-panel-head">
+          <h2 id="coding-output-heading">{OUTPUT_TITLE[variant]}</h2>
+        </header>
+        <div className="student-coding-panel-body">
+          {variant === 'frontend' && previewHtml ? (
+            <iframe className="student-coding-preview" title="Live preview" sandbox="" srcDoc={previewHtml} />
+          ) : (
+            <p className="student-coding-lead">{OUTPUT_PLACEHOLDER[variant]}</p>
+          )}
+        </div>
+      </section>
 
       {latestJudged ? (
-        <div
-          className="card"
-          style={{ borderLeft: `3px solid ${submissionBorderColor(latestJudged.status)}` }}
+        <section
+          className="student-coding-panel"
+          aria-labelledby="coding-result-heading"
           role="status"
           aria-live="polite"
         >
-          <div
-            style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              gap: 'var(--space-4)',
-              flexWrap: 'wrap',
-              alignItems: 'center',
-            }}
-          >
-            <div style={{ display: 'flex', gap: 'var(--space-3)', alignItems: 'center' }}>
-              <Badge status={submissionBadgeStatus(latestJudged.status)}>
-                {submissionStatusLabel(latestJudged.status)}
-              </Badge>
-              <span className="text-meta">
-                {latestJudged.executionDetails || 'No evaluation details for this attempt.'}
-              </span>
-            </div>
-            <div style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'baseline' }}>
-              <span className="text-caption">Score</span>
-              <strong style={{ fontSize: '1.4rem' }}>
-                {typeof resultScore === 'number' ? `${resultScore}%` : '—'}
-              </strong>
+          <header className="student-coding-panel-head">
+            <h2 id="coding-result-heading">Latest result</h2>
+            <Badge status={submissionBadgeStatus(latestJudged.status)}>
+              {submissionStatusLabel(latestJudged.status)}
+            </Badge>
+          </header>
+          <div className="student-coding-panel-body">
+            <dl className="student-coding-facts is-flush">
+              <div>
+                <dt>Score</dt>
+                <dd>{typeof resultScore === 'number' ? `${resultScore}%` : '—'}</dd>
+              </div>
+              <div>
+                <dt>Passed</dt>
+                <dd>{resultPassed}</dd>
+              </div>
+              <div>
+                <dt>Failed</dt>
+                <dd>{resultFailed}</dd>
+              </div>
+              <div>
+                <dt>Attempt</dt>
+                <dd>#{latestJudged.attemptNumber}</dd>
+              </div>
+            </dl>
+
+            <ChecksList checks={latestJudged.checks} kind={kind} />
+
+            {latestJudged.executionDetails ? (
+              <div>
+                <p className="student-coding-section-title">Execution details</p>
+                <pre className="student-coding-code">{latestJudged.executionDetails}</pre>
+              </div>
+            ) : null}
+
+            <div className="student-coding-actions">
+              <Button type="button" variant="outline" onClick={handleTryAgain}>
+                Try Again
+              </Button>
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => setViewedSubmission(latestJudged)}
+              >
+                View Submission
+              </Button>
             </div>
           </div>
-
-          <dl className="meta-grid" style={{ marginTop: 'var(--space-4)' }}>
-            <div>
-              <dt>Score</dt>
-              <dd>{typeof resultScore === 'number' ? `${resultScore}%` : '—'}</dd>
-            </div>
-            <div>
-              <dt>Passed</dt>
-              <dd>{resultPassed}</dd>
-            </div>
-            <div>
-              <dt>Failed</dt>
-              <dd>{resultFailed}</dd>
-            </div>
-            <div>
-              <dt>Attempt</dt>
-              <dd>#{latestJudged.attemptNumber}</dd>
-            </div>
-          </dl>
-
-          <ChecksList checks={latestJudged.checks} kind={kind} summary={resultPassed} />
-
-          {latestJudged.executionDetails ? (
-            <>
-              <p className="text-caption" style={{ margin: 'var(--space-4) 0 var(--space-2)' }}>
-                Execution details
-              </p>
-              <pre style={codeBlock}>{latestJudged.executionDetails}</pre>
-            </>
-          ) : null}
-
-          <div
-            style={{
-              display: 'flex',
-              gap: 'var(--space-3)',
-              flexWrap: 'wrap',
-              marginTop: 'var(--space-4)',
-            }}
-          >
-            <Button type="button" variant="outline" onClick={handleTryAgain}>
-              Try Again
-            </Button>
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={() => setViewedSubmission(latestJudged)}
-            >
-              View Submission
-            </Button>
-          </div>
-        </div>
+        </section>
       ) : null}
 
-      <section aria-labelledby="submission-history-heading">
-        <h2 id="submission-history-heading" className="student-classes-heading">
-          Submission History
-        </h2>
+      <section className="student-coding-panel" aria-labelledby="coding-history-heading">
+        <header className="student-coding-panel-head">
+          <h2 id="coding-history-heading">Submission history</h2>
+          {submissions.length > 0 ? (
+            <span className="student-coding-panel-count">
+              {submissions.length} {submissions.length === 1 ? 'attempt' : 'attempts'}
+            </span>
+          ) : null}
+        </header>
 
         {loadingSubmissions ? (
-          <Loading label="Loading submissions..." />
-        ) : submissions.length === 0 ? (
-          <EmptyState
-            title="No submissions yet"
-            message="Submit your code to record an attempt."
-          />
-        ) : (
-          <div className="admin-table-wrap">
-            <table className="admin-table">
-              <thead>
-                <tr>
-                  <th scope="col">Attempt #</th>
-                  <th scope="col">Status</th>
-                  <th scope="col">Score</th>
-                  <th scope="col">Date / Time</th>
-                  <th scope="col">Submission</th>
-                </tr>
-              </thead>
-              <tbody>
-                {submissions.map((submission) => (
-                  <tr key={submission.id}>
-                    <td data-label="Attempt #">{submission.attemptNumber}</td>
-                    <td data-label="Status">
-                      <Badge status={submissionBadgeStatus(submission.status)}>
-                        {submissionStatusLabel(submission.status)}
-                      </Badge>
-                    </td>
-                    <td data-label="Score">
-                      {submission.score !== null && submission.score !== undefined
-                        ? `${submission.score}%`
-                        : '—'}
-                    </td>
-                    <td data-label="Date / Time">{formatDateTime(submission.createdAt)}</td>
-                    <td data-label="Submission">
-                      <div className="admin-table-actions">
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant="outline"
-                          onClick={() => setViewedSubmission(submission)}
-                        >
-                          View submission
-                        </Button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div className="student-coding-panel-body">
+            <span className="skeleton" style={{ display: 'block', height: '2.5rem' }} />
           </div>
+        ) : submissions.length === 0 ? (
+          <div className="student-coding-panel-body">
+            <p className="student-coding-lead">No submissions yet. Submit your code to record an attempt.</p>
+          </div>
+        ) : (
+          <ol className="student-coding-list">
+            {submissions.map((submission) => {
+              const accepted = submission.status === 'accepted';
+              const failed = JUDGED_SUBMISSION_STATUSES.includes(submission.status) && !accepted;
+              return (
+                <li key={submission.id}>
+                  <button
+                    type="button"
+                    className="student-coding-row"
+                    onClick={() => setViewedSubmission(submission)}
+                  >
+                    <span className="student-coding-row-main">
+                      <span className="student-coding-row-title">
+                        Attempt #{submission.attemptNumber}
+                      </span>
+                      <span className="student-coding-row-meta">
+                        {submissionStatusLabel(submission.status)} ·{' '}
+                        {formatDateTime(submission.createdAt)}
+                      </span>
+                    </span>
+                    <span className="student-coding-row-side">
+                      <span
+                        className={`student-coding-row-score${
+                          accepted ? ' is-pass' : failed ? ' is-fail' : ''
+                        }`}
+                      >
+                        {submission.score !== null && submission.score !== undefined
+                          ? `${submission.score}%`
+                          : '—'}
+                      </span>
+                    </span>
+                    <ArrowIcon />
+                  </button>
+                </li>
+              );
+            })}
+          </ol>
         )}
       </section>
 
@@ -605,14 +548,14 @@ export default function StudentCodingWorkspacePage() {
       >
         {viewedSubmission ? (
           <div style={{ display: 'grid', gap: 'var(--space-4)' }}>
-            <div className="student-assignment-meta">
+            <div className="student-coding-submission-meta">
               <Badge status={submissionBadgeStatus(viewedSubmission.status)}>
                 {submissionStatusLabel(viewedSubmission.status)}
               </Badge>
               <span>Attempt #{viewedSubmission.attemptNumber}</span>
             </div>
 
-            <dl className="meta-grid" style={{ marginTop: 0 }}>
+            <dl className="student-coding-facts is-flush">
               <div>
                 <dt>Score</dt>
                 <dd>
@@ -638,31 +581,19 @@ export default function StudentCodingWorkspacePage() {
               </div>
             </dl>
 
-            <ChecksList
-              checks={viewedSubmission.checks}
-              kind={kind}
-              summary={
-                viewedSubmission.passedTests !== null && viewedSubmission.totalTests !== null
-                  ? `${viewedSubmission.passedTests}/${viewedSubmission.totalTests}`
-                  : '—'
-              }
-            />
+            <ChecksList checks={viewedSubmission.checks} kind={kind} />
 
             {viewedSubmission.executionDetails ? (
               <div>
-                <p className="text-caption" style={{ margin: '0 0 var(--space-2)' }}>
-                  Execution details
-                </p>
-                <pre style={codeBlock}>{viewedSubmission.executionDetails}</pre>
+                <p className="student-coding-section-title">Execution details</p>
+                <pre className="student-coding-code">{viewedSubmission.executionDetails}</pre>
               </div>
             ) : null}
 
             {viewedSubmission.code ? (
               <div>
-                <p className="text-caption" style={{ margin: '0 0 var(--space-2)' }}>
-                  Code
-                </p>
-                <pre style={codeBlock}>{viewedSubmission.code}</pre>
+                <p className="student-coding-section-title">Code</p>
+                <pre className="student-coding-code">{viewedSubmission.code}</pre>
               </div>
             ) : null}
           </div>

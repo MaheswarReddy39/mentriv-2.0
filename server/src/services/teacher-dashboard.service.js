@@ -2,6 +2,8 @@ import User from '../models/user.model.js';
 import Course from '../models/course.model.js';
 import Enrollment from '../models/enrollment.model.js';
 import Announcement from '../models/announcement.model.js';
+import Assignment from '../models/assignment.model.js';
+import Class from '../models/class.model.js';
 import McqTest from '../models/mcq.model.js';
 import McqAttempt from '../models/mcq-attempt.model.js';
 import Submission from '../models/submission.model.js';
@@ -30,6 +32,18 @@ const sanitizeAnnouncement = (announcement) => {
     publishedAt: announcement.publishedAt,
   };
 };
+
+const PENDING_SUBMISSION_STATUSES = ['submitted', 'late'];
+
+const sanitizeRecentSubmission = (submission) => ({
+  id: submission._id.toString(),
+  studentName: submission.studentId?.name || 'Student',
+  title: submission.assignmentId?.title || 'Assignment',
+  courseTitle: submission.courseId?.title || '',
+  status: PENDING_SUBMISSION_STATUSES.includes(submission.status) ? 'pending' : 'reviewed',
+  isLate: Boolean(submission.isLate || submission.status === 'late'),
+  submittedAt: submission.submittedAt,
+});
 
 const getDashboard = async ({ courseId = 'all' } = {}) => {
   if (courseId !== 'all' && !mongoose.isValidObjectId(courseId)) {
@@ -61,9 +75,44 @@ const getDashboard = async ({ courseId = 'all' } = {}) => {
     totalStudents = await User.countDocuments({ role: 'student' });
   }
 
+  const courseIds = selectedCourse ? [selectedCourse._id] : courses.map((course) => course._id);
+
+  const [
+    totalClasses,
+    totalAssignments,
+    totalPracticeSets,
+    totalSubmissions,
+    pendingSubmissions,
+    recentSubmissions,
+  ] = await Promise.all([
+    Class.countDocuments({ courseId: { $in: courseIds }, status: 'published' }),
+    Assignment.countDocuments({ courseIds: { $in: courseIds }, status: 'published' }),
+    McqTest.countDocuments({ courseIds: { $in: courseIds }, status: 'published' }),
+    Submission.countDocuments({ courseId: { $in: courseIds } }),
+    Submission.countDocuments({
+      courseId: { $in: courseIds },
+      status: { $in: PENDING_SUBMISSION_STATUSES },
+    }),
+    Submission.find({ courseId: { $in: courseIds } })
+      .sort({ submittedAt: -1, createdAt: -1 })
+      .limit(5)
+      .populate('studentId', 'name')
+      .populate('assignmentId', 'title')
+      .populate('courseId', 'title')
+      .lean(),
+  ]);
+
   return {
     totalStudents,
     totalCourses: selectedCourse ? 1 : courses.length,
+    totalClasses,
+    totalAssignments,
+    totalPracticeSets,
+    totalSubmissions,
+    pendingSubmissions,
+    recentSubmissions: recentSubmissions
+      .filter((submission) => submission.studentId?._id && submission.assignmentId?._id)
+      .map(sanitizeRecentSubmission),
     selectedCourse: selectedCourse ? sanitizeCourse(selectedCourse) : null,
     courses: courses.map(sanitizeCourse),
     liveAnnouncement: sanitizeAnnouncement(liveAnnouncement),
@@ -331,6 +380,66 @@ const getTeacherSubmissions = async ({ search = '', courseId = 'all', level = 'a
   };
 };
 
+const sanitizeTeacherClass = (lesson, courseId, courseTitle) => ({
+  id: lesson._id.toString(),
+  title: lesson.title,
+  module: lesson.module || '',
+  order: lesson.order || 0,
+  duration: lesson.duration || 0,
+  status: lesson.status,
+  videoUrl: lesson.videoUrl || '',
+  resourceCount: Array.isArray(lesson.resources) ? lesson.resources.length : 0,
+  createdAt: lesson.createdAt,
+  courseId,
+  courseTitle,
+});
+
+const getTeacherClasses = async ({ courseId = 'all' } = {}) => {
+  if (courseId !== 'all' && !mongoose.isValidObjectId(courseId)) {
+    throw new ApiError(400, 'Invalid course id');
+  }
+
+  const courses = await getAvailableCourses();
+  const selectedCourse =
+    courseId === 'all' ? null : courses.find((course) => course._id.toString() === courseId);
+
+  if (courseId !== 'all' && !selectedCourse) {
+    throw new ApiError(404, 'Course not found');
+  }
+
+  const scopedCourses = selectedCourse ? [selectedCourse] : courses;
+  const courseTitleById = new Map(
+    scopedCourses.map((course) => [course._id.toString(), course.title])
+  );
+
+  const lessons = scopedCourses.length
+    ? await Class.find({
+        courseId: { $in: scopedCourses.map((course) => course._id) },
+        status: { $ne: 'archived' },
+      })
+        .sort({ module: 1, order: 1, createdAt: 1 })
+        .lean()
+    : [];
+
+  const classes = lessons.map((lesson) => {
+    const lessonCourseId = lesson.courseId.toString();
+    return sanitizeTeacherClass(
+      lesson,
+      lessonCourseId,
+      courseTitleById.get(lessonCourseId) || ''
+    );
+  });
+
+  return {
+    courses: courses.map(sanitizeCourse),
+    selectedCourse: selectedCourse ? sanitizeCourse(selectedCourse) : null,
+    classes,
+    totalClasses: classes.length,
+    publishedClasses: classes.filter((lesson) => lesson.status === 'published').length,
+    draftClasses: classes.filter((lesson) => lesson.status === 'draft').length,
+  };
+};
+
 const getTeacherLeaderboard = async ({ search = '', courseId = 'all' } = {}) => {
   const { courses, rows } = await buildStudentCourseProgressRows({ courseId });
   const normalizedSearch = String(search || '').trim().toLowerCase();
@@ -384,4 +493,9 @@ const getTeacherLeaderboard = async ({ search = '', courseId = 'all' } = {}) => 
   };
 };
 
-export default { getDashboard, getTeacherSubmissions, getTeacherLeaderboard };
+export default {
+  getDashboard,
+  getTeacherClasses,
+  getTeacherSubmissions,
+  getTeacherLeaderboard,
+};

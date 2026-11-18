@@ -10,6 +10,15 @@ const getTeacherDashboard = asyncHandler(async (req, res) => {
   });
 });
 
+const getTeacherClasses = asyncHandler(async (req, res) => {
+  const result = await teacherDashboardService.getTeacherClasses(req.query);
+
+  res.status(200).json({
+    status: 'success',
+    data: result,
+  });
+});
+
 const getTeacherSubmissions = asyncHandler(async (req, res) => {
   const result = await teacherDashboardService.getTeacherSubmissions(req.query);
 
@@ -28,4 +37,4 @@ const getTeacherLeaderboard = asyncHandler(async (req, res) => {
   });
 });
 
-export { getTeacherDashboard, getTeacherSubmissions, getTeacherLeaderboard };
+export { getTeacherClasses, getTeacherDashboard, getTeacherSubmissions, getTeacherLeaderboard };

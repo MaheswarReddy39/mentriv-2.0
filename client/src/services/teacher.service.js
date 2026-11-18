@@ -5,6 +5,11 @@ export const getTeacherDashboard = (params = {}) => {
   return apiClient.get(`/teacher/dashboard${query ? `?${query}` : ''}`);
 };
 
+export const getTeacherClasses = (params = {}) => {
+  const query = new URLSearchParams(params).toString();
+  return apiClient.get(`/teacher/classes${query ? `?${query}` : ''}`);
+};
+
 export const getTeacherSubmissions = (params = {}) => {
   const query = new URLSearchParams(params).toString();
   return apiClient.get(`/teacher/submissions${query ? `?${query}` : ''}`);

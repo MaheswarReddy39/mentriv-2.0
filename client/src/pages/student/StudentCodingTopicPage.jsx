@@ -1,17 +1,11 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import Button from '../../components/common/Button.jsx';
 import EmptyState from '../../components/common/EmptyState.jsx';
 import ErrorState from '../../components/common/ErrorState.jsx';
-import Loading from '../../components/common/Loading.jsx';
-import ProgressBar from '../../components/common/ProgressBar.jsx';
 import { getMyEnrollments } from '../../services/enrollment.service.js';
 import { listCodingTasks } from '../../services/coding-practice.service.js';
 import {
-  CODING_DIFFICULTY_BADGE_CLASS,
-  STUDENT_STATUS_LABEL,
-  TASK_ACTION_LABEL,
-  TASK_STATUS_BADGE_CLASS,
   levelDisplayLabel,
   resolveAccessibleCourseId,
 } from './codingPracticeUi.js';
@@ -20,12 +14,57 @@ const ACTIVE_ENROLLMENT_STATUSES = ['approved', 'completed'];
 const enrollmentCourseId = (enrollment) =>
   enrollment?.course?.id || enrollment?.course?._id || null;
 
+const LEVEL_SECTION_RANK = { Beginner: 0, Intermediate: 1, Advanced: 2 };
+
+function ArrowIcon() {
+  return (
+    <svg
+      className="student-coding-arrow"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <line x1="5" y1="12" x2="19" y2="12" />
+      <polyline points="12 5 19 12 12 19" />
+    </svg>
+  );
+}
+
+function TaskListSkeleton() {
+  return (
+    <div className="student-coding-skeleton" role="status">
+      <span className="sr-only">Loading tasks…</span>
+      {[0, 1].map((panel) => (
+        <div className="student-coding-skeleton-panel" key={panel} aria-hidden="true">
+          <div className="student-coding-skeleton-head">
+            <span className="skeleton student-coding-skeleton-title" />
+            <span className="skeleton student-coding-skeleton-count" />
+          </div>
+          {[0, 1, 2].map((row) => (
+            <div className="student-coding-skeleton-row" key={row}>
+              <div className="student-coding-skeleton-copy">
+                <span className="skeleton student-coding-skeleton-line" />
+                <span className="skeleton student-coding-skeleton-meta" />
+              </div>
+              <span className="skeleton student-coding-skeleton-pill" />
+            </div>
+          ))}
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export default function StudentCodingTopicPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
   // The URL carries the teacher-entered title / technology (e.g. ?title=HTML)
-  // — the same key the home cards are grouped by. Older ?topic= links are
+  // — the same key the home rows are grouped by. Older ?topic= links are
   // accepted as a fallback. courseId stays optional: it only remembers the
   // course context a task was opened from. The list itself is server-scoped
   // to the student's enrolled courses and contains EVERY level of this title.
@@ -77,26 +116,32 @@ export default function StudentCodingTopicPage() {
     navigate(`/coding-practice/tasks/${task.id}${qs ? `?${qs}` : ''}`);
   };
 
-  const backLink = (
-    <Link to="/coding-practice" className="back-link">
-      Back to Coding Practice
-    </Link>
+  const backToPractice = (
+    <button
+      type="button"
+      className="student-coding-back"
+      onClick={() => navigate('/coding-practice')}
+    >
+      <span aria-hidden="true">&larr;</span> Back to coding practice
+    </button>
   );
 
   if (!paramsValid) {
     return (
-      <>
-        {backLink}
-        <EmptyState
-          title="Topic not found"
-          message="This topic may have been removed, or the link is incomplete."
-          action={
-            <Button type="button" onClick={() => navigate('/coding-practice')}>
-              Back to Coding Practice
-            </Button>
-          }
-        />
-      </>
+      <div className="student-coding fade-in">
+        {backToPractice}
+        <div className="student-coding-state">
+          <EmptyState
+            title="Topic not found"
+            message="This topic may have been removed, or the link is incomplete."
+            action={
+              <Button type="button" onClick={() => navigate('/coding-practice')}>
+                Back to Coding Practice
+              </Button>
+            }
+          />
+        </div>
+      </div>
     );
   }
 
@@ -121,7 +166,6 @@ export default function StudentCodingTopicPage() {
     }
     section.tasks.push(task);
   });
-  const LEVEL_SECTION_RANK = { Beginner: 0, Intermediate: 1, Advanced: 2 };
   sections.sort(
     (a, b) =>
       (LEVEL_SECTION_RANK[a.level] ?? 99) - (LEVEL_SECTION_RANK[b.level] ?? 99)
@@ -134,40 +178,52 @@ export default function StudentCodingTopicPage() {
 
   const taskCount = technologyTasks.length;
   const solvedCount = technologyTasks.filter((task) => task.studentStatus === 'solved').length;
-  const attemptedCount = technologyTasks.filter((task) => task.studentStatus !== 'not_started').length;
-  const progress =
-    taskCount > 0 ? Math.round((solvedCount / taskCount) * 1000) / 10 : 0;
+  const solvedPct = taskCount > 0 ? Math.round((solvedCount / taskCount) * 100) : 0;
+
+  const statusOf = (task) => {
+    const status = task.studentStatus || 'not_started';
+    if (status === 'solved') {
+      return { label: 'Solved', className: 'student-coding-row-status is-solved' };
+    }
+    if (status === 'attempted') {
+      return { label: 'Attempted', className: 'student-coding-row-status' };
+    }
+    return { label: 'Not started', className: 'student-coding-row-status is-idle' };
+  };
 
   return (
-    <>
-      {backLink}
+    <div className="student-coding fade-in">
+      {backToPractice}
 
-      <section className="asg-head fade-in" aria-labelledby="coding-topic-heading">
-        <h1 id="coding-topic-heading">{technology}</h1>
-        <p className="text-meta" style={{ margin: 'var(--space-2) 0 0' }}>
-          Practice {technology} coding tasks and improve your skills.
-        </p>
+      <header className="student-coding-masthead">
+        <div className="student-coding-head">
+          <h1 className="student-coding-title">{technology}</h1>
+        </div>
 
-        {error ? null : loading ? null : (
-          <div style={{ marginTop: 'var(--space-5)', display: 'grid', gap: 'var(--space-2)' }}>
-            <ProgressBar label="Overall topic progress" value={progress} />
-            <p className="text-meta" style={{ margin: 0 }}>
-              {solvedCount} of {taskCount} tasks solved &middot; {attemptedCount} attempted
-            </p>
-          </div>
-        )}
-      </section>
+        <div className="student-coding-stat">
+          <span className="student-coding-stat-label">Solved</span>
+          {loading ? (
+            <span className="skeleton student-coding-stat-skeleton" aria-hidden="true" />
+          ) : (
+            <span className="student-coding-stat-value">
+              {error ? '—' : solvedCount}
+              <span className="student-coding-stat-total"> / {error ? '—' : taskCount}</span>
+            </span>
+          )}
+          <span className="student-coding-bar" aria-hidden="true">
+            <span style={{ width: `${loading || error ? 0 : solvedPct}%` }} />
+          </span>
+        </div>
+      </header>
 
-      <section
-        className="student-assignment-list fade-in"
-        style={{ marginTop: 'var(--space-5)' }}
-        aria-label={`${technology} tasks`}
-      >
-        {error ? (
+      {error ? (
+        <div className="student-coding-state">
           <ErrorState title="Failed to load this topic" message={error} onRetry={load} />
-        ) : loading ? (
-          <Loading label="Loading tasks..." />
-        ) : technologyTasks.length === 0 ? (
+        </div>
+      ) : loading ? (
+        <TaskListSkeleton />
+      ) : technologyTasks.length === 0 ? (
+        <div className="student-coding-state">
           <EmptyState
             title="No tasks in this topic yet"
             message="Tasks published for this topic will appear here."
@@ -177,73 +233,58 @@ export default function StudentCodingTopicPage() {
               </Button>
             }
           />
-        ) : (
-          sections.map((section) => (
-            <div key={section.level}>
-              <h2
-                className="student-classes-heading"
-                style={{ marginBottom: 'var(--space-3)' }}
-              >
-                {levelDisplayLabel(section.level)}
-              </h2>
+        </div>
+      ) : (
+        <div className="student-coding-panels">
+          {sections.map((section, sectionIndex) => (
+            <section
+              className="student-coding-panel"
+              key={section.level}
+              aria-labelledby={`student-coding-level-${sectionIndex}`}
+            >
+              <header className="student-coding-panel-head">
+                <h2 id={`student-coding-level-${sectionIndex}`}>
+                  {levelDisplayLabel(section.level)}
+                </h2>
+                <span className="student-coding-panel-count">
+                  {section.tasks.length} {section.tasks.length === 1 ? 'task' : 'tasks'}
+                </span>
+              </header>
 
-              <div className="admin-table-wrap">
-                <table className="admin-table">
-                  <thead>
-                    <tr>
-                      <th scope="col">#</th>
-                      <th scope="col">Task Title</th>
-                      <th scope="col">Difficulty</th>
-                      <th scope="col">Task Type</th>
-                      <th scope="col">Status</th>
-                      <th scope="col">Action</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {section.tasks.map((task, index) => {
-                      const statusLabel =
-                        STUDENT_STATUS_LABEL[task.studentStatus] || 'Not Started';
-                      const number = section.startIndex + index + 1;
-                      return (
-                        <tr key={task.id}>
-                          <td data-label="#">{number}</td>
-                          <td data-label="Task Title">{task.title}</td>
-                          <td data-label="Difficulty">
-                            <span
-                              className={`badge ${CODING_DIFFICULTY_BADGE_CLASS[task.difficulty] || 'badge-neutral'}`}
-                            >
-                              {task.difficulty}
-                            </span>
-                          </td>
-                          <td data-label="Task Type">{task.taskType}</td>
-                          <td data-label="Status">
-                            <span
-                              className={`badge ${TASK_STATUS_BADGE_CLASS[statusLabel] || 'badge-neutral'}`}
-                            >
-                              {statusLabel}
-                            </span>
-                          </td>
-                          <td data-label="Action">
-                            <div className="admin-table-actions">
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => openTask(task)}
-                              >
-                                {TASK_ACTION_LABEL[statusLabel] || 'Solve'}
-                              </Button>
-                            </div>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          ))
-        )}
-      </section>
-    </>
+              <ol className="student-coding-list">
+                {section.tasks.map((task, index) => {
+                  const status = statusOf(task);
+                  const number = section.startIndex + index + 1;
+                  const label = String(task.topic || '').trim() || task.title || 'Untitled task';
+                  const meta = [task.taskType, task.difficulty].filter(Boolean).join(' · ');
+
+                  return (
+                    <li key={task.id}>
+                      <button
+                        type="button"
+                        className="student-coding-row student-coding-task-row"
+                        onClick={() => openTask(task)}
+                      >
+                        <span className="student-coding-row-index" aria-hidden="true">
+                          {number}
+                        </span>
+                        <span className="student-coding-row-main">
+                          <span className="student-coding-row-title">{label}</span>
+                          {meta ? <span className="student-coding-row-meta">{meta}</span> : null}
+                        </span>
+                        <span className="student-coding-row-side">
+                          <span className={status.className}>{status.label}</span>
+                        </span>
+                        <ArrowIcon />
+                      </button>
+                    </li>
+                  );
+                })}
+              </ol>
+            </section>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }

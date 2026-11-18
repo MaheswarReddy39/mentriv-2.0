@@ -1,7 +1,15 @@
-import { Link, NavLink } from 'react-router-dom';
+import { Link, NavLink, useLocation } from 'react-router-dom';
 import ThemeToggle from './ThemeToggle.jsx';
 
 const ICONS = {
+  '/teacher': (
+    <svg className="sidebar-link-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="3" width="7" height="7" />
+      <rect x="14" y="3" width="7" height="7" />
+      <rect x="3" y="14" width="7" height="7" />
+      <rect x="14" y="14" width="7" height="7" />
+    </svg>
+  ),
   '/teacher/classes': (
     <svg className="sidebar-link-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />
@@ -58,11 +66,20 @@ const ICONS = {
       <circle cx="12" cy="7" r="4" />
     </svg>
   ),
+  logout: (
+    <svg className="sidebar-link-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+      <polyline points="16 17 21 12 16 7" />
+      <line x1="21" y1="12" x2="9" y2="12" />
+    </svg>
+  ),
 };
 
-export default function TeacherSidebar({ links, collapsed = false, mobileOpen = false, onNavigate, onMouseEnter, onMouseLeave }) {
+export default function TeacherSidebar({ links, collapsed = false, mobileOpen = false, onNavigate, onLogout, onMouseEnter, onMouseLeave }) {
+  const location = useLocation();
+
   return (
-    <aside className={`sidebar${collapsed ? ' collapsed' : ''}${mobileOpen ? ' open' : ''}`} aria-label="Teacher navigation" onMouseEnter={onMouseEnter} onMouseLeave={onMouseLeave}>
+    <aside className={`sidebar teacher-sidebar${collapsed ? ' collapsed' : ''}${mobileOpen ? ' open' : ''}`} aria-label="Teacher navigation" onMouseEnter={onMouseEnter} onMouseLeave={onMouseLeave}>
       <Link to="/teacher" className="sidebar-brand" onClick={onNavigate}>
         <span className="sidebar-brand-icon">T</span>
         <span className="sidebar-brand-text">Mentriv Teacher</span>
@@ -70,11 +87,16 @@ export default function TeacherSidebar({ links, collapsed = false, mobileOpen = 
       <nav className="sidebar-nav" aria-label="Teacher sections">
         {(links || []).map((link) => {
           const Icon = ICONS[link.to];
+          const isDashboardAlias =
+            link.to === '/teacher' && location.pathname === '/teacher/dashboard';
           return (
             <NavLink
               key={link.to}
               to={link.to}
-              className={({ isActive }) => `sidebar-link${isActive ? ' active' : ''}`}
+              end={link.to === '/teacher'}
+              className={({ isActive }) =>
+                `sidebar-link${isActive || isDashboardAlias ? ' active' : ''}`
+              }
               onClick={onNavigate}
             >
               {Icon}
@@ -83,7 +105,22 @@ export default function TeacherSidebar({ links, collapsed = false, mobileOpen = 
           );
         })}
       </nav>
-      <ThemeToggle collapsed={collapsed} />
+      <div className="sidebar-footer">
+        {onLogout ? (
+          <button
+            type="button"
+            className="sidebar-link sidebar-logout"
+            onClick={() => {
+              if (onNavigate) onNavigate();
+              onLogout();
+            }}
+          >
+            {ICONS.logout}
+            <span className="sidebar-link-label">Log out</span>
+          </button>
+        ) : null}
+        <ThemeToggle key={collapsed ? 'rail' : 'expanded'} collapsed={collapsed} />
+      </div>
     </aside>
   );
 }

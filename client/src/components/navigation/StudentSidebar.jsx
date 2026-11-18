@@ -84,43 +84,47 @@ const ICONS = {
 
 export default function StudentSidebar({ links, unreadCount = 0, collapsed = false, mobileOpen = false, onNavigate, onLogout, onMouseEnter, onMouseLeave }) {
   return (
-    <aside className={`sidebar${collapsed ? ' collapsed' : ''}${mobileOpen ? ' open' : ''}`} aria-label="Student navigation" onMouseEnter={onMouseEnter} onMouseLeave={onMouseLeave}>
+    <aside className={`sidebar student-sidebar${collapsed ? ' collapsed' : ''}${mobileOpen ? ' open' : ''}`} aria-label="Student navigation" onMouseEnter={onMouseEnter} onMouseLeave={onMouseLeave}>
       <Link to="/dashboard" className="sidebar-brand" onClick={onNavigate}>
         <span className="sidebar-brand-icon">M</span>
         <span className="sidebar-brand-text">Mentriv</span>
       </Link>
-      {(links || []).map((link) => {
-        const Icon = ICONS[link.to.split('/')[1]] || ICONS.dashboard;
-        return (
-          <NavLink
-            key={link.to}
-            to={link.to}
-            end={link.to === '/dashboard'}
-            className={({ isActive }) => `sidebar-link${isActive ? ' active' : ''}`}
-            onClick={onNavigate}
+      <nav className="sidebar-nav" aria-label="Student sections">
+        {(links || []).map((link) => {
+          const Icon = ICONS[link.to.split('/')[1]] || ICONS.dashboard;
+          return (
+            <NavLink
+              key={link.to}
+              to={link.to}
+              end={link.to === '/dashboard'}
+              className={({ isActive }) => `sidebar-link${isActive ? ' active' : ''}`}
+              onClick={onNavigate}
+            >
+              {Icon}
+              <span className="sidebar-link-label">{link.label}</span>
+              {link.badge && unreadCount > 0 ? (
+                <span className="sidebar-link-badge nav-badge">{unreadCount}</span>
+              ) : null}
+            </NavLink>
+          );
+        })}
+      </nav>
+      <div className="sidebar-footer">
+        {onLogout ? (
+          <button
+            type="button"
+            className="sidebar-link sidebar-logout"
+            onClick={() => {
+              if (onNavigate) onNavigate();
+              onLogout();
+            }}
           >
-            {Icon}
-            <span className="sidebar-link-label">{link.label}</span>
-            {link.badge && unreadCount > 0 ? (
-              <span className="sidebar-link-badge nav-badge">{unreadCount}</span>
-            ) : null}
-          </NavLink>
-        );
-      })}
-      {onLogout ? (
-        <button
-          type="button"
-          className="sidebar-link"
-          onClick={() => {
-            if (onNavigate) onNavigate();
-            onLogout();
-          }}
-        >
-          {ICONS.logout}
-          <span className="sidebar-link-label">Logout</span>
-        </button>
-      ) : null}
-      <ThemeToggle collapsed={collapsed} />
+            {ICONS.logout}
+            <span className="sidebar-link-label">Log out</span>
+          </button>
+        ) : null}
+        <ThemeToggle key={collapsed ? 'rail' : 'expanded'} collapsed={collapsed} />
+      </div>
     </aside>
   );
 }

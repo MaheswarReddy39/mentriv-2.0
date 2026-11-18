@@ -1,19 +1,15 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import Button from '../../components/common/Button.jsx';
-import Card from '../../components/common/Card.jsx';
 import EmptyState from '../../components/common/EmptyState.jsx';
 import ErrorState from '../../components/common/ErrorState.jsx';
-import Loading from '../../components/common/Loading.jsx';
-import ProgressBar from '../../components/common/ProgressBar.jsx';
 import { listCodingTasks } from '../../services/coding-practice.service.js';
 
-// ONE card per teacher-entered title — the title IS the technology/category
+// ONE row per teacher-entered title — the title IS the technology/category
 // (HTML, CSS, JavaScript, React, ...). The per-task `topic` field is a detail
-// description and never becomes a card. Cards follow the backend task order
-// (first appearance); titles from several courses/levels merge into one card
+// description and never becomes a row. Rows follow the backend task order
+// (first appearance); titles from several courses/levels merge into one row
 // and each task is counted exactly once.
-const mergeTechnologyCards = (tasks) => {
+const mergeTechnologyRows = (tasks) => {
   const byTitle = new Map();
 
   tasks.forEach((task) => {
@@ -36,10 +32,51 @@ const mergeTechnologyCards = (tasks) => {
     ...entry,
     progress:
       entry.taskCount > 0
-        ? Math.round((entry.solvedCount / entry.taskCount) * 1000) / 10
+        ? Math.round((entry.solvedCount / entry.taskCount) * 100)
         : 0,
   }));
 };
+
+function ArrowIcon() {
+  return (
+    <svg
+      className="student-coding-arrow"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <line x1="5" y1="12" x2="19" y2="12" />
+      <polyline points="12 5 19 12 12 19" />
+    </svg>
+  );
+}
+
+function CodingSkeleton() {
+  return (
+    <div className="student-coding-skeleton" role="status">
+      <span className="sr-only">Loading coding practice…</span>
+      <div className="student-coding-skeleton-panel" aria-hidden="true">
+        <div className="student-coding-skeleton-head">
+          <span className="skeleton student-coding-skeleton-title" />
+          <span className="skeleton student-coding-skeleton-count" />
+        </div>
+        {[0, 1, 2, 3, 4].map((row) => (
+          <div className="student-coding-skeleton-row" key={row}>
+            <div className="student-coding-skeleton-copy">
+              <span className="skeleton student-coding-skeleton-line" />
+              <span className="skeleton student-coding-skeleton-meta" />
+            </div>
+            <span className="skeleton student-coding-skeleton-pill" />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 export default function StudentCodingPracticePage() {
   const navigate = useNavigate();
@@ -65,7 +102,10 @@ export default function StudentCodingPracticePage() {
     load();
   }, [load]);
 
-  const cards = mergeTechnologyCards(tasks);
+  const rows = mergeTechnologyRows(tasks);
+  const totalTasks = rows.reduce((sum, row) => sum + row.taskCount, 0);
+  const totalSolved = rows.reduce((sum, row) => sum + row.solvedCount, 0);
+  const solvedPct = totalTasks > 0 ? Math.round((totalSolved / totalTasks) * 100) : 0;
 
   const openTechnology = (title) => {
     const params = new URLSearchParams({ title });
@@ -73,51 +113,93 @@ export default function StudentCodingPracticePage() {
   };
 
   return (
-    <div className="admin-dashboard student-practice-page fade-in">
-      <header className="admin-dashboard-header">
-        <div>
-          <h1>Coding Practice</h1>
-          <p className="admin-welcome">
-            Practice coding, build your skills, and track your progress.
-          </p>
+    <div className="student-coding fade-in">
+      <header className="student-coding-masthead">
+        <div className="student-coding-head">
+          <h1 className="student-coding-title">Coding Practice</h1>
+        </div>
+
+        <div className="student-coding-stat">
+          <span className="student-coding-stat-label">Solved</span>
+          {loading ? (
+            <span className="skeleton student-coding-stat-skeleton" aria-hidden="true" />
+          ) : (
+            <span className="student-coding-stat-value">
+              {error ? '—' : totalSolved}
+              <span className="student-coding-stat-total"> / {error ? '—' : totalTasks}</span>
+            </span>
+          )}
+          <span className="student-coding-bar" aria-hidden="true">
+            <span style={{ width: `${error ? 0 : solvedPct}%` }} />
+          </span>
         </div>
       </header>
 
       {error ? (
-        <ErrorState title="Failed to load coding practice" message={error} onRetry={load} />
-      ) : loading ? (
-        <Loading label="Loading coding practice..." />
-      ) : cards.length === 0 ? (
-        <EmptyState
-          title="No Coding Practice Tasks Yet"
-          message="Coding challenges will appear here once they are published."
-        />
-      ) : (
-        <div className="student-classes-grid">
-          {cards.map((card) => (
-            <Card key={card.title} variant="student-class-card card-interactive">
-              <div style={{ display: 'grid', gap: 'var(--space-3)' }}>
-                <h3>{card.title}</h3>
-                <p className="text-meta" style={{ margin: 0 }}>
-                  Practice {card.title} coding tasks
-                </p>
-                <p className="text-meta" style={{ margin: 0 }}>
-                  {card.taskCount} {card.taskCount === 1 ? 'Task' : 'Tasks'}
-                </p>
-                <p className="text-meta" style={{ margin: 0 }}>
-                  {card.solvedCount} Solved &middot; {card.attemptedCount} Attempted
-                </p>
-                <ProgressBar label="Progress" value={card.progress} />
-              </div>
-
-              <div className="student-class-actions">
-                <Button size="sm" onClick={() => openTechnology(card.title)}>
-                  Open Practice →
-                </Button>
-              </div>
-            </Card>
-          ))}
+        <div className="student-coding-state">
+          <ErrorState title="Failed to load coding practice" message={error} onRetry={load} />
         </div>
+      ) : loading ? (
+        <CodingSkeleton />
+      ) : rows.length === 0 ? (
+        <div className="student-coding-state">
+          <EmptyState
+            title="No coding tasks yet"
+            message="Coding challenges appear here once your instructor publishes them."
+          />
+        </div>
+      ) : (
+        <section className="student-coding-panel" aria-labelledby="student-coding-technologies">
+          <header className="student-coding-panel-head">
+            <h2 id="student-coding-technologies">Technologies</h2>
+            <span className="student-coding-panel-count">
+              {rows.length} {rows.length === 1 ? 'technology' : 'technologies'}
+            </span>
+          </header>
+
+          <ol className="student-coding-list">
+            {rows.map((row) => {
+              const meta = [
+                `${row.taskCount} ${row.taskCount === 1 ? 'task' : 'tasks'}`,
+                row.solvedCount > 0 ? `${row.solvedCount} solved` : null,
+              ]
+                .filter(Boolean)
+                .join(' · ');
+
+              const primary =
+                row.solvedCount > 0
+                  ? `${row.progress}%`
+                  : row.attemptedCount > 0
+                    ? 'In progress'
+                    : 'Not started';
+
+              return (
+                <li key={row.title}>
+                  <button
+                    type="button"
+                    className="student-coding-row"
+                    onClick={() => openTechnology(row.title)}
+                  >
+                    <span className="student-coding-row-main">
+                      <span className="student-coding-row-title">{row.title}</span>
+                      <span className="student-coding-row-meta">{meta}</span>
+                    </span>
+                    <span className="student-coding-row-side">
+                      <span
+                        className={`student-coding-row-score${
+                          primary === 'Not started' ? ' is-idle' : ''
+                        }`}
+                      >
+                        {primary}
+                      </span>
+                    </span>
+                    <ArrowIcon />
+                  </button>
+                </li>
+              );
+            })}
+          </ol>
+        </section>
       )}
     </div>
   );

@@ -1,6 +1,7 @@
 ﻿import { useEffect, useState } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import StudentSidebar from '../components/navigation/StudentSidebar.jsx';
+import ConfirmDialog from '../components/common/ConfirmDialog.jsx';
 import useAuth from '../hooks/useAuth.js';
 import { getUnreadCount } from '../services/notification.service.js';
 
@@ -25,6 +26,7 @@ export default function StudentLayout() {
   const [unreadCount, setUnreadCount] = useState(0);
   const [collapsed, setCollapsed] = useState(true);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [logoutOpen, setLogoutOpen] = useState(false);
 
   // Close the mobile drawer on navigation and when resizing back to desktop.
   useEffect(() => {
@@ -49,6 +51,18 @@ export default function StudentLayout() {
     return () => { cancelled = true; };
   }, [location.pathname]);
 
+  // The notifications page marks items read in place; refresh the badge
+  // without waiting for the next navigation.
+  useEffect(() => {
+    const handleInboxChange = () => {
+      getUnreadCount()
+        .then((res) => setUnreadCount(res.data.unreadCount))
+        .catch(() => {});
+    };
+    window.addEventListener('mentriv:notifications-changed', handleInboxChange);
+    return () => window.removeEventListener('mentriv:notifications-changed', handleInboxChange);
+  }, []);
+
   const handleLogout = () => {
     setSession(null);
     navigate('/login');
@@ -62,26 +76,20 @@ export default function StudentLayout() {
         collapsed={collapsed && !menuOpen}
         mobileOpen={menuOpen}
         onNavigate={() => setMenuOpen(false)}
-        onLogout={handleLogout}
+        onLogout={() => setLogoutOpen(true)}
         onMouseEnter={() => setCollapsed(false)}
         onMouseLeave={() => setCollapsed(true)}
       />
       <div>
-        <header className="app-topbar">
-          <div style={{ display: 'flex', alignItems: 'center' }}>
-            <button
-              type="button"
-              className="mobile-menu-btn"
-              aria-expanded={menuOpen}
-              aria-label={menuOpen ? 'Close navigation menu' : 'Open navigation menu'}
-              onClick={() => setMenuOpen((current) => !current)}
-            >
-              ☰
-            </button>
-            <span className="text-caption">Signed in</span>
-          </div>
-          <button type="button" className="btn btn-ghost btn-sm" onClick={handleLogout}>
-            Log out
+        <header className="student-topbar">
+          <button
+            type="button"
+            className="mobile-menu-btn"
+            aria-expanded={menuOpen}
+            aria-label={menuOpen ? 'Close navigation menu' : 'Open navigation menu'}
+            onClick={() => setMenuOpen((current) => !current)}
+          >
+            ☰
           </button>
         </header>
         <main className="app-main">
@@ -92,6 +100,16 @@ export default function StudentLayout() {
         className={`mobile-sidebar-overlay${menuOpen ? ' open' : ''}`}
         onClick={() => setMenuOpen(false)}
         aria-hidden="true"
+      />
+      <ConfirmDialog
+        open={logoutOpen}
+        title="Log out of Mentriv?"
+        message="You'll need to sign in again to get back to your classes, assignments, and practice."
+        confirmLabel="Log out"
+        cancelLabel="Stay signed in"
+        danger
+        onConfirm={handleLogout}
+        onCancel={() => setLogoutOpen(false)}
       />
     </div>
   );
