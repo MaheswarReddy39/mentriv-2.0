@@ -1,9 +1,11 @@
 import { Router } from 'express';
 import { query } from 'express-validator';
 import {
+  getTeacherAssignments,
   getTeacherClasses,
   getTeacherDashboard,
   getTeacherLeaderboard,
+  getTeacherMcqs,
   getTeacherSubmissions,
 } from '../controllers/teacher-dashboard.controller.js';
 import validate from '../middleware/validate.middleware.js';
@@ -56,6 +58,20 @@ router.get(
   requireRole('teacher'),
   validate([courseQueryRule]),
   getTeacherClasses
+);
+router.get(
+  '/assignments',
+  requireAuth,
+  requireRole('teacher'),
+  validate([courseQueryRule]),
+  getTeacherAssignments
+);
+router.get(
+  '/mcqs',
+  requireAuth,
+  requireRole('teacher'),
+  validate([courseQueryRule]),
+  getTeacherMcqs
 );
 router.get(
   '/submissions',

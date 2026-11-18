@@ -440,6 +440,99 @@ const getTeacherClasses = async ({ courseId = 'all' } = {}) => {
   };
 };
 
+const sanitizeTeacherAssignment = (assignment, courseTitles) => ({
+  id: assignment._id.toString(),
+  title: assignment.title,
+  assignmentType: assignment.assignmentType,
+  duration: assignment.duration ?? null,
+  maxMarks: assignment.maxMarks ?? null,
+  dueDate: assignment.dueDate || null,
+  status: assignment.status,
+  createdAt: assignment.createdAt,
+  courseTitles,
+});
+
+const sanitizeTeacherMcqTest = (test, courseTitles) => ({
+  id: test._id.toString(),
+  title: test.title,
+  description: test.description || '',
+  duration: test.duration ?? null,
+  passingScore: test.passingScore ?? null,
+  questionCount: Array.isArray(test.questions) ? test.questions.length : 0,
+  status: test.status,
+  createdAt: test.createdAt,
+  courseTitles,
+});
+
+const getTeacherAssignments = async ({ courseId = 'all' } = {}) => {
+  if (courseId !== 'all' && !mongoose.isValidObjectId(courseId)) {
+    throw new ApiError(400, 'Invalid course id');
+  }
+
+  const courses = await getAvailableCourses();
+  const selectedCourse =
+    courseId === 'all' ? null : courses.find((course) => course._id.toString() === courseId);
+
+  if (courseId !== 'all' && !selectedCourse) {
+    throw new ApiError(404, 'Course not found');
+  }
+
+  const scopedCourses = selectedCourse ? [selectedCourse] : courses;
+  const courseTitleById = new Map(
+    scopedCourses.map((course) => [course._id.toString(), course.title])
+  );
+  const courseIds = scopedCourses.map((course) => course._id);
+
+  const [assignmentDocs, mcqDocs] = courseIds.length
+    ? await Promise.all([
+        Assignment.find({ courseIds: { $in: courseIds }, status: { $ne: 'archived' } })
+          .select('title assignmentType duration maxMarks dueDate status createdAt courseIds')
+          .sort({ createdAt: -1 })
+          .limit(500)
+          .lean(),
+        McqTest.find({ courseIds: { $in: courseIds }, status: { $ne: 'archived' } })
+          .select('title description duration passingScore status questions createdAt courseIds')
+          .sort({ createdAt: -1 })
+          .limit(500)
+          .lean(),
+      ])
+    : [[], []];
+
+  const courseTitlesFor = (document) =>
+    (document.courseIds || [])
+      .map((id) => courseTitleById.get(id.toString()))
+      .filter(Boolean);
+
+  const assignments = assignmentDocs.map((assignment) =>
+    sanitizeTeacherAssignment(assignment, courseTitlesFor(assignment))
+  );
+  const mcqTests = mcqDocs.map((test) => sanitizeTeacherMcqTest(test, courseTitlesFor(test)));
+
+  return {
+    courses: courses.map(sanitizeCourse),
+    selectedCourse: selectedCourse ? sanitizeCourse(selectedCourse) : null,
+    assignments,
+    mcqTests,
+    totalAssignments: assignments.length,
+    publishedAssignments: assignments.filter((item) => item.status === 'published').length,
+    totalMcqTests: mcqTests.length,
+    publishedMcqTests: mcqTests.filter((item) => item.status === 'published').length,
+  };
+};
+
+const getTeacherMcqs = async ({ courseId = 'all' } = {}) => {
+  const { courses, selectedCourse, mcqTests, totalMcqTests, publishedMcqTests } =
+    await getTeacherAssignments({ courseId });
+
+  return {
+    courses,
+    selectedCourse,
+    mcqTests,
+    totalMcqTests,
+    publishedMcqTests,
+  };
+};
+
 const getTeacherLeaderboard = async ({ search = '', courseId = 'all' } = {}) => {
   const { courses, rows } = await buildStudentCourseProgressRows({ courseId });
   const normalizedSearch = String(search || '').trim().toLowerCase();
@@ -496,6 +589,8 @@ const getTeacherLeaderboard = async ({ search = '', courseId = 'all' } = {}) => 
 export default {
   getDashboard,
   getTeacherClasses,
+  getTeacherAssignments,
+  getTeacherMcqs,
   getTeacherSubmissions,
   getTeacherLeaderboard,
 };

@@ -10,6 +10,16 @@ export const getTeacherClasses = (params = {}) => {
   return apiClient.get(`/teacher/classes${query ? `?${query}` : ''}`);
 };
 
+export const getTeacherAssignments = (params = {}) => {
+  const query = new URLSearchParams(params).toString();
+  return apiClient.get(`/teacher/assignments${query ? `?${query}` : ''}`);
+};
+
+export const getTeacherMcqs = (params = {}) => {
+  const query = new URLSearchParams(params).toString();
+  return apiClient.get(`/teacher/mcqs${query ? `?${query}` : ''}`);
+};
+
 export const getTeacherSubmissions = (params = {}) => {
   const query = new URLSearchParams(params).toString();
   return apiClient.get(`/teacher/submissions${query ? `?${query}` : ''}`);

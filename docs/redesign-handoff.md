@@ -8,23 +8,20 @@ per-page sessions. Keep it updated at the end of each page.
 ## 1. Goal & session rules
 
 - Redesign every page in the app to one consistent system. Admin pages are done.
-  Student pages are half done. Teacher pages are just started (Dashboard and
-  Classes are done).
+  Student pages are half done. Teacher pages are mostly done (Dashboard,
+  Classes, Coding Practice, Submissions, Assignments and MCQs are done).
 - **Work in the primary worktree only** (`C:\Users\harsh\mentriv-2.0`). Do not
   create or use a second worktree — `C:\Users\harsh\mentriv-2.0-qa` is not a
   valid workspace and should be retired, not used for page work. Do not
   `git stash` a finished page to "clean" the tree for the next page; leave it
-  uncommitted in place and keep going. The assignments + MCQs WIP currently sits
-  in `stash@{0}` (`wip-teacher-assignments-mcqs`) and on branch
-  `backup/teacher-wip` (`7621d9f`) — apply it back into the primary tree once the
-  active page is done, then remove the extra worktree.
+  uncommitted in place and keep going.
 - **One page per session.** Each session: read this file, open the page + its CSS,
   redesign, QA, update this file. Do not redesign two pages in one session.
 - Request budget is ~200/day. Avoid exploratory chatter, avoid re-reading files
   that are already summarised here, and never re-QA a page that this file marks
   done.
-- Prior redesigns are committed as `70a9b86` and `e098b88`. Do not commit new page
-  work without explicit approval from the user.
+- Prior redesigns are committed as `70a9b86`, `e098b88` and `2173fc7`. Do not
+  commit new page work without explicit approval from the user.
 - **Never commit `client/src/constants/api.js`** (unrelated local proxy change).
 
 ## 2. Design language
@@ -104,8 +101,8 @@ Rules that were applied on every finished page:
 - Shared student token block: `.student-home, .student-classes, .student-assignments,
   .student-practice, .student-coding, .student-progress, .student-achievements,
   .student-leaderboard, .student-notifications, .student-profile, .teacher-dashboard,
-  .teacher-classes, .teacher-coding, .teacher-submissions` (plus the
-  `[data-theme='dark']` twin).
+  .teacher-classes, .teacher-coding, .teacher-submissions,
+  .teacher-assignments, .teacher-mcqs` (plus the `[data-theme='dark']` twin).
 - Shared course-dropdown block: classes / assignments / practice / progress.
 - Per-page sections (each self-contained, appended at the end of the file):
   `/* STUDENT HOME */`, `/* STUDENT CLASSES */`, `/* STUDENT ASSIGNMENTS */`,
@@ -120,8 +117,9 @@ Rules that were applied on every finished page:
 - Teacher shell lives on the same shared chrome: `.teacher-sidebar` is in the
   `.admin-sidebar, .student-sidebar` desktop flex/label rules and the teacher
   layout uses `.student-topbar` + `.app-main`. `/* TEACHER DASHBOARD */`,
-  `/* TEACHER CLASSES */`, `/* TEACHER CODING PRACTICE */` and
-  `/* TEACHER SUBMISSIONS */` are self-contained blocks at the end of the file.
+  `/* TEACHER CLASSES */`, `/* TEACHER CODING PRACTICE */`,
+  `/* TEACHER SUBMISSIONS */`, `/* TEACHER ASSIGNMENTS */` and
+  `/* TEACHER MCQS */` are self-contained blocks at the end of the file.
   Teacher pages follow the page recipe with `teacher-<page>` class names.
   Teacher submissions uses the dashboard/classes switch idiom twice (course +
   level) plus a `.teacher-submissions-search-input` (38px tall, 220px wide,
@@ -136,11 +134,12 @@ Rules that were applied on every finished page:
 | --- | --- |
 | Admin | all pages, merged (PR #13 `97c0e19`), plus level-dropdown fix `467189c`, course-details fix `670862a` |
 | Student | Dashboard (`DashboardPage`), Classes (`StudentClassesPage`), Assignments (`CourseAssignmentsPage`), MCQs / Practice (`McqPracticePage`), Coding Practice: list (`StudentCodingPracticePage`), topic (`StudentCodingTopicPage`), instructions (`StudentCodingTaskPage`), workspace (`StudentCodingWorkspacePage`), Progress (`ProgressPage`), Achievements (`AchievementsPage`), Leaderboard (`LeaderboardPage`), Notifications (`NotificationsPage`), Profile (`ProfilePage`) |
-| Teacher | Dashboard (`TeacherDashboardPage`), Classes (`TeacherClassesPage`), Coding Practice (`TeacherCodingPracticePage`), Submissions (`TeacherSubmissionsPage`) |
+| Teacher | Dashboard (`TeacherDashboardPage`), Classes (`TeacherClassesPage`), Coding Practice (`TeacherCodingPracticePage`), Submissions (`TeacherSubmissionsPage`), Assignments (`TeacherAssignmentsPage`), MCQs / Practice (`TeacherMcqsPage`) |
 
-Committed: `70a9b86` (student pages, teacher dashboard + classes) and `e098b88`
-(teacher coding practice). New page work stays uncommitted until the user
-approves a commit.
+Committed: `70a9b86` (student pages, teacher dashboard + classes), `e098b88`
+(teacher coding practice), `2173fc7` (teacher submissions), then the teacher
+assignments + MCQs commit that follows `2173fc7`. New page work stays
+uncommitted until the user approves a commit.
 
 Coding pages shipped with: row-per-technology list (Solved X / Y stat), level
 panels with numbered rows (`topic` as the row label — `title` is the technology),
@@ -260,6 +259,47 @@ shows `Nothing in this scope`, and a search with no rows shows `No matches`.
 The old stat cards, `Badge`/`ProgressBar` pills and both `admin-table` tables
 were removed.
 
+Teacher assignments shipped with: masthead (`Assignments`, course text
+dropdown under the h1 incl. an `All courses` option, and a `Published` stat
+showing published of total across assignments + practice tests, forest bar,
+`N drafts` caption), an `Assignments` panel and a `Practice tests` panel. Each
+panel head carries a text action (`New assignment` / `New practice test`) plus
+the row count; rows are static (not links, so no arrow) with title, meta
+(`duration · due date` / `level · topic · N questions` plus `N courses` when
+scoped to All courses), right-aligned `Published` forest / `Draft` coral status
+and relative time. Both panel actions open the same in-page create view: back
+button, h1 `New assignment`, a `Details` panel (multi-course checkbox list with
+coral checkboxes and removable coral chips, Title, Duration, Type text-toggle
+`Assignment` / `Practice test`, and for practice tests Level + Topic) and, for
+practice tests, a `Questions` panel. Questions are written manually (pick 5–25,
+then per-question stem, options A–D and correct answer) or bulk-added by pasting
+text into the AI parse box (`POST /ai/parse-questions`), previewing/editing the
+parsed set and then using it. Submit saves via `POST /assignments/bulk` or
+`POST /mcq-tests/bulk`, shows an inline coral error per field on validation
+failure, and on success toasts (`Assignment created.` / `Practice test created
+with N questions.`), resets the form, returns to the list and refetches. The
+page is backed by the new teacher-only `GET /teacher/assignments?courseId=`
+endpoint (`courses`, `selectedCourse`, `assignments`, `mcqTests`,
+`totalAssignments`, `publishedAssignments`, `totalMcqTests`,
+`publishedMcqTests`, `courseTitles`, `questionCount`) which lists non-archived
+rows so it does not depend on the student-only course routes. Loading is a
+two-panel skeleton; `empty` shows `No courses yet` with a `—` stat. The old
+admin tables, stat cards and modal were removed.
+
+Teacher MCQs shipped with: masthead (`MCQs / Practice` plus a `Published` stat
+showing published of total across practice sets with a forest bar and an
+`N drafts` caption), an `All courses` course text dropdown under the h1, and one
+`Practice sets` panel whose rows carry the set title, a
+`course · level · topic · N questions · N min` meta line (the course is only
+listed in `All courses`), a right-aligned Published forest / Draft coral status
+with a relative date, and an arrow into `/teacher/mcqs/:id`. The
+`New practice set` text action goes to `/teacher/mcqs/new`. Rows are sorted by
+level then title. The page reads the new teacher-only
+`GET /teacher/mcqs?courseId=` payload (`courses`, `selectedCourse`, `mcqTests`,
+`totalMcqTests`, `publishedMcqTests`) and is backed by the same service query as
+Teacher assignments. Loading is a panel skeleton; `empty` shows `No courses yet`
+with a `—` stat. The old admin table and stat cards were removed.
+
 Teacher shell: `TeacherLayout` now matches the student shell — `.student-topbar`
 hamburger, `.app-main`, sidebar `Log out` opening `ConfirmDialog`
 (`Log out of Mentriv?` / `Stay signed in` / `Log out`), and a `Dashboard` link at
@@ -281,14 +321,13 @@ Student: `MyCoursesPage`, `CourseLearnPage`, `CourseMcqsPage`,
 already-redesigned page — redesign them together with their parent page if they
 are entered from it).
 
-Teacher (7): `TeacherAssignmentsPage`,
-`TeacherMcqsPage`, `TeacherCodingTopicPage`,
+Teacher (5): `TeacherCodingTopicPage`,
 `TeacherCodingPracticeFormPage`, `TeacherPracticeFormPage`,
 `TeacherLeaderboardPage`, `TeacherProfilePage`. The teacher shell is done, so
 these pages only need their own content redesign.
 
 Suggested order (highest traffic first): MyCourses → CourseLearn →
-McqAttemptResultPage → then the teacher set starting with TeacherAssignments.
+McqAttemptResultPage → then the teacher set starting with TeacherCodingTopic.
 
 ## 7. QA harness
 
@@ -296,7 +335,8 @@ McqAttemptResultPage → then the teacher set starting with TeacherAssignments.
   `C:\Users\harsh\AppData\Local\Temp\opencode\admin-mock\server.mjs`
   (`node <path>`). Modes via `GET /__mode?value=normal|error|empty|delay&delay=N`.
   It already covers admin, student dashboard/classes/assignments, MCQ practice,
-  coding practice, progress, achievements and leaderboard. Extend it for the page you are
+  coding practice, progress, achievements, leaderboard, and teacher
+  dashboard/classes/assignments. Extend it for the page you are
   redesigning; keep fixtures realistic (2–3 courses, mixed statuses, one empty
   state).
   `/progress/overview` now honours `?courseId=` and serves real MCQ test/attempt
@@ -327,6 +367,15 @@ McqAttemptResultPage → then the teacher set starting with TeacherAssignments.
   and one with no limit). It honours `?courseId=` and `?level=`; the `courses`
   array is not level-filtered (matching the real service), so a course + level
   combination with no rows still leaves the switchers usable.
+- `GET /teacher/assignments` and `GET /teacher/mcqs` are mocked from
+  `teacherAssignmentPlans` (23
+  assignments: 18 published, 5 drafts, plus 11 practice tests across the same
+  four courses) and `teacherAssignmentCatalog` (three Data Science MCQ fixtures
+  with real `questions` arrays so `questionCount` is realistic). It honours
+  `?courseId=` and `empty`; counts match `teacherCourseStats` totals. It also
+  serves `POST /assignments/bulk` and `POST /mcq-tests/bulk` (mutating the
+  in-memory rows so create → toast → refetch works) and `POST /ai/parse-questions`
+  (returns a fixed two-question set for the paste-and-preview flow).
 - The mock also serves `GET/PATCH /api/v1/auth/me` and
   `PATCH /api/v1/auth/change-password` for Profile. The password change returns a
   real-shaped JWT (`AuthContext.buildAuthValue` rejects any token without a
