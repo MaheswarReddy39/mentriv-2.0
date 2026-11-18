@@ -10,12 +10,21 @@ per-page sessions. Keep it updated at the end of each page.
 - Redesign every page in the app to one consistent system. Admin pages are done.
   Student pages are half done. Teacher pages are just started (Dashboard and
   Classes are done).
+- **Work in the primary worktree only** (`C:\Users\harsh\mentriv-2.0`). Do not
+  create or use a second worktree — `C:\Users\harsh\mentriv-2.0-qa` is not a
+  valid workspace and should be retired, not used for page work. Do not
+  `git stash` a finished page to "clean" the tree for the next page; leave it
+  uncommitted in place and keep going. The assignments + MCQs WIP currently sits
+  in `stash@{0}` (`wip-teacher-assignments-mcqs`) and on branch
+  `backup/teacher-wip` (`7621d9f`) — apply it back into the primary tree once the
+  active page is done, then remove the extra worktree.
 - **One page per session.** Each session: read this file, open the page + its CSS,
   redesign, QA, update this file. Do not redesign two pages in one session.
 - Request budget is ~200/day. Avoid exploratory chatter, avoid re-reading files
   that are already summarised here, and never re-QA a page that this file marks
   done.
-- Nothing is committed yet. Do not commit without explicit approval from the user.
+- Prior redesigns are committed as `70a9b86`. Do not commit new page work
+  without explicit approval from the user.
 - **Never commit `client/src/constants/api.js`** (unrelated local proxy change).
 
 ## 2. Design language
@@ -317,9 +326,10 @@ McqAttemptResultPage → then the teacher set starting with TeacherAssignments.
 - Check light + dark at 1440, 1024, 768, 390; assert
   `document.documentElement.scrollWidth <= window.innerWidth`; walk the primary
   flow (open → act → submit → result) plus error/empty/loading states.
-- Finish with `npm.cmd run build` from `client/` (exit 0; chunk-size warnings are
-  pre-existing), then delete `client/build.log` and any screenshot folder before
-  handing off.
+- Save QA screenshots under `docs/qa/<page-slug>/` (e.g. `docs/qa/teacher-mcqs/`)
+  and show them in the session reply — the user wants to see the result, so do
+  not delete them at handoff. Finish with `npm.cmd run build` from `client/`
+  (exit 0; chunk-size warnings are pre-existing), then delete `client/build.log`.
 
 ## 8. Session prompt template
 

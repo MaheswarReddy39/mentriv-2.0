@@ -124,6 +124,20 @@
     box-shadow var(--dur-lift) var(--ease-standard),
     border-color var(--dur-state) var(--ease-standard);
 
+  /* Premium Apple & Instagram motion curves */
+  --ease-apple: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-press: cubic-bezier(0.2, 0, 0, 1);
+  --ease-soft: cubic-bezier(0.25, 1, 0.5, 1);
+  --dur-press: 90ms;
+  --dur-release: 180ms;
+  --dur-motion: 220ms;
+  --transition-press: transform var(--dur-press) var(--ease-press);
+  --transition-interactive: transform var(--dur-release) var(--ease-apple),
+    box-shadow var(--dur-release) var(--ease-apple),
+    background-color var(--dur-state) var(--ease-standard),
+    border-color var(--dur-state) var(--ease-standard),
+    color var(--dur-state) var(--ease-standard);
+
   --transition-fast: 180ms ease;
   --transition-normal: 250ms ease;
 

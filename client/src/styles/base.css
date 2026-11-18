@@ -173,7 +173,7 @@ button:disabled, input:disabled, textarea:disabled, select:disabled {
 
 /* ---------- Motion system ---------- */
 @keyframes fadeUp {
-  from { opacity: 0; transform: translateY(12px); }
+  from { opacity: 0; transform: translateY(7px); }
   to { opacity: 1; transform: translateY(0); }
 }
 @keyframes fadeIn {
@@ -181,19 +181,37 @@ button:disabled, input:disabled, textarea:disabled, select:disabled {
   to { opacity: 1; }
 }
 @keyframes modalIn {
-  from { opacity: 0; transform: translateY(10px) scale(0.97); }
+  from { opacity: 0; transform: translateY(12px) scale(0.96); }
   to { opacity: 1; transform: translateY(0) scale(1); }
 }
 @keyframes toastIn {
-  from { opacity: 0; transform: translateY(-8px) scale(0.98); }
+  from { opacity: 0; transform: translateY(-12px) scale(0.94); }
   to { opacity: 1; transform: translateY(0) scale(1); }
 }
 @keyframes toastOut {
-  to { opacity: 0; transform: translateY(-6px); }
+  to { opacity: 0; transform: translateY(-8px) scale(0.96); }
 }
 @keyframes shimmer {
-  from { background-position: 200% 0; }
-  to { background-position: -200% 0; }
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+@keyframes inputErrorShake {
+  0%, 100% { transform: translateX(0); }
+  20%, 60% { transform: translateX(-3px); }
+  40%, 80% { transform: translateX(3px); }
+}
+@keyframes fieldErrorIn {
+  from { opacity: 0; transform: translateY(-3px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes copyFeedbackPop {
+  0% { transform: scale(0.92); opacity: 0.4; }
+  60% { transform: scale(1.04); }
+  100% { transform: scale(1); opacity: 1; }
+}
+@keyframes pulseSubtle {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.65; }
 }
 @keyframes float {
   0%, 100% { transform: translate(0, 0) scale(1); }
@@ -205,10 +223,10 @@ button:disabled, input:disabled, textarea:disabled, select:disabled {
 }
 @keyframes spin { to { transform: rotate(360deg); } }
 
-.fade-in { animation: fadeUp 0.55s cubic-bezier(0.2, 0.8, 0.2, 1) backwards; }
-.d1 { animation-delay: 0.08s; }
-.d2 { animation-delay: 0.16s; }
-.d3 { animation-delay: 0.24s; }
+.fade-in { animation: fadeUp 220ms var(--ease-apple, cubic-bezier(0.16, 1, 0.3, 1)) backwards; }
+.d1 { animation-delay: 0.05s; }
+.d2 { animation-delay: 0.10s; }
+.d3 { animation-delay: 0.15s; }
 
 .spinner {
   width: 1.75rem;
