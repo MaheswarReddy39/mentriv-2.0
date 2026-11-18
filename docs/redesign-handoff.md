@@ -10,11 +10,10 @@ per-page sessions. Keep it updated at the end of each page.
 - Redesign every page in the app to one consistent system. Admin pages are done.
   Student pages are half done. Teacher pages are mostly done (Dashboard,
   Classes, Coding Practice, Submissions, Assignments and MCQs are done).
-- **Work in the primary worktree only** (`C:\Users\harsh\mentriv-2.0`). Do not
-  create or use a second worktree — `C:\Users\harsh\mentriv-2.0-qa` is not a
-  valid workspace and should be retired, not used for page work. Do not
-  `git stash` a finished page to "clean" the tree for the next page; leave it
-  uncommitted in place and keep going.
+- **Work in the primary worktree only** (`C:\Users\harsh\mentriv-2.0`). The old
+  `C:\Users\harsh\mentriv-2.0-qa` worktree has been retired. Do not create or use
+  a second worktree. Do not `git stash` a finished page to "clean" the tree for
+  the next page; leave it uncommitted in place and keep going.
 - **One page per session.** Each session: read this file, open the page + its CSS,
   redesign, QA, update this file. Do not redesign two pages in one session.
 - Request budget is ~200/day. Avoid exploratory chatter, avoid re-reading files
@@ -137,9 +136,9 @@ Rules that were applied on every finished page:
 | Teacher | Dashboard (`TeacherDashboardPage`), Classes (`TeacherClassesPage`), Coding Practice (`TeacherCodingPracticePage`), Submissions (`TeacherSubmissionsPage`), Assignments (`TeacherAssignmentsPage`), MCQs / Practice (`TeacherMcqsPage`) |
 
 Committed: `70a9b86` (student pages, teacher dashboard + classes), `e098b88`
-(teacher coding practice), `2173fc7` (teacher submissions), then the teacher
-assignments + MCQs commit that follows `2173fc7`. New page work stays
-uncommitted until the user approves a commit.
+(teacher coding practice), `2173fc7` (teacher submissions) and `1331917`
+(teacher assignments + MCQs). New page work stays uncommitted until the user
+approves a commit.
 
 Coding pages shipped with: row-per-technology list (Solved X / Y stat), level
 panels with numbered rows (`topic` as the row label — `title` is the technology),
