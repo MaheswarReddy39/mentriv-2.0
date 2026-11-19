@@ -295,6 +295,28 @@
   }
 }
 
+/* ---------- Decorative arrows ---------- */
+/* Row, card and link arrows were visual noise; the surrounding label
+   already carries the affordance. Back arrows and select chevrons stay. */
+.admin-home-arrow,
+.admin-home-shortcut-arrow,
+.student-achievements-arrow,
+.student-assignments-arrow,
+.student-coding-arrow,
+.student-courses-arrow,
+.student-home-arrow,
+.student-learn-arrow,
+.student-notifications-arrow,
+.student-practice-arrow,
+.student-profile-arrow,
+.student-progress-arrow,
+.teacher-coding-arrow,
+.teacher-dashboard-arrow,
+.teacher-mcqs-arrow,
+.teacher-profile-arrow {
+  display: none;
+}
+
 /* ---------- Reduced motion ---------- */
 @media (prefers-reduced-motion: reduce) {
   .route-view,

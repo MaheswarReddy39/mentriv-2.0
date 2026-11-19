@@ -75,11 +75,6 @@ export default function CourseCard({ course }) {
         <div className="catalog-card-footer">
           <span className="catalog-card-duration">{durationLabel}</span>
           {priceLabel ? <span className="catalog-card-price">{priceLabel}</span> : null}
-          <span className="catalog-card-arrow" aria-hidden="true">
-            <svg viewBox="0 0 16 16">
-              <path d="M3 8h9M8.5 3.5 13 8l-4.5 4.5" />
-            </svg>
-          </span>
         </div>
       </div>
     </article>

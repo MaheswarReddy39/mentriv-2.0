@@ -580,13 +580,11 @@
 .link-arrow {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
   font-weight: 600;
   color: var(--indigo);
-  transition: gap 0.2s ease, color 0.2s ease;
+  transition: color 0.2s ease;
 }
-.link-arrow::after { content: '→'; }
-.link-arrow:hover { color: var(--coral); gap: 10px; }
+.link-arrow:hover { color: var(--coral); }
 
 /* ================= STAT VALUE TONES ================= */
 .stat-indigo { color: var(--indigo); }
@@ -1843,7 +1841,6 @@ body:has(.page-marketing) :is(.navbar, .site-footer) {
   transition: color var(--dur-state) var(--ease-standard),
     text-decoration-color var(--dur-state) var(--ease-standard);
 }
-.page-home .section-head .link-arrow::after { content: none; }
 .page-home .section-head .link-arrow:hover {
   color: var(--text);
   text-decoration-color: currentColor;
@@ -2120,9 +2117,7 @@ body:has(.page-marketing) :is(.navbar, .site-footer) {
   .featured-course-cta,
   .featured-course-cta svg,
   .catalog-card,
-  .catalog-card-image,
-  .catalog-card-arrow,
-  .catalog-card-arrow svg {
+  .catalog-card-image {
     transition-duration: 0ms;
   }
 
@@ -2134,8 +2129,6 @@ body:has(.page-marketing) :is(.navbar, .site-footer) {
   .catalog-card:focus-within,
   .catalog-card:hover .catalog-card-image,
   .catalog-card:focus-within .catalog-card-image,
-  .catalog-card:hover .catalog-card-arrow svg,
-  .catalog-card:focus-within .catalog-card-arrow svg,
   .featured-course-cta:hover svg {
     transform: none;
   }
@@ -2705,43 +2698,6 @@ body:has(.page-marketing) :is(.navbar, .site-footer) {
   font-size: var(--type-body);
   font-weight: 700;
   white-space: nowrap;
-}
-
-.catalog-card-arrow {
-  display: grid;
-  flex: 0 0 auto;
-  place-items: center;
-  width: 34px;
-  height: 34px;
-  border: 1px solid var(--border);
-  border-radius: 50%;
-  background: var(--surface);
-  color: var(--text);
-  transition: var(--transition-state);
-}
-
-.catalog-card-arrow svg {
-  width: 15px;
-  height: 15px;
-  overflow: visible;
-  fill: none;
-  stroke: currentColor;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  stroke-width: 1.5;
-  transition: transform var(--dur-lift) var(--ease-standard);
-}
-
-.catalog-card:hover .catalog-card-arrow,
-.catalog-card:focus-within .catalog-card-arrow {
-  background: var(--accent-strong);
-  border-color: var(--accent-strong);
-  color: #fff;
-}
-
-.catalog-card:hover .catalog-card-arrow svg,
-.catalog-card:focus-within .catalog-card-arrow svg {
-  transform: translateX(2px);
 }
 
 /* Loading, empty and error states */

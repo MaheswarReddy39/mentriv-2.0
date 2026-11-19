@@ -166,7 +166,6 @@ export default function McqTestDetailPage() {
                       </p>
                     </div>
                     <Badge status={attempt.status}>{attempt.status.replace('_', ' ')}</Badge>
-                    <span aria-hidden="true">→</span>
                   </Link>
                 </li>
               ))}

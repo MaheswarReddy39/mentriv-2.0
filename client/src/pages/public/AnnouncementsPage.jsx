@@ -282,9 +282,6 @@ export default function AnnouncementsPage({ embedded = false, emptyAction = null
             {emptyAction ?? (
               <Link className="announcements-state-link" to="/courses">
                 Browse courses
-                <svg viewBox="0 0 16 16" aria-hidden="true">
-                  <path d="M3 8h10M9 4l4 4-4 4" />
-                </svg>
               </Link>
             )}
           </div>

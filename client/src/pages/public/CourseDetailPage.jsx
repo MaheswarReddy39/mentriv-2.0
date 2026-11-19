@@ -62,12 +62,6 @@ const PlayIcon = () => (
   </svg>
 );
 
-const ArrowUpRightIcon = () => (
-  <svg viewBox="0 0 16 16" aria-hidden="true">
-    <path d="M4.5 11.5 11.5 4.5M6 4.5h5.5V10" />
-  </svg>
-);
-
 function CourseCover({ course, levelLabel }) {
   const [imageFailed, setImageFailed] = useState(false);
   const showImage = Boolean(course.thumbnail) && !imageFailed;
@@ -339,7 +333,6 @@ export default function CourseDetailPage() {
                     </span>
                     <span className="course-showcase-demo-watch" aria-hidden="true">
                       Watch preview
-                      <ArrowUpRightIcon />
                     </span>
                   </button>
                 ) : (

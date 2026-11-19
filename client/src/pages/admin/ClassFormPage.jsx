@@ -8,17 +8,46 @@ import Textarea from '../../components/common/Textarea.jsx';
 import Select from '../../components/common/Select.jsx';
 import Card from '../../components/common/Card.jsx';
 import Loading from '../../components/common/Loading.jsx';
+import ErrorState from '../../components/common/ErrorState.jsx';
+import { useToast } from '../../components/feedback/Toast.jsx';
 
 export default function ClassFormPage() {
   const { classId } = useParams();
+  const toast = useToast();
   const [form, setForm] = useState(null);
+  const [loadError, setLoadError] = useState(null);
   const [saving, setSaving] = useState(false);
+  const [reloadToken, setReloadToken] = useState(0);
 
   useEffect(() => {
-    getClassById(classId).then((res) => {
-      setForm(res.data.lesson);
-    }).catch(() => setForm({ title: '', status: 'draft' }));
-  }, [classId]);
+    let cancelled = false;
+    setForm(null);
+    setLoadError(null);
+
+    getClassById(classId)
+      .then((res) => {
+        if (!cancelled) setForm(res.data.lesson);
+      })
+      .catch((err) => {
+        if (!cancelled) {
+          setLoadError(err.message || 'Failed to load this class.');
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [classId, reloadToken]);
+
+  if (!form && loadError) {
+    return (
+      <ErrorState
+        title="Could not load this class"
+        message={loadError}
+        onRetry={() => setReloadToken((token) => token + 1)}
+      />
+    );
+  }
 
   if (!form) return <Loading label="Loading…" />;
 
@@ -33,6 +62,8 @@ export default function ClassFormPage() {
       <Card className="fade-in">
         <form onSubmit={async (e) => {
           e.preventDefault();
+          if (saving) return;
+
           setSaving(true);
           try {
             await updateClass(classId, {
@@ -41,7 +72,14 @@ export default function ClassFormPage() {
               duration: Number(form.duration), module: form.module,
               order: Number(form.order), status: form.status,
             });
-          } finally { setSaving(false); }
+            toast.success('Class updated', {
+              description: 'Your changes are saved.',
+            });
+          } catch (err) {
+            toast.error(err.message || 'Could not save the class. Please try again.');
+          } finally {
+            setSaving(false);
+          }
         }}>
           <Input label="Title" value={form.title} onChange={set('title')} required />
           <Textarea label="Description" value={form.description || ''} onChange={set('description')} rows={3} />
