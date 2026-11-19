@@ -52,7 +52,17 @@
   --shadow-elevated: 0 24px 50px -34px rgba(20, 20, 43, 0.5);
   --shadow-overlay: 0 40px 80px -50px rgba(20, 20, 43, 0.5);
 
-  --focus-ring: 0 0 0 3px rgba(79, 70, 229, 0.25);
+  --focus-ring: 0 0 0 3px rgba(240, 82, 63, 0.25);
+
+  /* ---------- Form controls ----------
+     Neutral at rest; brand orange only while focused/active. */
+  --field-border-default: #D9DDE3;
+  --field-border-hover: #C3C9D2;
+  --field-border-disabled: #EDEFF3;
+  --field-border-focus: #F28A55;
+  --field-border-error: #E5484D;
+  --field-focus-ring: 0 0 0 3px rgba(242, 138, 85, 0.18);
+  --field-error-ring: 0 0 0 3px rgba(229, 72, 77, 0.16);
 
   /* ---------- Typography ---------- */
   --font-heading: 'Manrope', sans-serif;
@@ -202,5 +212,13 @@
   --shadow-elevated: 0 24px 50px -34px rgba(0, 0, 0, 0.7);
   --shadow-overlay: 0 40px 80px -50px rgba(0, 0, 0, 0.75);
 
-  --focus-ring: 0 0 0 3px rgba(79, 70, 229, 0.35);
+  --focus-ring: 0 0 0 3px rgba(255, 107, 91, 0.35);
+
+  --field-border-default: #3A3A5A;
+  --field-border-hover: #4A4A6A;
+  --field-border-disabled: #26263E;
+  --field-border-focus: #F28A55;
+  --field-border-error: #FF7A70;
+  --field-focus-ring: 0 0 0 3px rgba(242, 138, 85, 0.24);
+  --field-error-ring: 0 0 0 3px rgba(255, 122, 112, 0.22);
 }

@@ -3,6 +3,7 @@ import Button from '../../components/common/Button.jsx';
 import EmptyState from '../../components/common/EmptyState.jsx';
 import ErrorState from '../../components/common/ErrorState.jsx';
 import Input from '../../components/common/Input.jsx';
+import SelectMenu from '../../components/common/SelectMenu.jsx';
 import { useToast } from '../../components/feedback/Toast.jsx';
 import { createClass } from '../../services/class.service.js';
 import { getTeacherClasses } from '../../services/teacher.service.js';
@@ -57,23 +58,6 @@ const groupByModule = (lessons) => {
   });
   return Array.from(groups, ([title, items]) => ({ title, items }));
 };
-
-function CaretIcon() {
-  return (
-    <svg
-      className="teacher-classes-caret"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <polyline points="6 9 12 15 18 9" />
-    </svg>
-  );
-}
 
 function ClassesSkeleton() {
   return (
@@ -211,24 +195,16 @@ export default function TeacherClassesPage() {
           {showSkeleton ? (
             <span className="skeleton teacher-classes-switch-skeleton" aria-hidden="true" />
           ) : courses.length > 1 ? (
-            <label className="teacher-classes-switch">
-              <span className="teacher-classes-switch-label" aria-hidden="true">
-                <span>{courseTitle}</span>
-                <CaretIcon />
-              </span>
-              <select
-                className="teacher-classes-switch-select"
-                aria-label="Course"
-                value={selectedCourseId}
-                onChange={(event) => setSelectedCourseId(event.target.value)}
-              >
-                {courses.map((course) => (
-                  <option key={course.id} value={course.id}>
-                    {course.title}
-                  </option>
-                ))}
-              </select>
-            </label>
+            <SelectMenu
+              className="teacher-classes-switch"
+              ariaLabel="Course"
+              value={selectedCourseId}
+              onChange={setSelectedCourseId}
+              options={courses.map((course) => ({
+                value: course.id,
+                label: course.title,
+              }))}
+            />
           ) : courseTitle ? (
             <p className="teacher-classes-course-title">{courseTitle}</p>
           ) : null}

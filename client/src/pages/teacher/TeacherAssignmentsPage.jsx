@@ -5,6 +5,7 @@ import ErrorState from '../../components/common/ErrorState.jsx';
 import Input from '../../components/common/Input.jsx';
 import MultiCourseSelect from '../../components/common/MultiCourseSelect.jsx';
 import Select from '../../components/common/Select.jsx';
+import SelectMenu from '../../components/common/SelectMenu.jsx';
 import Textarea from '../../components/common/Textarea.jsx';
 import { useToast } from '../../components/feedback/Toast.jsx';
 import { createAssignmentsForCourses } from '../../services/assignment.service.js';
@@ -101,23 +102,6 @@ const mcqMeta = (item, scope) => {
   return parts.join(' · ');
 };
 
-function CaretIcon() {
-  return (
-    <svg
-      className="teacher-assignments-caret"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <polyline points="6 9 12 15 18 9" />
-    </svg>
-  );
-}
-
 function AssignmentsSkeleton() {
   return (
     <div className="teacher-assignments-skeleton" role="status">
@@ -183,7 +167,6 @@ export default function TeacherAssignmentsPage() {
   const assignments = data?.assignments || [];
   const mcqTests = data?.mcqTests || [];
   const scopeCourse = courses.find((course) => course.id === scope) || null;
-  const scopeTitle = scope === 'all' ? 'All courses' : scopeCourse?.title || '';
 
   const totalItems = assignments.length + mcqTests.length;
   const publishedItems = (data?.publishedAssignments || 0) + (data?.publishedMcqTests || 0);
@@ -461,25 +444,16 @@ export default function TeacherAssignmentsPage() {
                 aria-hidden="true"
               />
             ) : courses.length > 0 ? (
-              <label className="teacher-assignments-switch">
-                <span className="teacher-assignments-switch-label" aria-hidden="true">
-                  <span>{scopeTitle}</span>
-                  <CaretIcon />
-                </span>
-                <select
-                  className="teacher-assignments-switch-select"
-                  aria-label="Course"
-                  value={scope}
-                  onChange={(event) => setScope(event.target.value)}
-                >
-                  <option value="all">All courses</option>
-                  {courses.map((course) => (
-                    <option key={course.id} value={course.id}>
-                      {course.title}
-                    </option>
-                  ))}
-                </select>
-              </label>
+              <SelectMenu
+                className="teacher-assignments-switch"
+                ariaLabel="Course"
+                value={scope}
+                onChange={setScope}
+                options={[
+                  { value: 'all', label: 'All courses' },
+                  ...courses.map((course) => ({ value: course.id, label: course.title })),
+                ]}
+              />
             ) : null
           ) : null}
         </div>
@@ -907,17 +881,17 @@ export default function TeacherAssignmentsPage() {
             <header className="teacher-assignments-panel-head">
               <h2 id="teacher-assignments-list-heading">Assignments</h2>
               <div className="teacher-assignments-panel-side">
-                <button
-                  type="button"
-                  className="teacher-assignments-action"
-                  onClick={() => openCreate('normalTest')}
-                >
-                  New assignment
-                </button>
                 <span className="teacher-assignments-panel-count">
                   {formatNumber(assignments.length)}{' '}
                   {assignments.length === 1 ? 'assignment' : 'assignments'}
                 </span>
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={() => openCreate('normalTest')}
+                >
+                  New assignment
+                </Button>
               </div>
             </header>
 
@@ -958,17 +932,17 @@ export default function TeacherAssignmentsPage() {
             <header className="teacher-assignments-panel-head">
               <h2 id="teacher-assignments-tests-heading">Practice tests</h2>
               <div className="teacher-assignments-panel-side">
-                <button
-                  type="button"
-                  className="teacher-assignments-action"
-                  onClick={() => openCreate('MCQ')}
-                >
-                  New practice test
-                </button>
                 <span className="teacher-assignments-panel-count">
                   {formatNumber(mcqTests.length)}{' '}
                   {mcqTests.length === 1 ? 'practice test' : 'practice tests'}
                 </span>
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={() => openCreate('MCQ')}
+                >
+                  New practice test
+                </Button>
               </div>
             </header>
 

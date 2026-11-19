@@ -99,10 +99,23 @@ Rules that were applied on every finished page:
 
 - Shared student token block: `.student-home, .student-classes, .student-assignments,
   .student-practice, .student-coding, .student-progress, .student-achievements,
-  .student-leaderboard, .student-notifications, .student-profile, .teacher-dashboard,
+  .student-leaderboard, .student-notifications, .student-profile, .student-courses,
+  .student-learn, .teacher-dashboard,
   .teacher-classes, .teacher-coding, .teacher-submissions,
-  .teacher-assignments, .teacher-mcqs` (plus the `[data-theme='dark']` twin).
+  .teacher-assignments, .teacher-mcqs, .teacher-leaderboard, .teacher-profile`
+  (plus the
+  `[data-theme='dark']` twin).
 - Shared course-dropdown block: classes / assignments / practice / progress.
+- Shared dropdown: `client/src/components/common/SelectMenu.jsx` backs the
+  teacher scope switchers. It renders a `.select-menu-trigger` button plus a
+  `role="listbox"` panel (keyboard: Space/Enter/Arrows/Escape, click-outside
+  close, `aria-activedescendant`), and the `.select-menu*` rules sit near the
+  top of the file. The trigger and caret stay neutral grey at rest; the brand
+  orange border and ring appear only on focus/open. Panel borders stay neutral,
+  selected option text stays the normal dark colour, and the check icon is
+  neutral rather than coral. `SelectMenu` also takes an optional `disabled`
+  prop. Native `<select>` is still used where an in-form field is expected
+  (for example a question's level).
 - Per-page sections (each self-contained, appended at the end of the file):
   `/* STUDENT HOME */`, `/* STUDENT CLASSES */`, `/* STUDENT ASSIGNMENTS */`,
   `/* STUDENT PRACTICE */`, `/* STUDENT CODING PRACTICE */`,
@@ -112,17 +125,39 @@ Rules that were applied on every finished page:
   `/* STUDENT NOTIFICATIONS */` (`.student-notifications-switch` type + read-state
   dropdown pair), `/* STUDENT PROFILE */` (760px settings column, facts rows with
   a 132px uppercase `dt` column and left-aligned `dd`, `Edit details` text action,
-  inline row editing, in-page password view).
+  inline row editing, in-page password view), `/* STUDENT COURSES */`
+  (`.student-courses-search-input`, status-toned `.student-courses-row-state`,
+  pending/rejected rows stay `is-static`), `/* STUDENT LEARN */`
+  (`.student-learn-tabs` text-tab bar with a coral underline,
+  `.student-learn-state-block` for state wrappers — the row status label is
+  `.student-learn-state` — and module panels whose rows reuse the class row
+  pattern with Notes/Watch text actions).
 - Teacher shell lives on the same shared chrome: `.teacher-sidebar` is in the
   `.admin-sidebar, .student-sidebar` desktop flex/label rules and the teacher
   layout uses `.student-topbar` + `.app-main`. `/* TEACHER DASHBOARD */`,
   `/* TEACHER CLASSES */`, `/* TEACHER CODING PRACTICE */`,
-  `/* TEACHER SUBMISSIONS */`, `/* TEACHER ASSIGNMENTS */` and
-  `/* TEACHER MCQS */` are self-contained blocks at the end of the file.
+  `/* TEACHER SUBMISSIONS */`, `/* TEACHER ASSIGNMENTS */`,
+  `/* TEACHER MCQS */` and `/* TEACHER LEADERBOARD */`, `/* TEACHER PROFILE */`
+  are self-contained blocks at the end of the file.
   Teacher pages follow the page recipe with `teacher-<page>` class names.
-  Teacher submissions uses the dashboard/classes switch idiom twice (course +
-  level) plus a `.teacher-submissions-search-input` (38px tall, 220px wide,
-  full width under 640px) in the same scope row.
+  Teacher submissions uses the shared `SelectMenu` twice (course + level) plus a
+  `.teacher-submissions-search-input` (38px tall, 220px wide, full width under
+  640px) in the same scope row. Teacher leaderboard reuses that search-input
+  idiom for `.teacher-leaderboard-search-input`. Every teacher page (dashboard,
+  classes, coding practice, submissions, assignments, MCQs, leaderboard) uses
+  `SelectMenu` for its course/level scope so no native OS-blue select appears.
+- Every interactive field shares the neutral field tokens in `tokens.css`:
+  `--field-border-default` (`#D9DDE3`), `--field-border-hover` (`#C3C9D2`),
+  `--field-border-disabled` (`#EDEFF3`), `--field-border-focus` (`#F28A55`),
+  `--field-border-error` (`#E5484D`), `--field-focus-ring` and
+  `--field-error-ring`. Inputs, textareas, native selects, `SelectMenu`
+  triggers, admin dropdown buttons, the catalog filter and the notification
+  filter switches all rest neutral grey; the brand orange border and ring
+  appear only on focus/open (hover is a slightly darker neutral). Teacher
+  pages no longer tint idle inputs orange — the old `--field-border` teacher
+  overrides were removed — and non-teacher pages already used the same
+  neutral values in light and dark. The global `--focus-ring` token is coral in
+  both themes, so focus rings no longer read as indigo.
 - Duplication per page is intentional and matches the existing convention. Reuse
   only cross-cutting atoms (`.btn`, `.badge`, `.state-block`, `.skeleton`) and
   comma-group rules when two pages need the exact same selector set.
@@ -132,13 +167,13 @@ Rules that were applied on every finished page:
 | Area | Pages |
 | --- | --- |
 | Admin | all pages, merged (PR #13 `97c0e19`), plus level-dropdown fix `467189c`, course-details fix `670862a` |
-| Student | Dashboard (`DashboardPage`), Classes (`StudentClassesPage`), Assignments (`CourseAssignmentsPage`), MCQs / Practice (`McqPracticePage`), Coding Practice: list (`StudentCodingPracticePage`), topic (`StudentCodingTopicPage`), instructions (`StudentCodingTaskPage`), workspace (`StudentCodingWorkspacePage`), Progress (`ProgressPage`), Achievements (`AchievementsPage`), Leaderboard (`LeaderboardPage`), Notifications (`NotificationsPage`), Profile (`ProfilePage`) |
-| Teacher | Dashboard (`TeacherDashboardPage`), Classes (`TeacherClassesPage`), Coding Practice (`TeacherCodingPracticePage`), Submissions (`TeacherSubmissionsPage`), Assignments (`TeacherAssignmentsPage`), MCQs / Practice (`TeacherMcqsPage`) |
+| Student | Dashboard (`DashboardPage`), Classes (`StudentClassesPage`), Assignments (`CourseAssignmentsPage`), MCQs / Practice (`McqPracticePage`), Coding Practice: list (`StudentCodingPracticePage`), topic (`StudentCodingTopicPage`), instructions (`StudentCodingTaskPage`), workspace (`StudentCodingWorkspacePage`), Progress (`ProgressPage`), Achievements (`AchievementsPage`), Leaderboard (`LeaderboardPage`), Notifications (`NotificationsPage`), Profile (`ProfilePage`), My Courses (`MyCoursesPage`), Course Learn (`CourseLearnPage`) |
+| Teacher | Dashboard (`TeacherDashboardPage`), Classes (`TeacherClassesPage`), Coding Practice: list (`TeacherCodingPracticePage`), topic (`TeacherCodingTopicPage`), task form (`TeacherCodingPracticeFormPage`), Submissions (`TeacherSubmissionsPage`), Assignments (`TeacherAssignmentsPage`), MCQs / Practice (`TeacherMcqsPage`), practice form (`TeacherPracticeFormPage`), Leaderboard (`TeacherLeaderboardPage`), Profile (`TeacherProfilePage`) |
 
 Committed: `70a9b86` (student pages, teacher dashboard + classes), `e098b88`
-(teacher coding practice), `2173fc7` (teacher submissions) and `1331917`
-(teacher assignments + MCQs). New page work stays uncommitted until the user
-approves a commit.
+(teacher coding practice), `2173fc7` (teacher submissions), `1331917`
+(teacher assignments + MCQs), and the finished teacher leaderboard/profile plus
+coding topic and both form pages in this branch.
 
 Coding pages shipped with: row-per-technology list (Solved X / Y stat), level
 panels with numbered rows (`topic` as the row label — `title` is the technology),
@@ -198,8 +233,38 @@ Missing values render `—`. The eyebrow, name subtitle, account-status stat,
 avatar, `Badge`, separate `Account` panel, `Email verified` row and the old
 `admin.css` `STUDENT PROFILE` block were removed.
 
-Teacher dashboard shipped with: masthead (`Welcome back, <first>.` + course text
-dropdown under the h1, and a `Review queue` stat showing pending of total
+My Courses shipped with: a masthead (`My Courses` + an `Average progress` stat
+with a 3px forest bar and a `N active · M pending` caption) and one `Your courses`
+panel with a right-aligned `N courses` count and a search field in the panel head.
+Rows show course title, `Enrolled … · Last activity …` meta, a percentage with a
+3px forest meter, an uppercase status (`ACTIVE` forest / `COMPLETED` forest /
+`PENDING` coral / `REJECTED` coral / `CANCELLED` idle) and an arrow. Approved
+courses sort first (active before completed), then pending, rejected, cancelled;
+only approved rows link to `/courses/:id/learn` — every other row is static and
+has no hover. Search filters on title and meta. The old card grid,
+`CategoryThumb` covers, `Badge` pills and `ProgressBar` were removed; empty and
+error states use `.student-courses-state`, and loading is a hand-written panel
+skeleton.
+
+Course Learn shipped with: a `← My Courses` text back link, an h1 course title,
+an `APPROVED · N classes · N assignments · N practice sets` meta line, and a
+`Course progress` stat (`8 of 13 classes` caption + forest bar). A
+`.student-learn-tabs` text-tab bar (Overview / Classes / Assignments / MCQs /
+Progress) with a coral underline on the active tab switches in-page views; Classes
+is the default. Classes view: one panel per module (h2 + `N / M` count) of rows
+(title, `N min · N resources` meta, status label, `Notes` and `Watch` text
+actions — either disabled when the class has no notes/video). Assignments and
+MCQs are row panels with status labels and arrows to their pages; Overview is an
+`Up next` panel with an `Open class` CTA plus an `At a glance` facts row; Progress
+is a large percentage, a 6px meter and a `By module` breakdown. Data loads with
+`Promise.allSettled` (classes, assignments, submissions, MCQ tests) using three
+states — `undefined` loading, `null` failed, array loaded — so a failed dependent
+fetch shows `—` instead of `0`. Empty (`No active access`) and error states are
+centred `.student-learn-state-block` panels; the old thumbnails, cards, badge,
+progress bar and mojibake glyphs were removed.
+
+Teacher dashboard shipped with: masthead (`Welcome back, <first>.` + `SelectMenu`
+course dropdown under the h1, and a `Review queue` stat showing pending of total
 submissions with a forest reviewed bar and `N reviewed` caption), a 4-cell
 teaching snapshot (Students / Classes / Assignments / Practice sets, no bars —
 there is no denominator), a paper `Live announcement` panel (eyebrow, title,
@@ -216,7 +281,7 @@ Loading is a hand-written skeleton (stat line, 4 cells, focus, two panels).
 The old admin stat cards, badge, welcome subtitle and quick-action buttons were
 removed.
 
-Teacher classes shipped with: masthead (`Classes`, course text dropdown under the
+Teacher classes shipped with: masthead (`Classes`, `SelectMenu` course dropdown under the
 h1, and a `Published classes` stat showing `published of total` with a forest
 bar and an `N drafts` / `All classes published` caption), one `Add a class` panel
 (Class title, Module, Video link, Notes link — the target course sits in the panel
@@ -236,15 +301,15 @@ skeleton; `empty` shows `No courses yet` with a `—` stat.
 
 Teacher coding practice shipped with: masthead (`Coding Practice` plus a
 `Published tasks` stat showing published of total with a forest bar and a drafts
-caption), course text dropdown under the h1, and one panel per level (`Beginner`,
+caption), `SelectMenu` course dropdown under the h1, and one panel per level (`Beginner`,
 `Basic`, `Intermediate`, `Advanced`) whose rows carry the task title, a
 `topic · difficulty · N min` meta line and a right-aligned Published forest /
 Draft coral state.
 
 Teacher submissions shipped with: masthead (`Submissions` plus a `Submitted`
 stat showing submitted of total student-course rows with a forest bar and an
-`N not submitted` caption), a course text dropdown and a level text dropdown
-under the h1, and a `Search students` input in the same scope row that filters
+`N not submitted` caption), two `SelectMenu`s (course and level) under the h1,
+and a `Search students` input in the same scope row that filters
 both panels client-side (the stat keeps the course/level totals while typing).
 One `Practice progress` panel lists each enrolled student once per course
 (`course · level · N of M correct`, right-aligned `NN%` plus Submitted forest /
@@ -258,7 +323,7 @@ shows `Nothing in this scope`, and a search with no rows shows `No matches`.
 The old stat cards, `Badge`/`ProgressBar` pills and both `admin-table` tables
 were removed.
 
-Teacher assignments shipped with: masthead (`Assignments`, course text
+Teacher assignments shipped with: masthead (`Assignments`, `SelectMenu` course
 dropdown under the h1 incl. an `All courses` option, and a `Published` stat
 showing published of total across assignments + practice tests, forest bar,
 `N drafts` caption), an `Assignments` panel and a `Practice tests` panel. Each
@@ -287,7 +352,7 @@ admin tables, stat cards and modal were removed.
 
 Teacher MCQs shipped with: masthead (`MCQs / Practice` plus a `Published` stat
 showing published of total across practice sets with a forest bar and an
-`N drafts` caption), an `All courses` course text dropdown under the h1, and one
+`N drafts` caption), an `All courses` `SelectMenu` course dropdown under the h1, and one
 `Practice sets` panel whose rows carry the set title, a
 `course · level · topic · N questions · N min` meta line (the course is only
 listed in `All courses`), a right-aligned Published forest / Draft coral status
@@ -298,6 +363,72 @@ level then title. The page reads the new teacher-only
 `totalMcqTests`, `publishedMcqTests`) and is backed by the same service query as
 Teacher assignments. Loading is a panel skeleton; `empty` shows `No courses yet`
 with a `—` stat. The old admin table and stat cards were removed.
+
+Teacher coding topic shipped with: a masthead (`← Coding Practice` text back
+link, a `LEVEL · TECHNOLOGY` eyebrow and the topic as h1, plus a `Published
+tasks` stat showing published of total with a forest bar and an `All tasks
+published` / `N drafts` caption), a `New task` text action, and one `Tasks`
+panel whose rows show the task title, a
+`Technology · level · topic · N points` meta line, a right-aligned Published
+forest / Draft coral status, an arrow into `/teacher/coding-practice/:id`, and
+`N tasks` as the panel count. Loading is a panel skeleton; `empty` shows
+`No tasks yet` with a `—` stat; a fetch failure renders `Failed to load tasks`
+with retry.
+
+Teacher coding practice task form shipped with: a masthead (back link,
+`NEW TASK` / `EDIT TASK` / task-title eyebrow, title as h1, a status line and
+Cancel / Save actions), a `Details` panel (title, technology, level, topic,
+points, statement, starter files) and an `Configuration` panel with test-case
+groups (visible + hidden rows, add/remove). View mode renders the same panels as
+static facts with an `Edit task` action and, for drafts, an archive action.
+Loading is a two-panel skeleton; a fetch failure renders an error state with
+retry and hides the status/actions.
+
+Teacher practice form shipped with: the same masthead recipe (`NEW PRACTICE
+SET` / `EDIT PRACTICE SET` eyebrow, title, a `Questions` stat with count, Cancel
+/ Save actions), a `Details` panel (title, course, level, topic, duration,
+instructions) and a `Questions` panel with per-question blocks (prompt,
+options, correct answer, explanation) and add/remove controls. View mode is
+read-only with `Edit practice set`; a locked/published notice replaces editing
+where the API forbids it. Loading is a two-panel skeleton; failure renders the
+shared error state with retry.
+
+Teacher leaderboard shipped with: masthead (`Leaderboard` plus an
+`Average progress` stat showing the mean score with a forest bar and a
+`Best X% · N students` caption), a `SelectMenu` course dropdown and a `Search students`
+input (same 38px/220px idiom as submissions, filters name or mobile client-side
+while the stat keeps the course totals) under the h1, one `Rankings` panel of
+static rows (rank number, name, `X of Y correct` meta plus an `N courses` prefix
+when a student spans courses in `All courses` scope, right-aligned percentage),
+and a `How ranking works` panel of three static rules (Progress / Ties / No
+attempts). Ranks 1–3 colour the number and name with the shared
+`--student-gold|silver|bronze` tokens. Students without a submitted attempt read
+`No attempts · N questions` with an idle 0%. The panel count reads `N students`
+and switches to `N of M` while searching; a search with no rows shows
+`No matches.` in place of the list. Rows are not clickable (there is no student
+detail view), so they carry no arrow; hover is a 3.5% tint. The service payload
+now includes `courseCount`, `attemptedCourseCount`, `correctAnswers` and
+`totalQuestions` per row (still honours `?courseId=` and `?search=`). Loading is
+a panel skeleton; `empty` shows `No courses yet` with a `—` stat; a course with
+no enrollments shows `No students ranked yet`. The old search/course filter card,
+`admin-table`, rank pills and progress bars were removed, along with the
+`admin.css` `TEACHER LEADERBOARD` block.
+
+Teacher profile shipped with: the same 760px settings column as the student
+profile under a plain `Profile` masthead (only masthead action is the
+`Edit details` text button), a `Details` panel of five facts (`Name`, `Email`,
+`Mobile`, `Course`, `Member since`) with a 132px uppercase label column and
+left-aligned values, and a `Security` panel with one `Password` row. Facts come
+from `GET /auth/me` (the teacher's `selectedCourse` supplies `Course`). Editing
+is inline in the rows (Name and Mobile become inputs, other facts stay visible)
+with Cancel / Save changes under the list; `Edit details` hides while editing.
+Non-active accounts get a coral `Status` row. The in-page password view keeps
+the back button, h1, 8–72 note, three inputs and Cancel / Update password, and
+returns to the profile on success. Missing values render `—`. Loading is a
+one-panel skeleton; page fetch failure renders `Failed to load profile` with a
+retry. The old `teacher-profile-page` card grid, `Badge`, `teacher-card-head`,
+separate `Teacher Profile` card heading and the `admin.css` `teacher-profile`
+block were removed.
 
 Teacher shell: `TeacherLayout` now matches the student shell — `.student-topbar`
 hamburger, `.app-main`, sidebar `Log out` opening `ConfirmDialog`
@@ -314,19 +445,13 @@ confirm.
 
 ## 6. Remaining
 
-Student: `MyCoursesPage`, `CourseLearnPage`, `CourseMcqsPage`,
-`CourseProgressPage`, `ClassDetailPage`, `McqTestDetailPage`,
-`McqAttemptResultPage`, `AttemptWorkspacePage` (some are secondary flows of an
-already-redesigned page — redesign them together with their parent page if they
-are entered from it).
+Student: `CourseMcqsPage`, `CourseProgressPage`, `ClassDetailPage`,
+`McqTestDetailPage`, `McqAttemptResultPage`, `AttemptWorkspacePage` (some are
+secondary flows of an already-redesigned page — redesign them together with their
+parent page if they are entered from it).
 
-Teacher (5): `TeacherCodingTopicPage`,
-`TeacherCodingPracticeFormPage`, `TeacherPracticeFormPage`,
-`TeacherLeaderboardPage`, `TeacherProfilePage`. The teacher shell is done, so
-these pages only need their own content redesign.
-
-Suggested order (highest traffic first): MyCourses → CourseLearn →
-McqAttemptResultPage → then the teacher set starting with TeacherCodingTopic.
+Suggested order (highest traffic first): McqAttemptResultPage → then the
+remaining student secondary flows.
 
 ## 7. QA harness
 
@@ -335,7 +460,7 @@ McqAttemptResultPage → then the teacher set starting with TeacherCodingTopic.
   (`node <path>`). Modes via `GET /__mode?value=normal|error|empty|delay&delay=N`.
   It already covers admin, student dashboard/classes/assignments, MCQ practice,
   coding practice, progress, achievements, leaderboard, and teacher
-  dashboard/classes/assignments. Extend it for the page you are
+  dashboard/classes/assignments/leaderboard. Extend it for the page you are
   redesigning; keep fixtures realistic (2–3 courses, mixed statuses, one empty
   state).
   `/progress/overview` now honours `?courseId=` and serves real MCQ test/attempt
@@ -346,6 +471,15 @@ McqAttemptResultPage → then the teacher set starting with TeacherCodingTopic.
   types/read states) and honours `?isRead`, `?type`, `?page`, `?limit`;
   `PATCH /notifications/:id/read` and `PATCH /notifications/read-all` mutate the
   in-memory rows, so unread counts change during a QA pass.
+- My Courses / Course Learn run off `/enrollments/my` (three enrollments:
+  approved Full Stack, approved UI/UX, and a pending Data Science
+  `65f000000000000000000002` with no class plan) plus `/courses/:id/classes`,
+  `/assignments?courseId=`, `/mcq-tests?courseId=` and `GET /submissions/my`.
+  That last route is new: it derives one row per submitted `assignmentFixtures`
+  entry, sets `status` to `reviewed` when marks exist and `submitted` otherwise,
+  and honours `?courseId=`. Course ids for QA:
+  `65f000000000000000000001` (Full Stack, 13 classes / 4 assignments / 8 practice
+  sets), `...0003` (UI/UX) and `...0002` (pending).
 - `GET /teacher/dashboard` is now mocked: four courses (`...0001`–`...0004`),
   per-course totals in `teacherCourseStats`, five `teacherRecentSubmissions`
   (mixed Pending/Late/Reviewed), and one live announcement. It honours
@@ -375,12 +509,21 @@ McqAttemptResultPage → then the teacher set starting with TeacherCodingTopic.
   serves `POST /assignments/bulk` and `POST /mcq-tests/bulk` (mutating the
   in-memory rows so create → toast → refetch works) and `POST /ai/parse-questions`
   (returns a fixed two-question set for the paste-and-preview flow).
+- `GET /teacher/leaderboard` is mocked by aggregating `teacherSubmissionRows`
+  per student name (14 students, `teacherStudentPhones` supplies mobiles) into
+  `courseCount`, `attemptedCourseCount`, `correctAnswers`, `totalQuestions` and a
+  percentage `progress`, sorted by progress then name. It honours `?courseId=`
+  and `?search=`, and `empty` returns no courses/rows. Counts line up with the
+  submissions fixtures so cross-checking the two pages is easy.
 - The mock also serves `GET/PATCH /api/v1/auth/me` and
-  `PATCH /api/v1/auth/change-password` for Profile. The password change returns a
-  real-shaped JWT (`AuthContext.buildAuthValue` rejects any token without a
-  decodable payload and drops the session), accepts `pass1234` as the current
-  password, and `empty` mode blanks the phone and course so the `—` fallbacks
-  render. `PATCH /auth/me` validates name/phone like the server.
+  `PATCH /api/v1/auth/change-password` for Profile. It reads the bearer token
+  role: teacher requests get `teacherProfileUser` (teacher course, 540-day-old
+  account) and student requests keep the student fixtures. The password change
+  returns a real-shaped JWT for the requesting role (`AuthContext.buildAuthValue`
+  rejects any token without a decodable payload and drops the session), accepts
+  `pass1234` as the current password, and `empty` mode blanks the phone and
+  course so the `—` fallbacks render. `PATCH /auth/me` validates name/phone like
+  the server.
 - Vite: `npm.cmd run dev` from `client/`. It may pick 5173–5175 depending on stale
   servers — always confirm the printed port.
 - Auth: write a fake JWT into `mentriv.accessToken`

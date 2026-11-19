@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import EmptyState from '../../components/common/EmptyState.jsx';
 import ErrorState from '../../components/common/ErrorState.jsx';
+import SelectMenu from '../../components/common/SelectMenu.jsx';
 import { listNotifications } from '../../services/notification.service.js';
 import { getTeacherDashboard } from '../../services/teacher.service.js';
 import useAuth from '../../hooks/useAuth.js';
@@ -63,23 +64,6 @@ function ArrowIcon() {
     >
       <line x1="5" y1="12" x2="19" y2="12" />
       <polyline points="12 5 19 12 12 19" />
-    </svg>
-  );
-}
-
-function CaretIcon() {
-  return (
-    <svg
-      className="teacher-dashboard-caret"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <polyline points="6 9 12 15 18 9" />
     </svg>
   );
 }
@@ -162,7 +146,6 @@ export default function TeacherDashboardPage() {
 
   const firstName = (user?.name || '').trim().split(/\s+/)[0];
   const selectedCourse = dashboard?.selectedCourse || null;
-  const courseLabel = selectedCourse?.title || 'All courses';
 
   const totalSubmissions = dashboard?.totalSubmissions ?? 0;
   const pendingSubmissions = dashboard?.pendingSubmissions ?? 0;
@@ -209,24 +192,16 @@ export default function TeacherDashboardPage() {
           {!dashboard && !error ? (
             <span className="skeleton teacher-dashboard-switch-skeleton" aria-hidden="true" />
           ) : courses.length > 1 ? (
-            <label className="teacher-dashboard-switch">
-              <span className="teacher-dashboard-switch-label" aria-hidden="true">
-                <span>{courseLabel}</span>
-                <CaretIcon />
-              </span>
-              <select
-                className="teacher-dashboard-switch-select"
-                aria-label="Course"
-                value={courseFilter}
-                onChange={(event) => setCourseFilter(event.target.value)}
-              >
-                {courseOptions.map((course) => (
-                  <option key={course.id} value={course.id}>
-                    {course.title}
-                  </option>
-                ))}
-              </select>
-            </label>
+            <SelectMenu
+              className="teacher-dashboard-switch"
+              ariaLabel="Course"
+              value={courseFilter}
+              onChange={setCourseFilter}
+              options={courseOptions.map((course) => ({
+                value: course.id,
+                label: course.title,
+              }))}
+            />
           ) : courses.length === 1 ? (
             <p className="teacher-dashboard-course-title">{courses[0].title}</p>
           ) : null}

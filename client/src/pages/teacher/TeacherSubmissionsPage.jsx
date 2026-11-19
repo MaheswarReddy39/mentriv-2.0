@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import EmptyState from '../../components/common/EmptyState.jsx';
 import ErrorState from '../../components/common/ErrorState.jsx';
+import SelectMenu from '../../components/common/SelectMenu.jsx';
 import { getTeacherSubmissions } from '../../services/teacher.service.js';
 
 const LEVELS = [
@@ -44,23 +45,6 @@ const timingStatus = (row) => {
   const label = key.charAt(0).toUpperCase() + key.slice(1);
   return { label, tone: TIMING_TONES[key] || 'is-idle' };
 };
-
-function CaretIcon() {
-  return (
-    <svg
-      className="teacher-submissions-caret"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <polyline points="6 9 12 15 18 9" />
-    </svg>
-  );
-}
 
 function SubmissionsSkeleton() {
   return (
@@ -143,7 +127,6 @@ export default function TeacherSubmissionsPage() {
   const submittedPct = allRows.length > 0 ? (submittedCount / allRows.length) * 100 : 0;
 
   const showSkeleton = loading && !data;
-  const selectedLevel = LEVELS.find((item) => item.value === level) || LEVELS[0];
 
   return (
     <div className="teacher-submissions fade-in">
@@ -156,52 +139,27 @@ export default function TeacherSubmissionsPage() {
           ) : error || courses.length === 0 ? null : (
             <div className="teacher-submissions-scope">
               {courses.length > 1 ? (
-                <label className="teacher-submissions-switch">
-                  <span className="teacher-submissions-switch-label" aria-hidden="true">
-                    <span>
-                      {courseId === 'all'
-                        ? 'All courses'
-                        : courses.find((course) => course.id === courseId)?.title ||
-                          'All courses'}
-                    </span>
-                    <CaretIcon />
-                  </span>
-                  <select
-                    className="teacher-submissions-switch-select"
-                    aria-label="Course"
-                    value={courseId}
-                    onChange={(event) => setCourseId(event.target.value)}
-                  >
-                    <option value="all">All courses</option>
-                    {courses.map((course) => (
-                      <option key={course.id} value={course.id}>
-                        {course.title}
-                      </option>
-                    ))}
-                  </select>
-                </label>
+                <SelectMenu
+                  className="teacher-submissions-switch"
+                  ariaLabel="Course"
+                  value={courseId}
+                  onChange={setCourseId}
+                  options={[
+                    { value: 'all', label: 'All courses' },
+                    ...courses.map((course) => ({ value: course.id, label: course.title })),
+                  ]}
+                />
               ) : (
                 <p className="teacher-submissions-course-title">{courses[0].title}</p>
               )}
 
-              <label className="teacher-submissions-switch">
-                <span className="teacher-submissions-switch-label" aria-hidden="true">
-                  <span>{selectedLevel.label}</span>
-                  <CaretIcon />
-                </span>
-                <select
-                  className="teacher-submissions-switch-select"
-                  aria-label="Level"
-                  value={level}
-                  onChange={(event) => setLevel(event.target.value)}
-                >
-                  {LEVELS.map((item) => (
-                    <option key={item.value} value={item.value}>
-                      {item.label}
-                    </option>
-                  ))}
-                </select>
-              </label>
+              <SelectMenu
+                className="teacher-submissions-switch"
+                ariaLabel="Level"
+                value={level}
+                onChange={setLevel}
+                options={LEVELS.map((item) => ({ value: item.value, label: item.label }))}
+              />
 
               <label className="teacher-submissions-search">
                 <span className="sr-only">Search students, courses or assignments</span>

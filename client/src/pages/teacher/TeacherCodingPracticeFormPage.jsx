@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import Button from '../../components/common/Button.jsx';
+import ConfirmDialog from '../../components/common/ConfirmDialog.jsx';
 import EmptyState from '../../components/common/EmptyState.jsx';
 import ErrorState from '../../components/common/ErrorState.jsx';
 import Input from '../../components/common/Input.jsx';
-import Loading from '../../components/common/Loading.jsx';
 import MultiCourseSelect from '../../components/common/MultiCourseSelect.jsx';
 import Select from '../../components/common/Select.jsx';
 import Textarea from '../../components/common/Textarea.jsx';
@@ -93,6 +93,34 @@ const sectionLabel = {
   mern: 'MERN setup',
 };
 
+const statusLabel = (status) => {
+  if (status === 'published') return 'Published';
+  if (status === 'draft') return 'Draft';
+  if (status === 'archived') return 'Archived';
+  return 'Draft';
+};
+
+function FormSkeleton() {
+  return (
+    <div className="teacher-coding-form-skeleton" role="status">
+      <span className="sr-only">Loading coding task.</span>
+      {[0, 1].map((panel) => (
+        <div className="teacher-coding-form-skeleton-panel" key={panel} aria-hidden="true">
+          <div className="teacher-coding-form-skeleton-head">
+            <span className="skeleton teacher-coding-form-skeleton-title" />
+            <span className="skeleton teacher-coding-form-skeleton-count" />
+          </div>
+          <div className="teacher-coding-form-skeleton-fields">
+            <span className="skeleton teacher-coding-form-skeleton-input" />
+            <span className="skeleton teacher-coding-form-skeleton-input" />
+            <span className="skeleton teacher-coding-form-skeleton-area" />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 const hasCompleteTestCase = (rows) =>
   rows.some(
     (row) => String(row.input ?? '').trim() && String(row.expected ?? '').trim()
@@ -121,6 +149,9 @@ export default function TeacherCodingPracticeFormPage({ mode = 'create' }) {
   const [details, setDetails] = useState(emptyDetails());
   const [fieldErrors, setFieldErrors] = useState({});
   const [saving, setSaving] = useState(false);
+  const [taskStatus, setTaskStatus] = useState('draft');
+  const [confirmArchive, setConfirmArchive] = useState(false);
+  const [archiving, setArchiving] = useState(false);
 
   const isView = mode === 'view';
 
@@ -160,6 +191,7 @@ export default function TeacherCodingPracticeFormPage({ mode = 'create' }) {
         taskOrder: String(Number.isInteger(task.taskOrder) ? task.taskOrder : 0),
       });
       setDetails(detailsFromTask(task));
+      setTaskStatus(task.status || 'draft');
       setFieldErrors({});
     } catch (err) {
       if (err.statusCode === 404) {
@@ -347,69 +379,119 @@ export default function TeacherCodingPracticeFormPage({ mode = 'create' }) {
     save('publish');
   };
 
+  const handleArchive = async () => {
+    if (archiving) return;
+    setArchiving(true);
+    try {
+      await updateCodingTask(taskId, { status: 'archived' });
+      toast.success('Task archived.');
+      navigate('/teacher/coding-practice');
+    } catch (err) {
+      toast.error(err.message || 'Could not archive this task.');
+    } finally {
+      setArchiving(false);
+      setConfirmArchive(false);
+    }
+  };
+
+  const openList = () => navigate('/teacher/coding-practice');
+
   const headingId = 'teacher-coding-task-heading';
   const pageTitle =
-    mode === 'create' ? 'Create Task' : mode === 'edit' ? 'Edit Task' : 'Task Details';
+    mode === 'create' ? 'New task' : mode === 'edit' ? 'Edit task' : common.title || 'Task';
+  const metadataReady =
+    mode === 'create' || (!loadingTask && !notFound && !taskError);
 
-  const pageHead = (
-    <div className="page-head">
-      <div>
-        <p className="text-caption">Teacher</p>
-        <h1 id={headingId}>{pageTitle}</h1>
-      </div>
-      <div style={{ display: 'flex', gap: 'var(--space-3)', flexWrap: 'wrap' }}>
-        {isView && taskId ? (
-          <Button
-            type="button"
-            variant="secondary"
-            onClick={() => navigate(`/teacher/coding-practice/${taskId}/edit`)}
-          >
-            Edit Task
-          </Button>
+  const masthead = (
+    <header className="teacher-coding-form-masthead">
+      <div className="teacher-coding-form-head">
+        <button type="button" className="teacher-coding-form-back" onClick={openList}>
+          ← Coding Practice
+        </button>
+        {metadataReady && mode !== 'create' && (common.level || common.topic) ? (
+          <p className="teacher-coding-form-eyebrow">
+            {[common.level, common.topic, common.taskType].filter(Boolean).join(' · ')}
+          </p>
         ) : null}
-        <Button
-          type="button"
-          variant="ghost"
-          onClick={() => navigate('/teacher/coding-practice')}
-        >
-          Back to list
-        </Button>
+        <h1 className="teacher-coding-form-title" id={headingId}>
+          {pageTitle}
+        </h1>
       </div>
-    </div>
+
+      <div className="teacher-coding-form-side">
+        {metadataReady && mode !== 'create' ? (
+          <div className="teacher-coding-form-status">
+            <span className="teacher-coding-form-status-label">Status</span>
+            <span className={`teacher-coding-form-status-value is-${taskStatus}`}>
+              {statusLabel(taskStatus)}
+            </span>
+            <span className="teacher-coding-form-status-caption">
+              Task order {common.taskOrder === '' ? 0 : common.taskOrder}
+            </span>
+          </div>
+        ) : null}
+
+        <div className="teacher-coding-form-head-actions">
+          {metadataReady && isView && taskId ? (
+            <>
+              <button
+                type="button"
+                className="teacher-coding-form-text-action"
+                onClick={() => navigate(`/teacher/coding-practice/${taskId}/edit`)}
+              >
+                Edit task
+              </button>
+              <button
+                type="button"
+                className="teacher-coding-form-text-action is-danger"
+                disabled={taskStatus === 'archived'}
+                onClick={() => setConfirmArchive(true)}
+              >
+                Archive
+              </button>
+            </>
+          ) : null}
+        </div>
+      </div>
+    </header>
   );
 
   if (loadingTask) {
     return (
-      <section className="teacher-classes-page fade-in" aria-labelledby={headingId}>
-        {pageHead}
-        <Loading label="Loading coding task..." />
-      </section>
+      <div className="teacher-coding teacher-coding-form fade-in" aria-labelledby={headingId}>
+        {masthead}
+        <FormSkeleton />
+      </div>
     );
   }
 
   if (notFound) {
     return (
-      <section className="teacher-classes-page fade-in" aria-labelledby={headingId}>
-        {pageHead}
-        <EmptyState
-          title="Task not found"
-          message="This coding task may have been removed."
-          action={
-            <Button type="button" onClick={() => navigate('/teacher/coding-practice')}>
-              Back to list
-            </Button>
-          }
-        />
-      </section>
+      <div className="teacher-coding teacher-coding-form fade-in" aria-labelledby={headingId}>
+        {masthead}
+        <div className="teacher-coding-form-state">
+          <EmptyState
+            title="Task not found"
+            message="This coding task may have been removed."
+            action={
+              <Button type="button" onClick={openList}>
+                Back to coding practice
+              </Button>
+            }
+          />
+        </div>
+      </div>
     );
   }
 
   if (taskError) {
     return (
-      <section className="teacher-classes-page fade-in" aria-labelledby={headingId}>
-        {pageHead}
-        <ErrorState message={taskError} onRetry={loadTask} />
-      </section>
+      <div className="teacher-coding teacher-coding-form fade-in" aria-labelledby={headingId}>
+        {masthead}
+        <div className="teacher-coding-form-state">
+          <ErrorState message={taskError} onRetry={loadTask} />
+        </div>
+      </div>
     );
   }
 
@@ -419,7 +501,7 @@ export default function TeacherCodingPracticeFormPage({ mode = 'create' }) {
     if (kind === 'coding') {
       return (
         <>
-          <div className="teacher-class-form-grid">
+          <div className="teacher-coding-form-grid">
             <Select
               label="Language"
               value={details.language}
@@ -447,7 +529,7 @@ export default function TeacherCodingPracticeFormPage({ mode = 'create' }) {
             hint="Code the student starts with."
           />
 
-          <div className="teacher-class-form-grid">
+          <div className="teacher-coding-form-grid">
             <Textarea
               label="Input Format"
               rows={3}
@@ -477,23 +559,38 @@ export default function TeacherCodingPracticeFormPage({ mode = 'create' }) {
             disabled={isView}
           />
 
-          <div style={{ display: 'grid', gap: 'var(--space-3)' }}>
-            <p className="text-caption" style={{ margin: 0 }}>
-              Sample Test Cases
-            </p>
+          <div className="teacher-coding-form-group">
+            <div className="teacher-coding-form-group-head">
+              <p className="teacher-coding-form-label">Sample test cases</p>
+              {!isView ? (
+                <button
+                  type="button"
+                  className="teacher-coding-form-text-action"
+                  onClick={() =>
+                    addListEntry('sampleTestCases', () => ({ input: '', expected: '' }))
+                  }
+                >
+                  Add sample case
+                </button>
+              ) : null}
+            </div>
             {details.sampleTestCases.map((entry, index) => (
-              <div
-                key={index}
-                style={{
-                  display: 'grid',
-                  gap: 'var(--space-3)',
-                  borderLeft: '3px solid var(--color-border, #e2e8f0)',
-                  paddingLeft: 'var(--space-4)',
-                }}
-              >
-                <div className="teacher-class-form-grid">
+              <div className="teacher-coding-form-case" key={index}>
+                <div className="teacher-coding-form-case-head">
+                  <span className="teacher-coding-form-case-index">Sample {index + 1}</span>
+                  {!isView && details.sampleTestCases.length > 1 ? (
+                    <button
+                      type="button"
+                      className="teacher-coding-form-remove"
+                      onClick={() => removeListEntry('sampleTestCases', index)}
+                    >
+                      Remove
+                    </button>
+                  ) : null}
+                </div>
+                <div className="teacher-coding-form-grid">
                   <Input
-                    label={`Sample ${index + 1} Input`}
+                    label="Input"
                     value={entry.input}
                     onChange={(event) =>
                       updateListEntry('sampleTestCases', index, 'input', event.target.value)
@@ -502,7 +599,7 @@ export default function TeacherCodingPracticeFormPage({ mode = 'create' }) {
                     disabled={isView}
                   />
                   <Input
-                    label={`Sample ${index + 1} Expected`}
+                    label="Expected output"
                     value={entry.expected}
                     onChange={(event) =>
                       updateListEntry('sampleTestCases', index, 'expected', event.target.value)
@@ -511,61 +608,52 @@ export default function TeacherCodingPracticeFormPage({ mode = 'create' }) {
                     disabled={isView}
                   />
                 </div>
-                {!isView && details.sampleTestCases.length > 1 ? (
-                  <div>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => removeListEntry('sampleTestCases', index)}
-                    >
-                      Remove case
-                    </Button>
-                  </div>
-                ) : null}
               </div>
             ))}
             {fieldErrors.sampleTestCases ? (
-              <p className="field-error-text" style={{ margin: 0 }} role="status">
+              <p className="field-error-text" role="status">
                 {fieldErrors.sampleTestCases}
               </p>
             ) : null}
-            {!isView ? (
-              <div>
-                <Button
-                  type="button"
-                  variant="secondary"
-                  size="sm"
-                  onClick={() =>
-                    addListEntry('sampleTestCases', () => ({ input: '', expected: '' }))
-                  }
-                >
-                  + Add sample case
-                </Button>
-              </div>
-            ) : null}
           </div>
 
-          <div style={{ display: 'grid', gap: 'var(--space-3)' }}>
-            <p className="text-caption" style={{ margin: 0 }}>
-              Hidden Test Cases
-            </p>
-            <p className="text-meta" style={{ margin: 0 }}>
-              Hidden test cases are stored for evaluation and are never shown to students.
-            </p>
+          <div className="teacher-coding-form-group">
+            <div className="teacher-coding-form-group-head">
+              <div>
+                <p className="teacher-coding-form-label">Hidden test cases</p>
+                <p className="teacher-coding-form-note">
+                  Hidden test cases are stored for evaluation and are never shown to students.
+                </p>
+              </div>
+              {!isView ? (
+                <button
+                  type="button"
+                  className="teacher-coding-form-text-action"
+                  onClick={() =>
+                    addListEntry('hiddenTestCases', () => ({ input: '', expected: '' }))
+                  }
+                >
+                  Add hidden case
+                </button>
+              ) : null}
+            </div>
             {details.hiddenTestCases.map((entry, index) => (
-              <div
-                key={index}
-                style={{
-                  display: 'grid',
-                  gap: 'var(--space-3)',
-                  borderLeft: '3px solid var(--color-border, #e2e8f0)',
-                  paddingLeft: 'var(--space-4)',
-                }}
-              >
-                <div className="teacher-class-form-grid">
+              <div className="teacher-coding-form-case" key={index}>
+                <div className="teacher-coding-form-case-head">
+                  <span className="teacher-coding-form-case-index">Hidden {index + 1}</span>
+                  {!isView && details.hiddenTestCases.length > 1 ? (
+                    <button
+                      type="button"
+                      className="teacher-coding-form-remove"
+                      onClick={() => removeListEntry('hiddenTestCases', index)}
+                    >
+                      Remove
+                    </button>
+                  ) : null}
+                </div>
+                <div className="teacher-coding-form-grid">
                   <Input
-                    label={`Hidden ${index + 1} Input`}
+                    label="Input"
                     value={entry.input}
                     onChange={(event) =>
                       updateListEntry('hiddenTestCases', index, 'input', event.target.value)
@@ -574,7 +662,7 @@ export default function TeacherCodingPracticeFormPage({ mode = 'create' }) {
                     disabled={isView}
                   />
                   <Input
-                    label={`Hidden ${index + 1} Expected`}
+                    label="Expected output"
                     value={entry.expected}
                     onChange={(event) =>
                       updateListEntry('hiddenTestCases', index, 'expected', event.target.value)
@@ -583,38 +671,12 @@ export default function TeacherCodingPracticeFormPage({ mode = 'create' }) {
                     disabled={isView}
                   />
                 </div>
-                {!isView && details.hiddenTestCases.length > 1 ? (
-                  <div>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => removeListEntry('hiddenTestCases', index)}
-                    >
-                      Remove case
-                    </Button>
-                  </div>
-                ) : null}
               </div>
             ))}
             {fieldErrors.hiddenTestCases ? (
-              <p className="field-error-text" style={{ margin: 0 }} role="status">
+              <p className="field-error-text" role="status">
                 {fieldErrors.hiddenTestCases}
               </p>
-            ) : null}
-            {!isView ? (
-              <div>
-                <Button
-                  type="button"
-                  variant="secondary"
-                  size="sm"
-                  onClick={() =>
-                    addListEntry('hiddenTestCases', () => ({ input: '', expected: '' }))
-                  }
-                >
-                  + Add hidden case
-                </Button>
-              </div>
             ) : null}
           </div>
         </>
@@ -669,23 +731,42 @@ export default function TeacherCodingPracticeFormPage({ mode = 'create' }) {
             error={fieldErrors.apiRequirements}
           />
 
-          <div style={{ display: 'grid', gap: 'var(--space-3)' }}>
-            <p className="text-caption" style={{ margin: 0 }}>
-              API Test Cases
-            </p>
+          <div className="teacher-coding-form-group">
+            <div className="teacher-coding-form-group-head">
+              <p className="teacher-coding-form-label">API test cases</p>
+              {!isView ? (
+                <button
+                  type="button"
+                  className="teacher-coding-form-text-action"
+                  onClick={() =>
+                    addListEntry('apiTestCases', () => ({
+                      method: 'GET',
+                      endpoint: '',
+                      expected: '',
+                    }))
+                  }
+                >
+                  Add API test case
+                </button>
+              ) : null}
+            </div>
             {details.apiTestCases.map((entry, index) => (
-              <div
-                key={index}
-                style={{
-                  display: 'grid',
-                  gap: 'var(--space-3)',
-                  borderLeft: '3px solid var(--color-border, #e2e8f0)',
-                  paddingLeft: 'var(--space-4)',
-                }}
-              >
-                <div className="teacher-class-form-grid">
+              <div className="teacher-coding-form-case" key={index}>
+                <div className="teacher-coding-form-case-head">
+                  <span className="teacher-coding-form-case-index">Case {index + 1}</span>
+                  {!isView && details.apiTestCases.length > 1 ? (
+                    <button
+                      type="button"
+                      className="teacher-coding-form-remove"
+                      onClick={() => removeListEntry('apiTestCases', index)}
+                    >
+                      Remove
+                    </button>
+                  ) : null}
+                </div>
+                <div className="teacher-coding-form-grid">
                   <Select
-                    label={`Case ${index + 1} Method`}
+                    label="Method"
                     value={entry.method}
                     onChange={(event) =>
                       updateListEntry('apiTestCases', index, 'method', event.target.value)
@@ -699,7 +780,7 @@ export default function TeacherCodingPracticeFormPage({ mode = 'create' }) {
                     ))}
                   </Select>
                   <Input
-                    label={`Case ${index + 1} Endpoint`}
+                    label="Endpoint"
                     value={entry.endpoint}
                     onChange={(event) =>
                       updateListEntry('apiTestCases', index, 'endpoint', event.target.value)
@@ -709,7 +790,7 @@ export default function TeacherCodingPracticeFormPage({ mode = 'create' }) {
                   />
                 </div>
                 <Textarea
-                  label={`Case ${index + 1} Expected Result`}
+                  label="Expected result"
                   rows={2}
                   value={entry.expected}
                   onChange={(event) =>
@@ -718,42 +799,12 @@ export default function TeacherCodingPracticeFormPage({ mode = 'create' }) {
                   placeholder="201 with the created resource"
                   disabled={isView}
                 />
-                {!isView && details.apiTestCases.length > 1 ? (
-                  <div>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => removeListEntry('apiTestCases', index)}
-                    >
-                      Remove case
-                    </Button>
-                  </div>
-                ) : null}
               </div>
             ))}
             {fieldErrors.apiTestCases ? (
-              <p className="field-error-text" style={{ margin: 0 }} role="status">
+              <p className="field-error-text" role="status">
                 {fieldErrors.apiTestCases}
               </p>
-            ) : null}
-            {!isView ? (
-              <div>
-                <Button
-                  type="button"
-                  variant="secondary"
-                  size="sm"
-                  onClick={() =>
-                    addListEntry('apiTestCases', () => ({
-                      method: 'GET',
-                      endpoint: '',
-                      expected: '',
-                    }))
-                  }
-                >
-                  + Add API test case
-                </Button>
-              </div>
             ) : null}
           </div>
         </>
@@ -803,19 +854,19 @@ export default function TeacherCodingPracticeFormPage({ mode = 'create' }) {
   };
 
   return (
-    <section className="teacher-classes-page fade-in" aria-labelledby={headingId}>
-      {pageHead}
+    <div className="teacher-coding teacher-coding-form fade-in" aria-labelledby={headingId}>
+      {masthead}
 
-      <form className="teacher-class-form" onSubmit={handleSubmit} noValidate>
-        <div className="card teacher-class-card">
-          <div className="teacher-card-head">
-            <div>
-              <p className="text-caption">Task details</p>
-              <h2>{common.title.trim() || 'New coding task'}</h2>
-            </div>
-          </div>
+      <form className="teacher-coding-form-body" onSubmit={handleSubmit} noValidate>
+        <section className="teacher-coding-form-panel" aria-labelledby="teacher-coding-task-details">
+          <header className="teacher-coding-form-panel-head">
+            <h2 id="teacher-coding-task-details">Details</h2>
+            <span className="teacher-coding-form-panel-count">
+              {mode === 'create' ? 'New task' : 'Task details'}
+            </span>
+          </header>
 
-          <div className="teacher-class-form-grid">
+          <div className="teacher-coding-form-fields">
             <MultiCourseSelect
               label="Courses"
               courses={courses}
@@ -831,136 +882,150 @@ export default function TeacherCodingPracticeFormPage({ mode = 'create' }) {
                   ? undefined
                   : 'Content belongs to this course. Create a new task to reuse it in another course.'
               }
-              style={{ gridColumn: '1 / -1' }}
             />
-            <Input
-              label="Title"
-              value={common.title}
-              onChange={setField('title')}
-              placeholder="e.g. Reverse a String"
-              disabled={isView}
-              error={fieldErrors.title}
-            />
-          </div>
 
-          {courseError ? <ErrorState message={courseError} onRetry={loadCourses} /> : null}
-
-          <div className="teacher-class-form-grid">
-            <Select
-              label="Level"
-              value={common.level}
-              onChange={setField('level')}
-              disabled={isView}
-              error={fieldErrors.level}
-            >
-              <option value="">Select level</option>
-              {LEVELS.map((level) => (
-                <option key={level} value={level}>
-                  {level}
-                </option>
-              ))}
-            </Select>
-            <Input
-              label="Topic"
-              value={common.topic}
-              onChange={setField('topic')}
-              placeholder="e.g. Strings"
-              disabled={isView}
-              error={fieldErrors.topic}
-            />
-          </div>
-
-          <div className="teacher-class-form-grid">
-            <Select
-              label="Task Type"
-              value={common.taskType}
-              onChange={setField('taskType')}
-              disabled={isView}
-            >
-              {TASK_TYPES.map((type) => (
-                <option key={type} value={type}>
-                  {type}
-                </option>
-              ))}
-            </Select>
-            <Select
-              label="Difficulty"
-              value={common.difficulty}
-              onChange={setField('difficulty')}
-              disabled={isView}
-              error={fieldErrors.difficulty}
-            >
-              <option value="">Select difficulty</option>
-              {DIFFICULTIES.map((difficulty) => (
-                <option key={difficulty} value={difficulty}>
-                  {difficulty}
-                </option>
-              ))}
-            </Select>
-          </div>
-
-          <Textarea
-            label={kind === 'coding' ? 'Problem Statement' : 'Description'}
-            rows={3}
-            value={common.description}
-            onChange={setField('description')}
-            placeholder={
-              kind === 'coding'
-                ? 'Describe the problem the student must solve.'
-                : 'What is this task about?'
-            }
-            disabled={isView}
-            error={fieldErrors.description}
-          />
-
-          <div className="teacher-class-form-grid">
-            <Input
-              label="Task Order"
-              type="number"
-              min="0"
-              step="1"
-              value={common.taskOrder}
-              onChange={setField('taskOrder')}
-              placeholder="0"
-              disabled={isView}
-              error={fieldErrors.taskOrder}
-              hint="Sort order within the topic (0 shows first)."
-            />
-          </div>
-        </div>
-
-        <div className="card teacher-class-card">
-          <div className="teacher-card-head">
-            <div>
-              <p className="text-caption">Configuration</p>
-              <h2>
-                {common.taskType} - {sectionLabel[kind]}
-              </h2>
+            <div className="teacher-coding-form-grid">
+              <Input
+                label="Title"
+                value={common.title}
+                onChange={setField('title')}
+                placeholder="e.g. Reverse a String"
+                disabled={isView}
+                error={fieldErrors.title}
+              />
+              <Select
+                label="Level"
+                value={common.level}
+                onChange={setField('level')}
+                disabled={isView}
+                error={fieldErrors.level}
+              >
+                <option value="">Select level</option>
+                {LEVELS.map((level) => (
+                  <option key={level} value={level}>
+                    {level}
+                  </option>
+                ))}
+              </Select>
             </div>
-          </div>
 
-          {renderSection()}
+            <div className="teacher-coding-form-grid">
+              <Input
+                label="Topic"
+                value={common.topic}
+                onChange={setField('topic')}
+                placeholder="e.g. Strings"
+                disabled={isView}
+                error={fieldErrors.topic}
+              />
+              <Select
+                label="Task type"
+                value={common.taskType}
+                onChange={setField('taskType')}
+                disabled={isView}
+              >
+                {TASK_TYPES.map((type) => (
+                  <option key={type} value={type}>
+                    {type}
+                  </option>
+                ))}
+              </Select>
+            </div>
+
+            <div className="teacher-coding-form-grid">
+              <Select
+                label="Difficulty"
+                value={common.difficulty}
+                onChange={setField('difficulty')}
+                disabled={isView}
+                error={fieldErrors.difficulty}
+              >
+                <option value="">Select difficulty</option>
+                {DIFFICULTIES.map((difficulty) => (
+                  <option key={difficulty} value={difficulty}>
+                    {difficulty}
+                  </option>
+                ))}
+              </Select>
+              <Input
+                label="Task order"
+                type="number"
+                min="0"
+                step="1"
+                value={common.taskOrder}
+                onChange={setField('taskOrder')}
+                placeholder="0"
+                disabled={isView}
+                error={fieldErrors.taskOrder}
+                hint="Sort order within the topic (0 shows first)."
+              />
+            </div>
+
+            <Textarea
+              label={kind === 'coding' ? 'Problem statement' : 'Description'}
+              rows={4}
+              value={common.description}
+              onChange={setField('description')}
+              placeholder={
+                kind === 'coding'
+                  ? 'Describe the problem the student must solve.'
+                  : 'What is this task about?'
+              }
+              disabled={isView}
+              error={fieldErrors.description}
+            />
+
+            {courseError ? (
+              <ErrorState message={courseError} onRetry={loadCourses} />
+            ) : null}
+          </div>
+        </section>
+
+        <section
+          className="teacher-coding-form-panel"
+          aria-labelledby="teacher-coding-task-configuration"
+        >
+          <header className="teacher-coding-form-panel-head">
+            <h2 id="teacher-coding-task-configuration">{sectionLabel[kind]}</h2>
+            <span className="teacher-coding-form-panel-count">{common.taskType}</span>
+          </header>
+
+          <div className="teacher-coding-form-fields">{renderSection()}</div>
+        </section>
+
+        <div className="teacher-coding-form-actions">
+          <button type="button" className="teacher-coding-form-cancel" onClick={openList}>
+            Cancel
+          </button>
+          {!isView ? (
+            <>
+              <Button
+                type="button"
+                variant="secondary"
+                disabled={saving}
+                onClick={() => save('draft')}
+              >
+                Save draft
+              </Button>
+              <Button type="submit" loading={saving} disabled={saving}>
+                Publish task
+              </Button>
+            </>
+          ) : null}
         </div>
-
-        {!isView ? (
-          <div
-            className="teacher-class-actions"
-            style={{ justifyContent: 'flex-end', gap: 'var(--space-3)' }}
-          >
-            <Button
-              type="button"
-              variant="secondary"
-              disabled={saving}
-              onClick={() => save('draft')}
-            >
-              Save Draft
-            </Button>
-            <Button type="submit" loading={saving} disabled={saving}>
-              Publish
-            </Button>
-          </div>
-        ) : null}
       </form>
-    </section>
+
+      <ConfirmDialog
+        open={confirmArchive}
+        title="Archive this task?"
+        message={`"${common.title || 'This task'}" will no longer be shown to students. You can keep it in archived status.`}
+        confirmLabel="Archive"
+        cancelLabel="Cancel"
+        danger
+        loading={archiving}
+        onConfirm={handleArchive}
+        onCancel={() => setConfirmArchive(false)}
+      />
+    </div>
   );
 }

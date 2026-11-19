@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import Button from '../../components/common/Button.jsx';
 import EmptyState from '../../components/common/EmptyState.jsx';
 import ErrorState from '../../components/common/ErrorState.jsx';
+import SelectMenu from '../../components/common/SelectMenu.jsx';
 import { listCodingTaskGroups } from '../../services/coding-practice.service.js';
 import { getTeacherDashboard } from '../../services/teacher.service.js';
 import { LEVELS } from './codingPractice.js';
@@ -44,23 +45,6 @@ function ArrowIcon() {
     >
       <line x1="5" y1="12" x2="19" y2="12" />
       <polyline points="12 5 19 12 12 19" />
-    </svg>
-  );
-}
-
-function CaretIcon() {
-  return (
-    <svg
-      className="teacher-coding-caret"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <polyline points="6 9 12 15 18 9" />
     </svg>
   );
 }
@@ -211,25 +195,16 @@ export default function TeacherCodingPracticePage() {
           {showSkeleton ? (
             <span className="skeleton teacher-coding-switch-skeleton" aria-hidden="true" />
           ) : courses.length > 1 ? (
-            <label className="teacher-coding-switch">
-              <span className="teacher-coding-switch-label" aria-hidden="true">
-                <span>{activeCourse ? activeCourse.title : 'All courses'}</span>
-                <CaretIcon />
-              </span>
-              <select
-                className="teacher-coding-switch-select"
-                aria-label="Course"
-                value={activeCourseId}
-                onChange={(event) => setSelectedCourseId(event.target.value)}
-              >
-                <option value="">All courses</option>
-                {courses.map((course) => (
-                  <option key={course.id} value={course.id}>
-                    {course.title}
-                  </option>
-                ))}
-              </select>
-            </label>
+            <SelectMenu
+              className="teacher-coding-switch"
+              ariaLabel="Course"
+              value={activeCourseId}
+              onChange={setSelectedCourseId}
+              options={[
+                { value: '', label: 'All courses' },
+                ...courses.map((course) => ({ value: course.id, label: course.title })),
+              ]}
+            />
           ) : courses.length === 1 ? (
             <p className="teacher-coding-course-title">{courses[0].title}</p>
           ) : null}
@@ -262,9 +237,11 @@ export default function TeacherCodingPracticePage() {
           ) : null}
 
           {levelSections.length > 0 ? (
-            <button type="button" className="teacher-coding-action" onClick={createTask}>
-              Create task
-            </button>
+            <div className="teacher-coding-actions">
+              <Button type="button" size="sm" onClick={createTask}>
+                Create task
+              </Button>
+            </div>
           ) : null}
         </div>
       </header>

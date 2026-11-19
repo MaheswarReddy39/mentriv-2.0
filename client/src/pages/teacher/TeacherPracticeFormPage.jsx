@@ -5,7 +5,6 @@ import ConfirmDialog from '../../components/common/ConfirmDialog.jsx';
 import EmptyState from '../../components/common/EmptyState.jsx';
 import ErrorState from '../../components/common/ErrorState.jsx';
 import Input from '../../components/common/Input.jsx';
-import Loading from '../../components/common/Loading.jsx';
 import MultiCourseSelect from '../../components/common/MultiCourseSelect.jsx';
 import Select from '../../components/common/Select.jsx';
 import Textarea from '../../components/common/Textarea.jsx';
@@ -17,7 +16,6 @@ import {
 } from '../../services/mcq.service.js';
 import { getTeacherDashboard } from '../../services/teacher.service.js';
 import {
-  LEVEL_BADGE_CLASS,
   PRACTICE_LEVELS,
   decodeDescription,
   encodeDescription,
@@ -51,6 +49,29 @@ const isCompleteQuestion = (question) =>
     Boolean(option.trim())
   ) &&
   Boolean(question.correctAnswer);
+
+const plural = (count, singular) => `${count} ${count === 1 ? singular : `${singular}s`}`;
+
+function PracticeFormSkeleton() {
+  return (
+    <div className="teacher-practice-form-skeleton" role="status">
+      <span className="sr-only">Loading practice set.</span>
+      {[0, 1].map((panel) => (
+        <div className="teacher-practice-form-skeleton-panel" key={panel} aria-hidden="true">
+          <div className="teacher-practice-form-skeleton-head">
+            <span className="skeleton teacher-practice-form-skeleton-title" />
+            <span className="skeleton teacher-practice-form-skeleton-count" />
+          </div>
+          <div className="teacher-practice-form-skeleton-fields">
+            <span className="skeleton teacher-practice-form-skeleton-input" />
+            <span className="skeleton teacher-practice-form-skeleton-input" />
+            <span className="skeleton teacher-practice-form-skeleton-area" />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
 
 const toPayloadQuestions = (blocks) =>
   blocks
@@ -335,7 +356,9 @@ export default function TeacherPracticeFormPage({ mode = 'create' }) {
   };
 
   const headingId = 'teacher-practice-form-heading';
-  const pageTitle = mode === 'create' ? 'Add Practice' : isView ? 'Practice Details' : 'Edit Practice';
+  const pageTitle =
+    mode === 'create' ? 'New practice set' : isView ? form.title || 'Practice set' : 'Edit practice set';
+  const practiceReady = !practiceId || (!loading && !notFound && !loadError);
 
   const numericCount = Number(questionCount) || 0;
   const countOptions =
@@ -352,114 +375,115 @@ export default function TeacherPracticeFormPage({ mode = 'create' }) {
         ? `Complete all ${numericCount} questions before submitting.`
         : '';
 
-  const pageHead = (
-    <div className="page-head">
-      <div>
-        <p className="text-caption">Teacher</p>
-        <h1 id={headingId}>{pageTitle}</h1>
-      </div>
-      <div style={{ display: 'flex', gap: 'var(--space-3)', flexWrap: 'wrap' }}>
-        {practiceId ? (
-          <Button type="button" variant="ghost" onClick={() => setConfirmOpen(true)}>
-            Archive
-          </Button>
+  const openList = () => navigate('/teacher/mcqs');
+
+  const masthead = (
+    <header className="teacher-practice-form-masthead">
+      <div className="teacher-practice-form-head">
+        <button type="button" className="teacher-practice-form-back" onClick={openList}>
+          ← MCQs / Practice
+        </button>
+        {practiceReady && mode !== 'create' && (form.level || form.topic) ? (
+          <p className="teacher-practice-form-eyebrow">
+            {[form.level, form.topic].filter(Boolean).join(' · ')}
+          </p>
         ) : null}
-        <Button type="button" variant="ghost" onClick={() => navigate('/teacher/mcqs')}>
-          Back to list
-        </Button>
+        <h1 className="teacher-practice-form-title" id={headingId}>
+          {pageTitle}
+        </h1>
       </div>
-    </div>
+
+      <div className="teacher-practice-form-side">
+        {practiceReady ? (
+          <div className="teacher-practice-form-stat">
+            <span className="teacher-practice-form-stat-label">Questions</span>
+            <span className="teacher-practice-form-stat-value">{questions.length}</span>
+            <span className="teacher-practice-form-stat-caption">
+              Passing score {form.passingScore === '' ? '—' : `${form.passingScore}%`}
+            </span>
+          </div>
+        ) : null}
+
+        <div className="teacher-practice-form-head-actions">
+          {practiceReady && isView && practiceId ? (
+            <button
+              type="button"
+              className="teacher-practice-form-text-action"
+              onClick={() => navigate(`/teacher/mcqs/${practiceId}/edit`)}
+            >
+              Edit practice set
+            </button>
+          ) : null}
+          {practiceReady && practiceId ? (
+            <button
+              type="button"
+              className="teacher-practice-form-text-action is-danger"
+              onClick={() => setConfirmOpen(true)}
+            >
+              Archive
+            </button>
+          ) : null}
+        </div>
+      </div>
+    </header>
   );
 
   if (loading) {
     return (
-      <section className="teacher-classes-page fade-in" aria-labelledby={headingId}>
-        <div className="page-head">
-          <div>
-            <p className="text-caption">Teacher</p>
-            <h1 id={headingId}>{pageTitle}</h1>
-          </div>
-        </div>
-        <Loading label="Loading practice set..." />
-      </section>
+      <div className="teacher-practice-form fade-in" aria-labelledby={headingId}>
+        {masthead}
+        <PracticeFormSkeleton />
+      </div>
     );
   }
 
   if (notFound) {
     return (
-      <section className="teacher-classes-page fade-in" aria-labelledby={headingId}>
-        <div className="page-head">
-          <div>
-            <p className="text-caption">Teacher</p>
-            <h1 id={headingId}>MCQs / Practice</h1>
-          </div>
+      <div className="teacher-practice-form fade-in" aria-labelledby={headingId}>
+        {masthead}
+        <div className="teacher-practice-form-state">
+          <EmptyState
+            title="Practice set not found"
+            message="This practice set may have been removed."
+            action={
+              <Button type="button" onClick={openList}>
+                Back to MCQs / Practice
+              </Button>
+            }
+          />
         </div>
-        <EmptyState
-          title="Practice set not found"
-          message="This practice set may have been removed."
-          action={
-            <Button type="button" onClick={() => navigate('/teacher/mcqs')}>
-              Back to list
-            </Button>
-          }
-        />
-      </section>
+      </div>
     );
   }
 
   if (loadError) {
     return (
-      <section className="teacher-classes-page fade-in" aria-labelledby={headingId}>
-        <div className="page-head">
-          <div>
-            <p className="text-caption">Teacher</p>
-            <h1 id={headingId}>{pageTitle}</h1>
-          </div>
+      <div className="teacher-practice-form fade-in" aria-labelledby={headingId}>
+        {masthead}
+        <div className="teacher-practice-form-state">
+          <ErrorState message={loadError} onRetry={loadPractice} />
         </div>
-        <ErrorState message={loadError} onRetry={loadPractice} />
-      </section>
+      </div>
     );
   }
 
   return (
-    <section className="teacher-classes-page fade-in" aria-labelledby={headingId}>
-      {pageHead}
+    <div className="teacher-practice-form fade-in" aria-labelledby={headingId}>
+      {masthead}
 
-        <form className="teacher-class-form" onSubmit={handleSubmit} noValidate>
-        <div className="card teacher-class-card">
-          <div
-            className="teacher-card-head"
-            style={{
-              display: 'flex',
-              alignItems: 'flex-start',
-              justifyContent: 'space-between',
-              gap: 'var(--space-4)',
-              flexWrap: 'wrap',
-            }}
-          >
-            <div>
-              <p className="text-caption">Practice details</p>
-              <h2>{form.title.trim() || 'New practice set'}</h2>
-            </div>
-            <div style={{ display: 'flex', gap: 'var(--space-3)', flexWrap: 'wrap' }}>
-              {form.level ? (
-                <span className={`badge ${LEVEL_BADGE_CLASS[form.level] || 'badge-neutral'}`}>
-                  {form.level}
-                </span>
-              ) : null}
-              {isView && practiceId ? (
-                <Button
-                  type="button"
-                  size="sm"
-                  onClick={() => navigate(`/teacher/mcqs/${practiceId}/edit`)}
-                >
-                  Edit Practice
-                </Button>
-              ) : null}
-            </div>
-          </div>
+      <form className="teacher-practice-form-body" onSubmit={handleSubmit} noValidate>
+        <section
+          className="teacher-practice-form-panel"
+          aria-labelledby="teacher-practice-form-details"
+        >
+          <header className="teacher-practice-form-panel-head">
+            <h2 id="teacher-practice-form-details">Details</h2>
+            <span className="teacher-practice-form-panel-count">
+              {mode === 'create' ? 'New practice set' : 'Practice details'}
+            </span>
+          </header>
 
-          <div className="teacher-class-form-grid">
+          <div className="teacher-practice-form-fields">
             <MultiCourseSelect
               label="Courses"
               courses={courses}
@@ -475,210 +499,188 @@ export default function TeacherPracticeFormPage({ mode = 'create' }) {
                   ? 'Content belongs to this course. Create a new practice set to reuse it in another course.'
                   : undefined
               }
-              style={{ gridColumn: '1 / -1' }}
             />
 
-            <Input
-              label="Title"
-              value={form.title}
-              onChange={setField('title')}
-              placeholder="Practice set title"
-              disabled={isView}
-              error={fieldErrors.title}
-            />
-          </div>
-
-          {courseError ? <ErrorState message={courseError} onRetry={loadCourses} /> : null}
-
-          <div className="teacher-class-form-grid">
-            <Input
-              label="Topic"
-              value={form.topic}
-              onChange={setField('topic')}
-              placeholder="e.g. JavaScript"
-              disabled={isView}
-              error={fieldErrors.topic}
-            />
-
-            <Select
-              label="Level"
-              value={form.level}
-              onChange={setField('level')}
-              disabled={isView}
-              error={fieldErrors.level}
-            >
-              <option value="">Select level</option>
-              {PRACTICE_LEVELS.map((level) => (
-                <option key={level} value={level}>
-                  {level}
-                </option>
-              ))}
-            </Select>
-          </div>
-
-          <div className="teacher-class-form-grid">
-            <Input
-              label="Passing Score (%)"
-              type="number"
-              min="0"
-              max="100"
-              value={form.passingScore}
-              onChange={setField('passingScore')}
-              placeholder="e.g. 70"
-              disabled={isView}
-              error={fieldErrors.passingScore}
-            />
-          </div>
-        </div>
-
-        <div className="card teacher-class-card">
-          <div
-            className="teacher-card-head"
-            style={{
-              display: 'flex',
-              alignItems: 'flex-start',
-              justifyContent: 'space-between',
-              gap: 'var(--space-4)',
-              flexWrap: 'wrap',
-            }}
-          >
-            <div>
-              <p className="text-caption">Questions</p>
-              <h2>Questions ({questions.length})</h2>
+            <div className="teacher-practice-form-grid">
+              <Input
+                label="Title"
+                value={form.title}
+                onChange={setField('title')}
+                placeholder="Practice set title"
+                disabled={isView}
+                error={fieldErrors.title}
+              />
+              <Input
+                label="Topic"
+                value={form.topic}
+                onChange={setField('topic')}
+                placeholder="e.g. JavaScript"
+                disabled={isView}
+                error={fieldErrors.topic}
+              />
             </div>
-          </div>
 
-          {questionsLocked ? (
-            <p
-              role="status"
-              style={{
-                margin: 0,
-                padding: 'var(--space-3) var(--space-4)',
-                border: '1px solid var(--border)',
-                borderRadius: 'var(--radius-md)',
-                background: 'var(--color-surface-muted)',
-                color: 'var(--text-secondary)',
-                fontSize: 'var(--font-size-sm)',
-              }}
-            >
-              {lockedMessage}
-            </p>
-          ) : null}
-
-          <div className="teacher-assignment-type-row">
-            <Select
-              label="Number of Questions"
-              value={questionCount}
-              onChange={handleQuestionCountChange}
-              disabled={questionsDisabled}
-              error={fieldErrors.questions}
-            >
-              <option value="">Select number of questions</option>
-              {countOptions.map((count) => (
-                <option key={count} value={count}>
-                  {count} Questions
-                </option>
-              ))}
-            </Select>
-          </div>
-
-          <div className="teacher-assignment-fields">
-            {questions.map((question, index) => (
-              <div
-                key={index}
-                className="teacher-mcq-question-block"
-                style={{
-                  display: 'grid',
-                  gap: 'var(--space-4)',
-                  borderLeft: '3px solid var(--color-border, #e2e8f0)',
-                  paddingLeft: 'var(--space-4)',
-                }}
+            <div className="teacher-practice-form-grid">
+              <Select
+                label="Level"
+                value={form.level}
+                onChange={setField('level')}
+                disabled={isView}
+                error={fieldErrors.level}
               >
-                <p style={{ margin: 0, fontWeight: 600 }}>Question {index + 1}</p>
+                <option value="">Select level</option>
+                {PRACTICE_LEVELS.map((level) => (
+                  <option key={level} value={level}>
+                    {level}
+                  </option>
+                ))}
+              </Select>
+              <Input
+                label="Passing score (%)"
+                type="number"
+                min="0"
+                max="100"
+                value={form.passingScore}
+                onChange={setField('passingScore')}
+                placeholder="e.g. 70"
+                disabled={isView}
+                error={fieldErrors.passingScore}
+              />
+            </div>
 
-                <Input
-                  label="Question"
-                  value={question.question}
-                  onChange={(event) => updateQuestion(index, 'question', event.target.value)}
-                  placeholder={`Enter question ${index + 1}`}
-                  disabled={questionsDisabled}
-                  error={fieldErrors[`question_${index}`]}
-                />
+            {courseError ? (
+              <ErrorState message={courseError} onRetry={loadCourses} />
+            ) : null}
+          </div>
+        </section>
 
-                <div className="teacher-class-form-grid">
+        <section
+          className="teacher-practice-form-panel"
+          aria-labelledby="teacher-practice-form-questions"
+        >
+          <header className="teacher-practice-form-panel-head">
+            <h2 id="teacher-practice-form-questions">Questions</h2>
+            <span className="teacher-practice-form-panel-count">
+              {plural(questions.length, 'question')}
+            </span>
+          </header>
+
+          <div className="teacher-practice-form-fields">
+            {questionsLocked ? (
+              <p className="teacher-practice-form-notice" role="status">
+                {lockedMessage}
+              </p>
+            ) : null}
+
+            <div className="teacher-practice-form-count">
+              <Select
+                label="Number of questions"
+                value={questionCount}
+                onChange={handleQuestionCountChange}
+                disabled={questionsDisabled}
+                error={fieldErrors.questions}
+              >
+                <option value="">Select number of questions</option>
+                {countOptions.map((count) => (
+                  <option key={count} value={count}>
+                    {count} questions
+                  </option>
+                ))}
+              </Select>
+            </div>
+
+            <div className="teacher-practice-form-questions">
+              {questions.map((question, index) => (
+                <div className="teacher-practice-form-question" key={index}>
+                  <p className="teacher-practice-form-question-number">
+                    Question {index + 1}
+                  </p>
+
                   <Input
-                    label="Option A"
-                    value={question.optionA}
-                    onChange={(event) => updateQuestion(index, 'optionA', event.target.value)}
+                    label="Question"
+                    value={question.question}
+                    onChange={(event) => updateQuestion(index, 'question', event.target.value)}
+                    placeholder={`Enter question ${index + 1}`}
                     disabled={questionsDisabled}
-                    error={fieldErrors[`optionA_${index}`]}
+                    error={fieldErrors[`question_${index}`]}
                   />
-                  <Input
-                    label="Option B"
-                    value={question.optionB}
-                    onChange={(event) => updateQuestion(index, 'optionB', event.target.value)}
+
+                  <div className="teacher-practice-form-grid">
+                    <Input
+                      label="Option A"
+                      value={question.optionA}
+                      onChange={(event) => updateQuestion(index, 'optionA', event.target.value)}
+                      disabled={questionsDisabled}
+                      error={fieldErrors[`optionA_${index}`]}
+                    />
+                    <Input
+                      label="Option B"
+                      value={question.optionB}
+                      onChange={(event) => updateQuestion(index, 'optionB', event.target.value)}
+                      disabled={questionsDisabled}
+                      error={fieldErrors[`optionB_${index}`]}
+                    />
+                    <Input
+                      label="Option C"
+                      value={question.optionC}
+                      onChange={(event) => updateQuestion(index, 'optionC', event.target.value)}
+                      disabled={questionsDisabled}
+                      error={fieldErrors[`optionC_${index}`]}
+                    />
+                    <Input
+                      label="Option D"
+                      value={question.optionD}
+                      onChange={(event) => updateQuestion(index, 'optionD', event.target.value)}
+                      disabled={questionsDisabled}
+                      error={fieldErrors[`optionD_${index}`]}
+                    />
+                  </div>
+
+                  <Select
+                    label="Correct answer"
+                    value={question.correctAnswer}
+                    onChange={(event) =>
+                      updateQuestion(index, 'correctAnswer', event.target.value)
+                    }
                     disabled={questionsDisabled}
-                    error={fieldErrors[`optionB_${index}`]}
-                  />
-                  <Input
-                    label="Option C"
-                    value={question.optionC}
-                    onChange={(event) => updateQuestion(index, 'optionC', event.target.value)}
+                    error={fieldErrors[`correctAnswer_${index}`]}
+                  >
+                    <option value="">Select correct answer</option>
+                    {LETTERS.map((letter) => (
+                      <option key={letter} value={letter}>
+                        Option {letter}
+                      </option>
+                    ))}
+                  </Select>
+
+                  <Textarea
+                    label="Explanation"
+                    rows={2}
+                    value={question.explanation}
+                    onChange={(event) => updateQuestion(index, 'explanation', event.target.value)}
+                    placeholder="Why is this the correct answer?"
                     disabled={questionsDisabled}
-                    error={fieldErrors[`optionC_${index}`]}
-                  />
-                  <Input
-                    label="Option D"
-                    value={question.optionD}
-                    onChange={(event) => updateQuestion(index, 'optionD', event.target.value)}
-                    disabled={questionsDisabled}
-                    error={fieldErrors[`optionD_${index}`]}
                   />
                 </div>
+              ))}
+            </div>
 
-                <Select
-                  label="Correct Answer"
-                  value={question.correctAnswer}
-                  onChange={(event) => updateQuestion(index, 'correctAnswer', event.target.value)}
-                  disabled={questionsDisabled}
-                  error={fieldErrors[`correctAnswer_${index}`]}
-                >
-                  <option value="">Select correct answer</option>
-                  {LETTERS.map((letter) => (
-                    <option key={letter} value={letter}>
-                      Option {letter}
-                    </option>
-                  ))}
-                </Select>
-
-                <Textarea
-                  label="Explanation"
-                  rows={2}
-                  value={question.explanation}
-                  onChange={(event) => updateQuestion(index, 'explanation', event.target.value)}
-                  placeholder="Why is this the correct answer?"
-                  disabled={questionsDisabled}
-                />
-              </div>
-            ))}
+            {publishHint && !isView ? (
+              <p className="teacher-practice-form-hint" role="status">
+                {publishHint}
+              </p>
+            ) : null}
           </div>
+        </section>
 
+        <div className="teacher-practice-form-actions">
+          <button type="button" className="teacher-practice-form-cancel" onClick={openList}>
+            Cancel
+          </button>
           {!isView ? (
-            <>
-              {publishHint ? (
-                <p className="text-meta" style={{ margin: 0 }} role="status">
-                  {publishHint}
-                </p>
-              ) : null}
-              <div
-                className="teacher-class-actions"
-                style={{ justifyContent: 'flex-end', gap: 'var(--space-3)' }}
-              >
-                <Button type="submit" loading={saving} disabled={saving || loadingCourses}>
-                  Submit Practice
-                </Button>
-              </div>
-            </>
+            <Button type="submit" loading={saving} disabled={saving || loadingCourses}>
+              Publish practice set
+            </Button>
           ) : null}
         </div>
       </form>
@@ -694,6 +696,6 @@ export default function TeacherPracticeFormPage({ mode = 'create' }) {
         onConfirm={handleArchive}
         onCancel={() => setConfirmOpen(false)}
       />
-    </section>
+    </div>
   );
 }

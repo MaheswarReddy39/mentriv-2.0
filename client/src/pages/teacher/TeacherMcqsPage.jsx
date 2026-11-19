@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import Button from '../../components/common/Button.jsx';
 import EmptyState from '../../components/common/EmptyState.jsx';
 import ErrorState from '../../components/common/ErrorState.jsx';
+import SelectMenu from '../../components/common/SelectMenu.jsx';
 import { getTeacherMcqs } from '../../services/teacher.service.js';
 import { decodeDescription, levelRank } from '../../utils/practiceLevels.js';
 
@@ -52,23 +54,6 @@ const setMeta = (set, scope) => {
 
   return parts.join(' · ');
 };
-
-function CaretIcon() {
-  return (
-    <svg
-      className="teacher-mcqs-caret"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <polyline points="6 9 12 15 18 9" />
-    </svg>
-  );
-}
 
 function ArrowIcon() {
   return (
@@ -150,9 +135,6 @@ export default function TeacherMcqsPage() {
     [data]
   );
 
-  const scopeCourse = courses.find((course) => course.id === scope) || null;
-  const scopeTitle = scope === 'all' ? 'All courses' : scopeCourse?.title || '';
-
   const totalSets = data?.totalMcqTests ?? sets.length;
   const publishedSets = data?.publishedMcqTests ?? 0;
   const draftSets = Math.max(0, totalSets - publishedSets);
@@ -170,25 +152,16 @@ export default function TeacherMcqsPage() {
           {showSkeleton ? (
             <span className="skeleton teacher-mcqs-switch-skeleton" aria-hidden="true" />
           ) : courses.length > 0 ? (
-            <label className="teacher-mcqs-switch">
-              <span className="teacher-mcqs-switch-label" aria-hidden="true">
-                <span>{scopeTitle}</span>
-                <CaretIcon />
-              </span>
-              <select
-                className="teacher-mcqs-switch-select"
-                aria-label="Course"
-                value={scope}
-                onChange={(event) => setScope(event.target.value)}
-              >
-                <option value="all">All courses</option>
-                {courses.map((course) => (
-                  <option key={course.id} value={course.id}>
-                    {course.title}
-                  </option>
-                ))}
-              </select>
-            </label>
+            <SelectMenu
+              className="teacher-mcqs-switch"
+              ariaLabel="Course"
+              value={scope}
+              onChange={setScope}
+              options={[
+                { value: 'all', label: 'All courses' },
+                ...courses.map((course) => ({ value: course.id, label: course.title })),
+              ]}
+            />
           ) : null}
         </div>
 
@@ -246,16 +219,16 @@ export default function TeacherMcqsPage() {
           <header className="teacher-mcqs-panel-head">
             <h2 id="teacher-mcqs-list-heading">Practice sets</h2>
             <div className="teacher-mcqs-panel-side">
-              <button
-                type="button"
-                className="teacher-mcqs-action"
-                onClick={() => navigate('/teacher/mcqs/new')}
-              >
-                New practice set
-              </button>
               <span className="teacher-mcqs-panel-count">
                 {formatNumber(totalSets)} {totalSets === 1 ? 'set' : 'sets'}
               </span>
+              <Button
+                type="button"
+                size="sm"
+                onClick={() => navigate('/teacher/mcqs/new')}
+              >
+                New practice set
+              </Button>
             </div>
           </header>
 

@@ -13,10 +13,10 @@
   --login-line-strong: var(--color-border-strong);
   --login-surface: var(--surface);
   --login-field: #f7f7fc;
-  --login-field-border: #e5e5ee;
-  --login-field-hover: #d8d8e4;
-  --login-focus: var(--text);
-  --login-focus-ring: color-mix(in srgb, var(--text) 8%, transparent);
+  --login-field-border: #D9DDE3;
+  --login-field-hover: #C3C9D2;
+  --login-focus: #F28A55;
+  --login-focus-ring: rgba(242, 138, 85, 0.18);
   --login-cta: var(--accent-strong);
   --login-cta-hover: var(--coral-dark);
   --login-cta-text: #ffffff;
@@ -53,10 +53,10 @@
 
 [data-theme="dark"] .login-page {
   --login-field: #141426;
-  --login-field-border: var(--border);
-  --login-field-hover: var(--color-border-strong);
-  --login-focus: var(--text);
-  --login-focus-ring: rgba(255, 255, 255, 0.1);
+  --login-field-border: var(--field-border-default);
+  --login-field-hover: var(--field-border-hover);
+  --login-focus: var(--field-border-focus);
+  --login-focus-ring: var(--field-focus-ring);
   --login-cta: var(--coral);
   --login-cta-hover: var(--coral-dark);
   --login-cta-text: #ffffff;
@@ -312,6 +312,7 @@
 }
 
 .login-input:disabled {
+  border-color: var(--field-border-disabled);
   opacity: 0.65;
   cursor: not-allowed;
 }

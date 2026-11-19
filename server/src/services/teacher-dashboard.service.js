@@ -553,12 +553,16 @@ const getTeacherLeaderboard = async ({ search = '', courseId = 'all' } = {}) => 
         studentId: row.studentId,
         studentName: row.studentName,
         mobileNumber: row.mobileNumber,
+        courseCount: 0,
+        attemptedCourseCount: 0,
         correctAnswers: 0,
         totalQuestions: 0,
       });
     }
 
     const student = byStudent.get(row.studentId);
+    student.courseCount += 1;
+    if (row.status === 'submitted') student.attemptedCourseCount += 1;
     student.correctAnswers += row.correctAnswers;
     student.totalQuestions += row.totalQuestions;
   });
@@ -569,6 +573,10 @@ const getTeacherLeaderboard = async ({ search = '', courseId = 'all' } = {}) => 
       studentId: student.studentId,
       studentName: student.studentName,
       mobileNumber: student.mobileNumber,
+      courseCount: student.courseCount,
+      attemptedCourseCount: student.attemptedCourseCount,
+      correctAnswers: student.correctAnswers,
+      totalQuestions: student.totalQuestions,
       progress:
         student.totalQuestions > 0
           ? roundProgress((student.correctAnswers / student.totalQuestions) * 100)
