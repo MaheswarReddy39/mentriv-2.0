@@ -55,7 +55,7 @@ export default function ThemeToggle({ collapsed }) {
 
   return (
     <div className="sidebar-theme-toggle" role="radiogroup" aria-label="Theme selection">
-      <div className="sidebar-theme-pill">
+      <div className="sidebar-theme-pill" data-active={isDark ? 'dark' : 'light'}>
         <button
           type="button"
           className={`sidebar-theme-option${!isDark ? ' active' : ''}`}

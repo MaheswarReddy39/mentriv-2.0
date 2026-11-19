@@ -1,0 +1,347 @@
+/* ============================================================
+   Motion polish — shared micro-interactions
+   Layered after the component styles on purpose: these rules only
+   refine timing, feedback and accessibility, never layout identity.
+   ============================================================ */
+
+/* ---------- Page transitions ---------- */
+@keyframes routeEnter {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.route-view {
+  min-width: 0;
+  animation: routeEnter var(--dur-motion) var(--ease-apple) backwards;
+}
+
+/* ---------- Buttons ---------- */
+/* Keep the brand shadow, add a clear keyboard ring that survives
+   the variant box-shadows. */
+.btn:focus-visible {
+  outline: 2px solid var(--accent-strong);
+  outline-offset: 2px;
+}
+
+/* The spinner previously assumed a dark button; inherit the label
+   colour so it stays legible on outline, ghost and secondary buttons. */
+.btn-spinner {
+  border-color: color-mix(in srgb, currentColor 30%, transparent);
+  border-top-color: currentColor;
+}
+
+/* ---------- Cards ---------- */
+.card-interactive:focus-visible,
+.card-course:focus-visible {
+  outline: 2px solid var(--accent-strong);
+  outline-offset: 3px;
+}
+
+.card-interactive:focus-within:not(:active),
+.card-course:focus-within:not(:active) {
+  transform: translateY(-2.5px);
+  border-color: color-mix(in srgb, var(--coral) 30%, var(--border));
+  box-shadow: var(--shadow-md);
+}
+
+/* ---------- Form controls ---------- */
+.input,
+.textarea,
+.select {
+  caret-color: var(--accent-strong);
+}
+
+/* ---------- Toasts ---------- */
+.toast {
+  position: relative;
+  overflow: hidden;
+}
+
+.toast-success { --toast-accent: var(--teal); }
+.toast-error { --toast-accent: var(--coral-dark); }
+.toast-warning { --toast-accent: var(--amber); }
+.toast-info { --toast-accent: var(--indigo); }
+
+@keyframes toastProgress {
+  from { transform: scaleX(1); }
+  to { transform: scaleX(0); }
+}
+
+.toast-progress {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 2px;
+  border-radius: 0 0 var(--radius-control) var(--radius-control);
+  background: var(--toast-accent, var(--accent-strong));
+  opacity: 0.45;
+  transform-origin: left center;
+  animation-name: toastProgress;
+  animation-timing-function: linear;
+  animation-fill-mode: forwards;
+  pointer-events: none;
+  transition: opacity 160ms linear;
+}
+
+.toast:not(.toast-exit):hover .toast-progress {
+  opacity: 0.7;
+}
+
+.toast-exit {
+  pointer-events: none;
+}
+
+.toast-exit .toast-progress {
+  opacity: 0;
+  transition: opacity 120ms linear;
+}
+
+/* ---------- Modals ---------- */
+@keyframes overlayOut {
+  to { opacity: 0; }
+}
+
+@keyframes modalOut {
+  to {
+    opacity: 0;
+    transform: translateY(8px) scale(0.97);
+  }
+}
+
+@keyframes modalSheetIn {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes modalSheetOut {
+  to {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+}
+
+.modal-overlay.is-closing {
+  pointer-events: none;
+  animation: overlayOut var(--dur-release) var(--ease-standard) both;
+}
+
+.modal.is-closing {
+  animation: modalOut var(--dur-release) var(--ease-soft) both;
+}
+
+@media (max-width: 640px) {
+  .modal {
+    animation: modalSheetIn 260ms var(--ease-apple) both;
+  }
+
+  .modal.is-closing {
+    animation: modalSheetOut var(--dur-release) var(--ease-standard) both;
+  }
+}
+
+/* ---------- Dropdowns ---------- */
+@keyframes menuEnter {
+  from {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.select-menu-list,
+.admin-home-select-menu,
+.admin-students-select-menu,
+.admin-teachers-select-menu,
+.admin-submissions-select-menu,
+.admin-notifications-select-menu,
+.admin-announcements-select-menu,
+.admin-courses-select-menu,
+.admin-course-editor-select-menu {
+  transform-origin: top center;
+  animation: menuEnter var(--dur-state) var(--ease-apple) backwards;
+}
+
+.admin-courses-select-menu.is-top,
+.admin-course-editor-select-menu.is-top {
+  transform-origin: bottom center;
+}
+
+.select-menu-option,
+.admin-home-select-option,
+.admin-students-select-option,
+.admin-teachers-select-option,
+.admin-submissions-select-option,
+.admin-notifications-select-option,
+.admin-announcements-select-option,
+.admin-courses-select-option,
+.admin-course-editor-select-option {
+  transition:
+    background-color var(--dur-state) var(--ease-standard),
+    color var(--dur-state) var(--ease-standard);
+}
+
+/* ---------- Navigation ---------- */
+@keyframes navItemIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (max-width: 900px) {
+  .navbar-menu.is-open .navbar-link,
+  .navbar-menu.is-open .navbar-actions > :is(a, button) {
+    animation: navItemIn var(--dur-motion) var(--ease-apple) backwards;
+  }
+
+  .navbar-menu.is-open .navbar-link:nth-child(1) { animation-delay: 20ms; }
+  .navbar-menu.is-open .navbar-link:nth-child(2) { animation-delay: 45ms; }
+  .navbar-menu.is-open .navbar-link:nth-child(3) { animation-delay: 70ms; }
+
+  .navbar-menu.is-open .navbar-actions > :nth-child(1) { animation-delay: 90ms; }
+  .navbar-menu.is-open .navbar-actions > :nth-child(2) { animation-delay: 110ms; }
+  .navbar-menu.is-open .navbar-actions > :nth-child(3) { animation-delay: 130ms; }
+}
+
+/* ---------- Theme toggle ---------- */
+/* A single sliding thumb replaces the per-option background swap, so
+   switching themes reads as one deliberate movement. */
+.sidebar-theme-pill {
+  position: relative;
+  isolation: isolate;
+  gap: 0;
+}
+
+.sidebar-theme-pill::before {
+  content: '';
+  position: absolute;
+  top: var(--space-1);
+  bottom: var(--space-1);
+  left: var(--space-1);
+  z-index: 0;
+  width: calc(50% - var(--space-1));
+  border-radius: calc(var(--radius-pill) - var(--space-1));
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+  transition:
+    transform 280ms var(--ease-apple),
+    box-shadow 280ms var(--ease-apple);
+}
+
+.sidebar-theme-pill[data-active='dark']::before {
+  transform: translateX(100%);
+}
+
+[data-theme='dark'] .sidebar-theme-pill::before {
+  background: color-mix(in srgb, var(--text) 7%, var(--surface));
+}
+
+.sidebar-theme-pill .sidebar-theme-option {
+  position: relative;
+  z-index: 1;
+  flex: 1 1 0;
+  justify-content: center;
+  background: transparent;
+}
+
+.sidebar-theme-pill .sidebar-theme-option.active,
+[data-theme='dark'] .sidebar-theme-pill .sidebar-theme-option.active {
+  background: transparent;
+  box-shadow: none;
+  color: var(--coral-dark);
+}
+
+[data-theme='dark'] .sidebar-theme-pill .sidebar-theme-option.active {
+  color: var(--coral);
+}
+
+/* ---------- Touch devices: avoid sticky hover lifts ---------- */
+@media (hover: none) {
+  .btn-primary:hover:not(:disabled),
+  .btn-outline:hover:not(:disabled),
+  .btn-secondary:hover:not(:disabled),
+  .btn-danger:hover:not(:disabled),
+  .btn-success:hover:not(:disabled),
+  .card-interactive:hover,
+  .card-course:hover,
+  .catalog-card:hover,
+  .featured-course-card:hover {
+    transform: none;
+  }
+
+  .catalog-card:hover .catalog-card-image,
+  .featured-course-card:hover .featured-course-image {
+    transform: none;
+  }
+}
+
+/* ---------- Reduced motion ---------- */
+@media (prefers-reduced-motion: reduce) {
+  .route-view,
+  .navbar-menu.is-open .navbar-link,
+  .navbar-menu.is-open .navbar-actions > :is(a, button),
+  .select-menu-list,
+  .admin-home-select-menu,
+  .admin-students-select-menu,
+  .admin-teachers-select-menu,
+  .admin-submissions-select-menu,
+  .admin-notifications-select-menu,
+  .admin-announcements-select-menu,
+  .admin-courses-select-menu,
+  .admin-course-editor-select-menu {
+    animation: none;
+  }
+
+  .btn:hover:not(:disabled),
+  .btn:active:not(:disabled),
+  .card-interactive:hover,
+  .card-interactive:active,
+  .card-interactive:focus-within,
+  .card-course:hover,
+  .card-course:active,
+  .card-course:focus-within,
+  .catalog-card:hover,
+  .catalog-card:active,
+  .catalog-card:focus-within,
+  .featured-course-card:hover,
+  .featured-course-card:active,
+  .featured-course-card:focus-within,
+  .catalog-card:hover .catalog-card-image,
+  .featured-course-card:hover .featured-course-image {
+    transform: none;
+  }
+
+  .field-error .input,
+  .field-error .textarea,
+  .field-error .select {
+    animation: none;
+  }
+
+  .sidebar-theme-pill::before {
+    transition: none;
+  }
+
+  .toast-progress {
+    display: none;
+  }
+}

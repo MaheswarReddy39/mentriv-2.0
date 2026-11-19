@@ -41,7 +41,10 @@ export function ToastProvider({ children }) {
     (type, message, { duration = 4000, description } = {}) => {
       const id = nextToastId;
       nextToastId += 1;
-      setToasts((current) => [...current, { id, type, message, description }]);
+      setToasts((current) => [
+        ...current,
+        { id, type, message, description, duration },
+      ]);
       timersRef.current.set(
         id,
         setTimeout(() => dismiss(id), duration)
@@ -85,6 +88,13 @@ export function ToastProvider({ children }) {
             >
               {CLOSE_ICON}
             </button>
+            {Number.isFinite(toast.duration) && toast.duration > 0 ? (
+              <span
+                className="toast-progress"
+                style={{ animationDuration: `${toast.duration}ms` }}
+                aria-hidden="true"
+              />
+            ) : null}
           </div>
         ))}
       </div>
