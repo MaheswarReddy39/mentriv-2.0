@@ -4,5 +4,6 @@
 @import './components.css';
 @import './auth.css';
 @import './admin.css';
+@import './dashboard-views.css';
 @import './chatbot.css';
 @import './streak.css';

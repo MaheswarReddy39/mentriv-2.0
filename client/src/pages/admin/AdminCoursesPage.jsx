@@ -722,14 +722,12 @@ export default function AdminCoursesPage() {
                           >
                             Edit
                           </Link>
-                          <a
-                            href={`/courses/${course.slug}`}
-                            target="_blank"
-                            rel="noreferrer"
+                          <Link
+                            to={`/admin/courses/${course.id}`}
                             className="admin-courses-action"
                           >
                             View
-                          </a>
+                          </Link>
                           {course.status !== 'archived' ? (
                             <Button
                               variant="ghost"

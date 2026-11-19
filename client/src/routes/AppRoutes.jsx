@@ -8,6 +8,7 @@ import ProtectedRoute from '../components/routing/ProtectedRoute.jsx';
 import AdminRoute from '../components/routing/AdminRoute.jsx';
 import TeacherRoute from '../components/routing/TeacherRoute.jsx';
 import StudentRoute from '../components/routing/StudentRoute.jsx';
+import PublicAnnouncementsRoute from '../components/routing/PublicAnnouncementsRoute.jsx';
 
 // Public
 import HomePage from '../pages/public/HomePage.jsx';
@@ -42,6 +43,7 @@ import LeaderboardPage from '../pages/student/LeaderboardPage.jsx';
 import AchievementsPage from '../pages/student/AchievementsPage.jsx';
 import ClassDetailPage from '../pages/student/ClassDetailPage.jsx';
 import NotificationsPage from '../pages/student/NotificationsPage.jsx';
+import StudentAnnouncementsPage from '../pages/student/StudentAnnouncementsPage.jsx';
 import ProfilePage from '../pages/student/ProfilePage.jsx';
 
 // Assignments
@@ -56,6 +58,7 @@ import McqAttemptResultPage from '../pages/student/McqAttemptResultPage.jsx';
 import AdminDashboardPage from '../pages/admin/AdminDashboardPage.jsx';
 import AdminCoursesPage from '../pages/admin/AdminCoursesPage.jsx';
 import AdminCourseCreatePage from '../pages/admin/AdminCourseCreatePage.jsx';
+import AdminCourseViewPage from '../pages/admin/AdminCourseViewPage.jsx';
 import CourseFormPage from '../pages/admin/CourseFormPage.jsx';
 import AdminClassesPage from '../pages/admin/AdminClassesPage.jsx';
 import ClassFormPage from '../pages/admin/ClassFormPage.jsx';
@@ -95,7 +98,13 @@ export default function AppRoutes() {
         <Route path="/" element={<HomePage />} />
         <Route path="/courses" element={<CoursesPage />} />
         <Route path="/courses/:slug" element={<CourseDetailPage />} />
-        <Route path="/announcements" element={<AnnouncementsPage />} />
+      </Route>
+
+      {/* Public for guests, dashboard version for signed-in users */}
+      <Route element={<PublicAnnouncementsRoute />}>
+        <Route element={<PublicLayout />}>
+          <Route path="/announcements" element={<AnnouncementsPage />} />
+        </Route>
       </Route>
 
       {/* Auth */}
@@ -135,6 +144,7 @@ export default function AppRoutes() {
             <Route path="/classes/:classId" element={<ClassDetailPage />} />
             <Route path="/assignments/:assignmentId" element={<AssignmentDetailPage />} />
             <Route path="/notifications" element={<NotificationsPage />} />
+            <Route path="/student/announcements" element={<StudentAnnouncementsPage />} />
             <Route path="/profile" element={<ProfilePage />} />
             <Route path="/mcq-tests/:testId" element={<McqTestDetailPage />} />
             <Route
@@ -179,6 +189,7 @@ export default function AppRoutes() {
             <Route path="/admin/dashboard" element={<AdminDashboardPage />} />
             <Route path="/admin/courses" element={<AdminCoursesPage />} />
             <Route path="/admin/courses/new" element={<AdminCourseCreatePage />} />
+            <Route path="/admin/courses/:courseId" element={<AdminCourseViewPage />} />
             <Route path="/admin/courses/:courseId/edit" element={<CourseFormPage />} />
             <Route path="/admin/students" element={<AdminStudentsPage />} />
             <Route path="/admin/teachers" element={<AdminTeachersPage />} />

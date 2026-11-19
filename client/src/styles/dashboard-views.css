@@ -1,0 +1,41 @@
+/* ================= DASHBOARD VIEWS ================= */
+
+/* Admin course detail */
+.admin-course-view-fallback {
+  display: grid;
+  place-items: center;
+  background:
+    linear-gradient(135deg, rgba(79, 70, 229, 0.14), rgba(20, 184, 166, 0.12)),
+    var(--surface-muted);
+  color: var(--accent-strong);
+  font-family: var(--font-heading);
+  font-size: clamp(3rem, 8vw, 5rem);
+  font-weight: 800;
+}
+
+.course-detail-section .course-detail-demo {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+
+/* Public announcement feed embedded in an authenticated dashboard */
+.page-announcements.is-embedded {
+  margin: 0;
+  padding-bottom: 0;
+}
+
+.page-announcements.is-embedded .announcements-shell {
+  max-width: none;
+  padding-inline: 0;
+  scroll-margin-top: 0;
+}
+
+.page-announcements.is-embedded .announcements-masthead {
+  padding-top: 0;
+  margin-bottom: var(--space-6);
+}
+
+.page-announcements.is-embedded .announcements-title {
+  font-size: clamp(2.05rem, 3.6vw, 2.75rem);
+  line-height: 1.02;
+}

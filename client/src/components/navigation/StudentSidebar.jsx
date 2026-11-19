@@ -91,7 +91,8 @@ export default function StudentSidebar({ links, unreadCount = 0, collapsed = fal
       </Link>
       <nav className="sidebar-nav" aria-label="Student sections">
         {(links || []).map((link) => {
-          const Icon = ICONS[link.to.split('/')[1]] || ICONS.dashboard;
+          const segment = link.to.split('/').filter(Boolean).pop();
+          const Icon = ICONS[segment] || ICONS.dashboard;
           return (
             <NavLink
               key={link.to}

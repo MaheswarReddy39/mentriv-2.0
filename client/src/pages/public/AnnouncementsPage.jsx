@@ -187,7 +187,7 @@ function AnnouncementsSkeleton() {
   );
 }
 
-export default function AnnouncementsPage() {
+export default function AnnouncementsPage({ embedded = false, emptyAction = null }) {
   const [page, setPage] = useState(1);
   const [announcements, setAnnouncements] = useState([]);
   const [pagination, setPagination] = useState(null);
@@ -247,7 +247,7 @@ export default function AnnouncementsPage() {
   const latestDate = announcements[0] ? getAnnouncementDate(announcements[0]) : null;
 
   return (
-    <div className="page-announcements page-marketing">
+    <div className={`page-announcements${embedded ? ' is-embedded' : ' page-marketing'}`}>
       <div className="announcements-shell" ref={shellRef}>
         <header className="announcements-masthead">
           <h1 className="announcements-title">
@@ -279,12 +279,14 @@ export default function AnnouncementsPage() {
           <div className="announcements-state">
             <h2>No announcements yet.</h2>
             <p>Published announcements will appear here.</p>
-            <Link className="announcements-state-link" to="/courses">
-              Browse courses
-              <svg viewBox="0 0 16 16" aria-hidden="true">
-                <path d="M3 8h10M9 4l4 4-4 4" />
-              </svg>
-            </Link>
+            {emptyAction ?? (
+              <Link className="announcements-state-link" to="/courses">
+                Browse courses
+                <svg viewBox="0 0 16 16" aria-hidden="true">
+                  <path d="M3 8h10M9 4l4 4-4 4" />
+                </svg>
+              </Link>
+            )}
           </div>
         ) : (
           <>

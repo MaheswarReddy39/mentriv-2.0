@@ -15,7 +15,7 @@ const LINKS = [
   { to: '/achievements', label: 'Achievements' },
   { to: '/leaderboard', label: 'Leaderboard' },
   { to: '/notifications', label: 'Notifications', badge: true },
-  { to: '/announcements', label: 'Announcements' },
+  { to: '/student/announcements', label: 'Announcements' },
   { to: '/profile', label: 'Profile' },
 ];
 
