@@ -1,0 +1,192 @@
+/* ============================================================
+   Liquid glass app rail — shared by Student, Teacher and Admin
+   ============================================================ */
+
+.app-shell {
+  --rail-dur: 300ms;
+  --rail-ease: cubic-bezier(0.4, 0, 0.2, 1);
+  display: grid;
+  grid-template-columns: 272px minmax(0, 1fr);
+  min-height: 100vh;
+  transition: grid-template-columns var(--rail-dur) var(--rail-ease);
+}
+
+.app-shell[data-rail='collapsed'] {
+  grid-template-columns: 84px minmax(0, 1fr);
+}
+
+.app-rail {
+  --gn-sidebar-inset: 48px;
+  position: sticky;
+  top: 0;
+  align-self: start;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  height: 100svh;
+  padding: 14px 6px;
+  isolation: isolate;
+  z-index: 40;
+}
+
+/* Feed the component the app's semantic palette so the glass sits in this
+   product's surfaces instead of the browser Canvas defaults. The component's
+   themed rule is more specific, so it has to be matched here. */
+.app-rail .gn-scope[data-gn-theme] {
+  --gn-card: var(--surface);
+  --gn-ink: var(--text);
+  --gn-ring: var(--color-primary);
+}
+
+/* A restrained wash behind the glass so the material has something to bend. */
+.app-rail::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(92% 54% at 24% 4%, color-mix(in srgb, var(--indigo) 14%, transparent), transparent 72%),
+    radial-gradient(84% 50% at 88% 98%, color-mix(in srgb, var(--coral) 12%, transparent), transparent 74%),
+    radial-gradient(72% 44% at 46% 54%, color-mix(in srgb, var(--teal) 8%, transparent), transparent 76%);
+}
+
+[data-theme='dark'] .app-rail::before {
+  background:
+    radial-gradient(92% 54% at 24% 4%, color-mix(in srgb, var(--indigo) 24%, transparent), transparent 72%),
+    radial-gradient(84% 50% at 88% 98%, color-mix(in srgb, var(--coral) 18%, transparent), transparent 74%),
+    radial-gradient(72% 44% at 46% 54%, color-mix(in srgb, var(--teal) 12%, transparent), transparent 76%);
+}
+
+.app-rail-monogram {
+  font-family: var(--font-heading);
+  font-size: 1rem;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+
+/* Compact utility controls keep the glass material instead of the old panel chrome. */
+.app-rail-footer {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-block-start: 8px;
+  padding-block-start: 8px;
+  border-block-start: 1px solid var(--gn-line);
+}
+
+.gn-sidebar .app-rail-action {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 9px;
+  inline-size: 100%;
+  flex: 1 1 auto;
+  min-block-size: 40px;
+  padding-inline: 10px;
+  border-radius: 12px;
+  color: var(--gn-muted);
+  font-size: 0.8125rem;
+  font-weight: 550;
+  transition:
+    color var(--dur-state, 160ms) var(--ease-standard),
+    background-color var(--dur-state, 160ms) var(--ease-standard);
+}
+
+.gn-sidebar .app-rail-action:hover {
+  color: var(--gn-ink);
+  background: color-mix(in srgb, var(--gn-card) 20%, transparent);
+}
+
+.gn-sidebar .app-rail-action-danger:hover {
+  color: var(--coral-dark);
+}
+
+[data-theme='dark'] .gn-sidebar .app-rail-action-danger:hover {
+  color: var(--coral);
+}
+
+.gn-sidebar[data-expanded='false'] .app-rail-action {
+  justify-content: center;
+  padding-inline: 0;
+}
+
+/* Tighten the fixed chrome a touch so the whole nav fits a 1280x800 laptop
+   without a scroll indicator. */
+.app-rail .gn-sidebar {
+  padding-block: 10px;
+}
+
+.app-rail .gn-sidebar-brand {
+  padding-block-end: 8px;
+}
+
+.app-rail .gn-sidebar-group + .gn-sidebar-group {
+  margin-block-start: 7px;
+  padding-block-start: 7px;
+}
+
+.app-rail .gn-sidebar-group > p {
+  margin-block-end: 1px;
+}
+
+.app-rail .gn-sidebar-account {
+  margin-block-start: 8px;
+}
+
+.app-rail .app-rail-footer {
+  margin-block-start: 6px;
+  padding-block-start: 6px;
+}
+
+.app-rail .app-rail-action {
+  min-block-size: 38px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-shell {
+    transition: none;
+  }
+}
+
+.mobile-menu-btn svg {
+  width: 20px;
+  height: 20px;
+}
+
+@media (max-width: 900px) {
+  .app-shell {
+    grid-template-columns: 1fr !important;
+  }
+
+  .app-rail {
+    position: fixed;
+    inset: 0 auto 0 0;
+    width: min(332px, 88vw);
+    height: 100dvh;
+    padding: 54px 8px 12px;
+    background: var(--bg);
+    transform: translateX(-100%);
+    visibility: hidden;
+    transition:
+      transform var(--transition-normal, 250ms ease),
+      visibility var(--transition-normal, 250ms ease);
+    z-index: 110;
+  }
+
+  .app-rail.is-open {
+    transform: translateX(0);
+    visibility: visible;
+    box-shadow: var(--shadow-md);
+  }
+
+  .app-rail .gn-sidebar {
+    --gn-sidebar-inset: 80px;
+    inline-size: 100%;
+  }
+
+  .app-rail .gn-scope {
+    inline-size: 100%;
+  }
+}

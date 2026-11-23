@@ -2,6 +2,7 @@
 @import './tokens.css';
 @import './base.css';
 @import './components.css';
+@import './sidebar-glass.css';
 @import './auth.css';
 @import './admin.css';
 @import './dashboard-views.css';

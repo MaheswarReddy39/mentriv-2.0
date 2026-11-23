@@ -1,23 +1,15 @@
 import { useEffect, useState } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
-import AdminSidebar from '../components/navigation/AdminSidebar.jsx';
+import { Menu, X } from 'lucide-react';
+import AppSidebar from '../components/navigation/AppSidebar.jsx';
 import ConfirmDialog from '../components/common/ConfirmDialog.jsx';
 import useAuth from '../hooks/useAuth.js';
 
-const LINKS = [
-  { to: '/admin/courses', label: 'Courses' },
-  { to: '/admin/students', label: 'Students' },
-  { to: '/admin/teachers', label: 'Teachers' },
-  { to: '/admin/submissions', label: 'Submissions' },
-  { to: '/admin/notifications', label: 'Notifications' },
-  { to: '/admin/announcements', label: 'Announcements' },
-];
-
 export default function AdminLayout() {
-  const setSession = useAuth().setSession;
+  const { user, setSession } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const [collapsed, setCollapsed] = useState(true);
+  const [expanded, setExpanded] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [logoutOpen, setLogoutOpen] = useState(false);
 
@@ -34,21 +26,35 @@ export default function AdminLayout() {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
+  useEffect(() => {
+    if (!menuOpen) return undefined;
+    const previousOverflow = document.body.style.overflow;
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') setMenuOpen(false);
+    };
+    document.body.style.overflow = 'hidden';
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [menuOpen]);
+
   const handleLogout = () => {
     setSession(null);
     navigate('/login');
   };
 
   return (
-    <div className="app-shell" style={{ display: 'grid', gridTemplateColumns: collapsed ? '72px 1fr' : '220px 1fr', minHeight: '100vh', transition: 'grid-template-columns var(--dur-expand, 460ms) var(--ease-expand, cubic-bezier(0.4, 0, 0.2, 1))' }}>
-      <AdminSidebar
-        links={LINKS}
-        collapsed={collapsed && !menuOpen}
+    <div className="app-shell" data-rail={expanded ? 'expanded' : 'collapsed'}>
+      <AppSidebar
+        role="admin"
+        user={user}
+        expanded={expanded}
+        onExpandedChange={setExpanded}
         mobileOpen={menuOpen}
         onNavigate={() => setMenuOpen(false)}
         onLogout={() => setLogoutOpen(true)}
-        onMouseEnter={() => setCollapsed(false)}
-        onMouseLeave={() => setCollapsed(true)}
       />
       <div>
         <header className="admin-topbar">
@@ -59,7 +65,7 @@ export default function AdminLayout() {
             aria-label={menuOpen ? 'Close navigation menu' : 'Open navigation menu'}
             onClick={() => setMenuOpen((current) => !current)}
           >
-            ☰
+            {menuOpen ? <X aria-hidden="true" /> : <Menu aria-hidden="true" />}
           </button>
         </header>
         <main style={{ padding: 'var(--space-5)', maxWidth: 'var(--container-xl)', margin: '0 auto' }}>

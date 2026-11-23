@@ -1,30 +1,17 @@
 ﻿import { useEffect, useState } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
-import StudentSidebar from '../components/navigation/StudentSidebar.jsx';
+import { Menu, X } from 'lucide-react';
+import AppSidebar from '../components/navigation/AppSidebar.jsx';
 import ConfirmDialog from '../components/common/ConfirmDialog.jsx';
 import useAuth from '../hooks/useAuth.js';
 import { getUnreadCount } from '../services/notification.service.js';
 
-const LINKS = [
-  { to: '/dashboard', label: 'Dashboard' },
-  { to: '/classes', label: 'Classes' },
-  { to: '/assignments', label: 'Assignments' },
-  { to: '/mcqs', label: 'MCQs / Practice' },
-  { to: '/coding-practice', label: 'Coding Practice' },
-  { to: '/progress', label: 'Progress' },
-  { to: '/achievements', label: 'Achievements' },
-  { to: '/leaderboard', label: 'Leaderboard' },
-  { to: '/notifications', label: 'Notifications', badge: true },
-  { to: '/student/announcements', label: 'Announcements' },
-  { to: '/profile', label: 'Profile' },
-];
-
 export default function StudentLayout() {
-  const setSession = useAuth().setSession;
+  const { user, setSession } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [unreadCount, setUnreadCount] = useState(0);
-  const [collapsed, setCollapsed] = useState(true);
+  const [expanded, setExpanded] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [logoutOpen, setLogoutOpen] = useState(false);
 
@@ -40,6 +27,20 @@ export default function StudentLayout() {
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
+
+  useEffect(() => {
+    if (!menuOpen) return undefined;
+    const previousOverflow = document.body.style.overflow;
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') setMenuOpen(false);
+    };
+    document.body.style.overflow = 'hidden';
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [menuOpen]);
 
   useEffect(() => {
     let cancelled = false;
@@ -69,16 +70,16 @@ export default function StudentLayout() {
   };
 
   return (
-    <div className="app-shell" style={{ display: 'grid', gridTemplateColumns: collapsed ? '72px 1fr' : '220px 1fr', minHeight: '100vh', transition: 'grid-template-columns var(--transition-normal, 250ms ease)' }}>
-      <StudentSidebar
-        links={LINKS}
+    <div className="app-shell" data-rail={expanded ? 'expanded' : 'collapsed'}>
+      <AppSidebar
+        role="student"
+        user={user}
         unreadCount={unreadCount}
-        collapsed={collapsed && !menuOpen}
+        expanded={expanded}
+        onExpandedChange={setExpanded}
         mobileOpen={menuOpen}
         onNavigate={() => setMenuOpen(false)}
         onLogout={() => setLogoutOpen(true)}
-        onMouseEnter={() => setCollapsed(false)}
-        onMouseLeave={() => setCollapsed(true)}
       />
       <div>
         <header className="student-topbar">
@@ -89,7 +90,7 @@ export default function StudentLayout() {
             aria-label={menuOpen ? 'Close navigation menu' : 'Open navigation menu'}
             onClick={() => setMenuOpen((current) => !current)}
           >
-            ☰
+            {menuOpen ? <X aria-hidden="true" /> : <Menu aria-hidden="true" />}
           </button>
         </header>
         <main className="app-main">

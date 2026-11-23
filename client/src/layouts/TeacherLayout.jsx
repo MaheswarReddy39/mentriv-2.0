@@ -1,26 +1,15 @@
 import { useEffect, useState } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
-import TeacherSidebar from '../components/navigation/TeacherSidebar.jsx';
+import { Menu, X } from 'lucide-react';
+import AppSidebar from '../components/navigation/AppSidebar.jsx';
 import ConfirmDialog from '../components/common/ConfirmDialog.jsx';
 import useAuth from '../hooks/useAuth.js';
 
-const LINKS = [
-  { to: '/teacher', label: 'Dashboard' },
-  { to: '/teacher/classes', label: 'Classes' },
-  { to: '/teacher/assignments', label: 'Assignments' },
-  { to: '/teacher/mcqs', label: 'MCQs / Practice' },
-  { to: '/teacher/coding-practice', label: 'Coding Practice' },
-  { to: '/teacher/submissions', label: 'Submissions' },
-  { to: '/teacher/leaderboard', label: 'Leaderboard' },
-  { to: '/teacher/notifications', label: 'Notifications' },
-  { to: '/teacher/profile', label: 'Profile' },
-];
-
 export default function TeacherLayout() {
-  const setSession = useAuth().setSession;
+  const { user, setSession } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const [collapsed, setCollapsed] = useState(true);
+  const [expanded, setExpanded] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [logoutOpen, setLogoutOpen] = useState(false);
 
@@ -37,21 +26,35 @@ export default function TeacherLayout() {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
+  useEffect(() => {
+    if (!menuOpen) return undefined;
+    const previousOverflow = document.body.style.overflow;
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') setMenuOpen(false);
+    };
+    document.body.style.overflow = 'hidden';
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [menuOpen]);
+
   const handleLogout = () => {
     setSession(null);
     navigate('/login');
   };
 
   return (
-    <div className="app-shell" style={{ display: 'grid', gridTemplateColumns: collapsed ? '72px 1fr' : '220px 1fr', minHeight: '100vh', transition: 'grid-template-columns var(--transition-normal, 250ms ease)' }}>
-      <TeacherSidebar
-        links={LINKS}
-        collapsed={collapsed && !menuOpen}
+    <div className="app-shell" data-rail={expanded ? 'expanded' : 'collapsed'}>
+      <AppSidebar
+        role="teacher"
+        user={user}
+        expanded={expanded}
+        onExpandedChange={setExpanded}
         mobileOpen={menuOpen}
         onNavigate={() => setMenuOpen(false)}
         onLogout={() => setLogoutOpen(true)}
-        onMouseEnter={() => setCollapsed(false)}
-        onMouseLeave={() => setCollapsed(true)}
       />
       <div>
         <header className="student-topbar">
@@ -62,7 +65,7 @@ export default function TeacherLayout() {
             aria-label={menuOpen ? 'Close navigation menu' : 'Open navigation menu'}
             onClick={() => setMenuOpen((current) => !current)}
           >
-            ☰
+            {menuOpen ? <X aria-hidden="true" /> : <Menu aria-hidden="true" />}
           </button>
         </header>
         <main className="app-main">
