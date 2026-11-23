@@ -1,0 +1,131 @@
+/* ================= THEME SWITCHER ================= */
+.theme-switcher {
+  --theme-switcher-size: 24px;
+  --theme-switcher-pad: 4px;
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  flex: none;
+  height: 32px;
+  padding: var(--theme-switcher-pad);
+  border-radius: var(--radius-pill);
+  background: var(--bg);
+  box-shadow: inset 0 0 0 1px var(--border);
+  isolation: isolate;
+}
+
+.theme-switcher-thumb {
+  position: absolute;
+  top: var(--theme-switcher-pad);
+  left: var(--theme-switcher-pad);
+  z-index: 0;
+  width: var(--theme-switcher-size);
+  height: var(--theme-switcher-size);
+  border-radius: 50%;
+  background: var(--color-surface-muted);
+  box-shadow: var(--shadow-xs);
+  transform: translateX(calc(var(--theme-switcher-index, 0) * var(--theme-switcher-size)));
+  transition: transform 320ms var(--ease-apple);
+}
+
+.theme-switcher-btn {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--theme-switcher-size);
+  height: var(--theme-switcher-size);
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: color var(--dur-state) var(--ease-standard);
+}
+
+.theme-switcher-btn:hover,
+.theme-switcher-btn.is-active {
+  color: var(--text);
+}
+
+.theme-switcher-btn:active {
+  transform: scale(0.92);
+}
+
+.theme-switcher .theme-switcher-btn:focus-visible {
+  outline: 2px solid var(--accent-strong);
+  outline-offset: 2px;
+  border-radius: 50%;
+}
+
+.theme-switcher-icon {
+  display: block;
+  pointer-events: none;
+}
+
+/* App rail footer: match the glass material and fit the collapsed icon rail. */
+.app-rail-theme {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  inline-size: 100%;
+  min-block-size: 40px;
+  padding-inline: 10px;
+}
+
+.app-rail-theme-label {
+  color: var(--gn-muted);
+  font-size: 0.8125rem;
+  font-weight: 550;
+}
+
+.app-rail .theme-switcher {
+  background: color-mix(in srgb, var(--gn-card) 45%, transparent);
+  box-shadow: inset 0 0 0 1px var(--gn-line);
+}
+
+.app-rail .theme-switcher-thumb {
+  background: var(--gn-selection);
+}
+
+/* The sidebar component gives every button a 44px touch target; the
+   segmented control opts out so it stays a compact 24px pill. */
+.app-rail .theme-switcher .theme-switcher-btn {
+  inline-size: var(--theme-switcher-size);
+  block-size: var(--theme-switcher-size);
+  min-inline-size: var(--theme-switcher-size);
+  min-block-size: var(--theme-switcher-size);
+  flex: 0 0 var(--theme-switcher-size);
+  padding: 0;
+  border-radius: 50%;
+}
+
+.app-rail .gn-sidebar[data-expanded='false'] .app-rail-theme {
+  justify-content: center;
+  min-block-size: 0;
+  padding-inline: 0;
+}
+
+.app-rail .gn-sidebar[data-expanded='false'] .theme-switcher {
+  flex-direction: column;
+  inline-size: 32px;
+  block-size: auto;
+}
+
+.app-rail .gn-sidebar[data-expanded='false'] .theme-switcher-thumb {
+  transform: translateY(calc(var(--theme-switcher-index, 0) * var(--theme-switcher-size)));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .theme-switcher-thumb {
+    transition: none;
+  }
+
+  .theme-switcher-btn:active {
+    transform: none;
+  }
+}

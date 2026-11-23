@@ -262,7 +262,7 @@ export default function CodeEditor({
   onMount,
   height = '320px',
 }) {
-  const { theme } = useTheme();
+  const { resolvedTheme } = useTheme();
 
   return (
     <div style={wrapperStyle}>
@@ -270,7 +270,7 @@ export default function CodeEditor({
         height={height}
         language={language}
         value={value}
-        theme={theme === 'dark' ? 'mentriv-dark' : 'mentriv-light'}
+        theme={resolvedTheme === 'dark' ? 'mentriv-dark' : 'mentriv-light'}
         onChange={(next) => onChange(next ?? '')}
         onMount={(instance) => onMount?.(instance)}
         options={{ ...editorOptions, ariaLabel: label }}

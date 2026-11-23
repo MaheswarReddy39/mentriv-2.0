@@ -114,7 +114,16 @@
 
 /* Tighten the fixed chrome a touch so the whole nav fits a 1280x800 laptop
    without a scroll indicator. */
+.app-rail {
+  --app-rail-top-gap: 14px;
+  padding-block: var(--app-rail-top-gap) 0;
+}
+
+/* Fill the rail to the bottom edge instead of floating above it. */
 .app-rail .gn-sidebar {
+  block-size: calc(100svh - var(--app-rail-top-gap));
+  min-block-size: 0;
+  max-block-size: none;
   padding-block: 10px;
 }
 
@@ -161,11 +170,12 @@
   }
 
   .app-rail {
+    --app-rail-top-gap: 54px;
     position: fixed;
     inset: 0 auto 0 0;
     width: min(332px, 88vw);
     height: 100dvh;
-    padding: 54px 8px 12px;
+    padding: 54px 8px 0;
     background: var(--bg);
     transform: translateX(-100%);
     visibility: hidden;
@@ -183,6 +193,7 @@
 
   .app-rail .gn-sidebar {
     --gn-sidebar-inset: 80px;
+    block-size: calc(100dvh - var(--app-rail-top-gap));
     inline-size: 100%;
   }
 

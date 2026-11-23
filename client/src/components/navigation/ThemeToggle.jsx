@@ -21,8 +21,8 @@ const MOON_ICON = (
 );
 
 export default function ThemeToggle({ collapsed }) {
-  const { theme, setTheme } = useTheme();
-  const isDark = theme === 'dark';
+  const { resolvedTheme, setTheme } = useTheme();
+  const isDark = resolvedTheme === 'dark';
 
   if (collapsed) {
     return (

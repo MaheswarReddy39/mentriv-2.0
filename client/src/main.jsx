@@ -6,6 +6,7 @@ import { ThemeProvider } from './context/ThemeContext.jsx';
 import { ToastProvider } from './components/feedback/Toast.jsx';
 import ErrorBoundary from './components/common/ErrorBoundary.jsx';
 import './styles/global.css';
+import './styles/theme-switcher.css';
 
 createRoot(document.getElementById('root')).render(
   <BrowserRouter>

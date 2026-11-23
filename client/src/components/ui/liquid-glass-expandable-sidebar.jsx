@@ -634,16 +634,16 @@ function LiquidGlassExpandableSidebar({
             </div>
           ))}
         </div>
+        {footer}
         {account && (
           <a className="gn-sidebar-account" href={account.href} aria-label={expanded ? undefined : account.name}
             aria-current={currentAccount ? "page" : undefined}
-            onClick={event => { if (account.id) navigate({ id: account.id, label: account.name, href: account.href, icon: null }, event); }}>
+            onClick={event => navigate({ id: account.id ?? "account", label: account.name, href: account.href, icon: null }, event)}>
             <span className="gn-sidebar-avatar" aria-hidden="true">{account.initials}</span>
             <span className="gn-sidebar-label" aria-hidden={!expanded || undefined}><strong>{account.name}</strong>{" "}<small>{account.detail}</small></span>
             {expanded && <ChevronRight aria-hidden="true" />}
           </a>
         )}
-        {footer}
       </nav>
     </NavigationGlass>
   );

@@ -1,7 +1,8 @@
 import { useMemo } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { LogOut, Moon, Sun } from 'lucide-react';
+import { LogOut } from 'lucide-react';
 import LiquidGlassExpandableSidebar from '../ui/liquid-glass-expandable-sidebar.jsx';
+import ThemeSwitcher from '../ui/theme-switcher.jsx';
 import { useTheme } from '../../context/ThemeContext.jsx';
 import { getInitials, resolveActiveId, roleLabels, roleNavigation } from './appNavigation.jsx';
 
@@ -14,21 +15,13 @@ const GLASS = {
 
 function RailFooter({ onLogout }) {
   const { theme, setTheme } = useTheme();
-  const isDark = theme === 'dark';
-  const themeLabel = isDark ? 'Switch to light mode' : 'Switch to dark mode';
 
   return (
     <div className="app-rail-footer">
-      <button
-        type="button"
-        className="app-rail-action"
-        onClick={() => setTheme(isDark ? 'light' : 'dark')}
-        aria-label={themeLabel}
-        title={themeLabel}
-      >
-        {isDark ? <Sun aria-hidden="true" /> : <Moon aria-hidden="true" />}
-        <span className="gn-sidebar-label">{isDark ? 'Light mode' : 'Dark mode'}</span>
-      </button>
+      <div className="app-rail-theme">
+        <span className="app-rail-theme-label gn-sidebar-label">Theme</span>
+        <ThemeSwitcher value={theme} onChange={setTheme} />
+      </div>
       <button
         type="button"
         className="app-rail-action app-rail-action-danger"
@@ -55,7 +48,7 @@ export default function AppSidebar({
 }) {
   const location = useLocation();
   const navigate = useNavigate();
-  const { theme } = useTheme();
+  const { resolvedTheme } = useTheme();
   const config = roleNavigation[role] ?? roleNavigation.student;
   const labels = roleLabels[role] ?? roleLabels.student;
 
@@ -125,7 +118,7 @@ export default function AppSidebar({
         account={account}
         expanded={mobileOpen || expanded}
         onNavigate={handleNavigate}
-        theme={theme}
+        theme={resolvedTheme}
         glass={GLASS}
         selectionLight={1}
         footer={<RailFooter onLogout={onLogout} />}
