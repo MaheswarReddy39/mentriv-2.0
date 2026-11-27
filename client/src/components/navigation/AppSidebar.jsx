@@ -7,10 +7,10 @@ import { useTheme } from '../../context/ThemeContext.jsx';
 import { getInitials, resolveActiveId, roleLabels, roleNavigation } from './appNavigation.jsx';
 
 const GLASS = {
-  blur: 4,
-  edge: 0.85,
-  distortion: 18,
-  saturation: 1.35,
+  blur: 0,
+  edge: 0,
+  distortion: 0,
+  saturation: 1,
 };
 
 function RailFooter({ onLogout }) {

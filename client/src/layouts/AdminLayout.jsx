@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { Menu, X } from 'lucide-react';
 import AppSidebar from '../components/navigation/AppSidebar.jsx';
+import AccountMenu from '../components/navigation/AccountMenu.jsx';
 import ConfirmDialog from '../components/common/ConfirmDialog.jsx';
 import useAuth from '../hooks/useAuth.js';
 
@@ -67,6 +68,7 @@ export default function AdminLayout() {
           >
             {menuOpen ? <X aria-hidden="true" /> : <Menu aria-hidden="true" />}
           </button>
+          <AccountMenu onLogout={() => setLogoutOpen(true)} role="admin" user={user} />
         </header>
         <main style={{ padding: 'var(--space-5)', maxWidth: 'var(--container-xl)', margin: '0 auto' }}>
           <Outlet />

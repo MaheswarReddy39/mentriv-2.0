@@ -57,52 +57,6 @@
   caret-color: var(--accent-strong);
 }
 
-/* ---------- Toasts ---------- */
-.toast {
-  position: relative;
-  overflow: hidden;
-}
-
-.toast-success { --toast-accent: var(--teal); }
-.toast-error { --toast-accent: var(--coral-dark); }
-.toast-warning { --toast-accent: var(--amber); }
-.toast-info { --toast-accent: var(--indigo); }
-
-@keyframes toastProgress {
-  from { transform: scaleX(1); }
-  to { transform: scaleX(0); }
-}
-
-.toast-progress {
-  position: absolute;
-  right: 0;
-  bottom: 0;
-  left: 0;
-  height: 2px;
-  border-radius: 0 0 var(--radius-control) var(--radius-control);
-  background: var(--toast-accent, var(--accent-strong));
-  opacity: 0.45;
-  transform-origin: left center;
-  animation-name: toastProgress;
-  animation-timing-function: linear;
-  animation-fill-mode: forwards;
-  pointer-events: none;
-  transition: opacity 160ms linear;
-}
-
-.toast:not(.toast-exit):hover .toast-progress {
-  opacity: 0.7;
-}
-
-.toast-exit {
-  pointer-events: none;
-}
-
-.toast-exit .toast-progress {
-  opacity: 0;
-  transition: opacity 120ms linear;
-}
-
 /* ---------- Modals ---------- */
 @keyframes overlayOut {
   to { opacity: 0; }

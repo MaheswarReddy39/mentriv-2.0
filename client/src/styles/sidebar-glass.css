@@ -1,5 +1,5 @@
 /* ============================================================
-   Liquid glass app rail — shared by Student, Teacher and Admin
+   App rail — shared by Student, Teacher and Admin
    ============================================================ */
 
 .app-shell {
@@ -38,24 +38,13 @@
   --gn-ring: var(--color-primary);
 }
 
-/* A restrained wash behind the glass so the material has something to bend. */
-.app-rail::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  pointer-events: none;
-  background:
-    radial-gradient(92% 54% at 24% 4%, color-mix(in srgb, var(--indigo) 14%, transparent), transparent 72%),
-    radial-gradient(84% 50% at 88% 98%, color-mix(in srgb, var(--coral) 12%, transparent), transparent 74%),
-    radial-gradient(72% 44% at 46% 54%, color-mix(in srgb, var(--teal) 8%, transparent), transparent 76%);
-}
-
-[data-theme='dark'] .app-rail::before {
-  background:
-    radial-gradient(92% 54% at 24% 4%, color-mix(in srgb, var(--indigo) 24%, transparent), transparent 72%),
-    radial-gradient(84% 50% at 88% 98%, color-mix(in srgb, var(--coral) 18%, transparent), transparent 74%),
-    radial-gradient(72% 44% at 46% 54%, color-mix(in srgb, var(--teal) 12%, transparent), transparent 76%);
+/* Flat rail: solid surface, no glass material, refraction or backdrop wash. */
+.app-rail .gn-sidebar-surface {
+  background: var(--surface);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  mask-image: none;
+  box-shadow: none;
 }
 
 .app-rail-monogram {
